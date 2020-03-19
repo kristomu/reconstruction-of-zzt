@@ -36,21 +36,20 @@ interface
 	procedure KeysUpdateModifiers;
 
 implementation
-uses Dos;
 
 procedure KeysUpdateModifiers;
+	{Disabled in Linux. Fix later. For now, just sets everything to zero.}
 	var
-		regs: Registers;
+		keystatus: byte;
 	begin
-		regs.AH := $02;
-		Intr($16, regs);
-		KeysRightShiftHeld := (regs.AL mod 2) = 1;
-		KeysLeftShiftHeld := ((regs.AL div 2) mod 2) = 1;
-		KeysCtrlHeld := ((regs.AL div 4) mod 2) = 1;
-		KeysAltHeld := ((regs.AL div 8) mod 2) = 1;
-		KeysNumLockHeld := ((regs.AL div 32) mod 2) = 1;
+		{keystatus := Mem[0:$417];}
+		keystatus := 0;
+		KeysRightShiftHeld := (keystatus mod 2) = 1;
+		KeysLeftShiftHeld := ((keystatus div 2) mod 2) = 1;
+		KeysCtrlHeld := ((keystatus div 4) mod 2) = 1;
+		KeysAltHeld := ((keystatus div 8) mod 2) = 1;
+		KeysNumLockHeld := ((keystatus div 32) mod 2) = 1;
 		KeysShiftHeld := KeysRightShiftHeld or KeysLeftShiftHeld;
 	end;
-
 begin
 end.
