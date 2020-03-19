@@ -25,7 +25,6 @@ access is hard, and mouse and joystick support for similar reasons.
 
 ### Known bugs
 
-- Modifier keys (Shift, Ctrl, Alt...) don't work.
 - Positioning is off on certain terminals (e.g. ssh, xterm).
 - Characters look horrible on most terminals.
 - Moving the player around is still choppy and hard.

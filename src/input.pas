@@ -53,6 +53,10 @@ interface
 		KEY_DELETE = #211;
 		KEY_HOME = #212;
 		KEY_END = #213;
+		KEY_SHIFT_UP = #193;
+		KEY_SHIFT_DOWN = #194;
+		KEY_SHIFT_LEFT = #196;
+		KEY_SHIFT_RIGHT = #195;
 	var
 		InputDeltaX, InputDeltaY: integer;
 		InputShiftPressed: boolean;
@@ -70,7 +74,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Crt, Keys, Sounds;
+uses Dos, Crt, Sounds;
 
 const
 	PORT_JOYSTICK = $0201;
@@ -102,33 +106,38 @@ procedure InputUpdate;
 				InputKeyBuffer := ''
 			else
 				InputKeyBuffer := Copy(InputKeyBuffer, Length(InputKeyBuffer) - 1, 1);
+			{ If the player pressed SHIFT+arrow, set 
+			  InputShiftPressed.}
+
+			InputShiftPressed := False;
 
 			case InputKeyPressed of
-				KEY_UP, '8': begin
+				KEY_SHIFT_UP, KEY_SHIFT_DOWN,
+				KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT: begin
+					InputShiftPressed := True;
+				end;
+			end;
+
+			case InputKeyPressed of
+				KEY_UP, KEY_SHIFT_UP, '8': begin
 					InputDeltaX := 0;
 					InputDeltaY := -1;
 				end;
-				KEY_LEFT, '4': begin
+				KEY_LEFT, KEY_SHIFT_LEFT, '4': begin
 					InputDeltaX := -1;
 					InputDeltaY := 0;
 				end;
-				KEY_RIGHT, '6': begin
+				KEY_RIGHT, KEY_SHIFT_RIGHT, '6': begin
 					InputDeltaX := 1;
 					InputDeltaY := 0;
 				end;
-				KEY_DOWN, '2': begin
+				KEY_DOWN, KEY_SHIFT_DOWN, '2': begin
 					InputDeltaX := 0;
 					InputDeltaY := 1;
 				end;
 			end;
 		end else begin
 			InputKeyPressed := #0;
-		end;
-
-		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-			{ keyboard movement }
-			KeysUpdateModifiers;
-			InputShiftPressed := KeysShiftHeld;
 		end;
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
