@@ -77,7 +77,6 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 			Write(cp437[ord(C)]);
 			offset := offset + 1;
 		end;
-		{Write(text);}
 	end;
 
 procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
