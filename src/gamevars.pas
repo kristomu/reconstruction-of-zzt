@@ -25,6 +25,10 @@
 
 unit GameVars;
 
+{Every record that is to be saved must be packed; otherwise, Pascal may waste
+extra space and make incompatible records, which then makes board and game
+files incompatible as well.}
+
 interface
 	const
 		MAX_STAT = 150;
@@ -40,11 +44,11 @@ interface
 		TORCH_DIST_SQR = 50;
 	type
 		TString50 = string[50];
-		TCoord = record
+		TCoord = packed record
 			X: integer;
 			Y: integer;
 		end;
-		TTile = record
+		TTile = packed record
 			Element: byte;
 			Color: byte;
 		end;
@@ -76,7 +80,13 @@ interface
 			ParamTextName: string[20];
 			ScoreValue: integer;
 		end;
-		TStat = record
+		{ Since pointers are 8 bytes on Linux, we have to rearrange
+		  things in the stat structure to make room. Fortunately, we
+		  have eight bytes of padding, and the Data structure is never
+		  used in saved games or worlds, so we can simply move the
+		  pointer all the way to the end. It won't be that simple if we
+		  ever try to support Super ZZT, though... }
+		TStat = packed record
 			X, Y: byte;
 			StepX, StepY: integer;
 			Cycle: integer;
@@ -84,16 +94,16 @@ interface
 			Follower: integer;
 			Leader: integer;
 			Under: TTile;
-			Data: ^string;
+			unk1: array[0 .. 3] of byte;
 			DataPos: integer;
 			DataLen: integer;
-			unk1, unk2: pointer;
+			Data: ^string;
 		end;
-		TRleTile = record
+		TRleTile = packed record
 			Count: byte;
 			Tile: TTile;
 		end;
-		TBoardInfo = record
+		TBoardInfo = packed record
 			MaxShots: byte;
 			IsDark: boolean;
 			NeighborBoards: array[0 .. 3] of byte;
@@ -104,7 +114,7 @@ interface
 			TimeLimitSec: integer;
 			unk1: array[70 .. 85] of byte;
 		end;
-		TWorldInfo = record
+		TWorldInfo = packed record
 			Ammo: integer;
 			Gems: integer;
 			Keys: array [1..7] of boolean;
@@ -122,25 +132,25 @@ interface
 			IsSave: boolean;
 			unkPad: array[0 .. 13] of byte;
 		end;
-		TEditorStatSetting = record
+		TEditorStatSetting = packed record
 			P1, P2, P3: byte;
 			StepX, StepY: integer;
 		end;
-		TBoard = record
+		TBoard = packed record
 			Name: TString50;
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
 			Info: TBoardInfo;      
 		end;
-		TWorld = record
+		TWorld = packed record
 			BoardCount: integer;
 			BoardData: array[0 .. MAX_BOARD] of pointer;
 			BoardLen: array[0 .. MAX_BOARD] of integer;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
-		THighScoreEntry = record
+		THighScoreEntry = packed record
 			Name: string[50];
 			Score: integer;
 		end;
