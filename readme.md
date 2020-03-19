@@ -26,10 +26,12 @@ access is hard, and mouse and joystick support for similar reasons.
 ### Known bugs
 
 - Positioning is off on certain terminals (e.g. ssh, xterm).
-- Characters look horrible on most terminals.
 - Moving the player around is still choppy and hard.
 - Scroll furling/unfurling doesn't render properly (missing VideoMove)
 - Games start on the title screen instead of the specified first board.
+- Trying to create an object leads to a segfault.
+- Escaping out of a scroll moves the whole screen one line up.
+- Cursor is always shown, even when it's not desired.
 
 ### Suspected bugs
 
