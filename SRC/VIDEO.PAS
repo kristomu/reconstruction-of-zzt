@@ -195,16 +195,17 @@ procedure VideoSetBorderColor(value: integer);
 	begin
 	end;
 
+{ This procedure is intended to quickly move text data from a spare buffer
+  onto the main display buffer. Since Linux doesn't allow direct access to
+  B800:0 (or has a concept of this in protected mode), it can't work. I've
+  disabled the procedure for now; I'll have to find a way to make it work,
+  later. Probably either by just redrawing whatever was obscured, or I may
+  use something like ncurses windows or a manual double buffer. 
+
+  The procedudure is intended to move the line from (x,y) to (x+chars, y)
+  to video memory (active buffer) if toVideo is true, or from it if false. }
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
-	var
-		offset: integer;
 	begin
-		offset := (y * VideoColumns + x) * 2;
-		VideoWriteTextColor(0, 0, 0, '');
-		if toVideo then
-			Move(data^, Ptr(VideoTextSegment, offset)^, chars * 2)
-		else
-			Move(Ptr(VideoTextSegment, offset)^, data^, chars * 2);
 	end;
 
 

@@ -146,7 +146,7 @@ procedure GenerateTransitionTable;
 
 procedure AdvancePointer(var address: pointer; count: integer);
 	begin
-		address := Ptr(Seg(address^), Ofs(address^) + count);
+		address := address + count;
 	end;
 
 procedure BoardClose;
@@ -1710,7 +1710,7 @@ procedure GamePrintRegisterMessage;
 				isReading := true;
 				while (IOResult = 0) and isReading do begin
 					BlockRead(f, s, 1);
-					strPtr := Ptr(Seg(s), Ofs(s) + 1);
+					strPtr := @s + 1;
 					if Length(s) = 0 then begin
 						Dec(color);
 					end else begin

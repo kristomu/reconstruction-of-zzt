@@ -50,7 +50,7 @@ procedure OopReadChar(statId: integer; var position: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
-				Move(Ptr(Seg(Data^), Ofs(Data^) + position)^, OopChar, 1);
+				Move((Data + position)^, OopChar, 1);
 				Inc(position);
 			end else begin
 				OopChar := #0
