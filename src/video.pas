@@ -34,13 +34,14 @@ interface
 		PORT_CGA_PALETTE = $03D9;
 	var
 		VideoMonochrome: boolean;
+		cp437: array[0..255] of String = (' ', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼', '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼', ' ', '!', '"', '#', '$', '%', '&', '''', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ');
 	function VideoConfigure: boolean;
 	procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
 	procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoToggleEGAMode(EGA: Boolean);
 	procedure VideoInstall(columns, borderColor: integer);
-	procedure VideoWriteTextNaive(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
@@ -56,10 +57,10 @@ var
 	VideoTextPointer: pointer;
 	VideoCursorVisible: boolean;
 
-procedure VideoWriteTextNaive(x, y, color: byte; text: TVideoLine);
-	{ The procedure could perhaps be replaced with a write to segment
-	  VideoTextSegment if performance is of the essence. See
-          http://www.shikadi.net/moddingwiki/B800_Text }
+procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
+	var
+		offset: Integer = 0;
+		C: Char;
 
 	begin
 		GotoXY(x+1, y+1);
@@ -68,12 +69,20 @@ procedure VideoWriteTextNaive(x, y, color: byte; text: TVideoLine);
 		else
 			TextColor(color and $F);
 		TextBackground(color shr 4);
-		Write(text);
+		{ Hack from https://stackoverflow.com/a/35140822 
+		  A better solution will have to move away from Crt altogether.}
+		for C in text do begin
+			GotoXY(1, 1);
+			GotoXY(x+offset+1, y+1);
+			Write(cp437[ord(C)]);
+			offset := offset + 1;
+		end;
+		{Write(text);}
 	end;
 
 procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
 	begin
-		VideoWriteTextNaive(x, y, color, text);
+		VideoWriteTextUTF8(x, y, color, text);
 	end;
 
 procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
@@ -89,7 +98,7 @@ procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 			else
 				color := $70;
 		end;
-		VideoWriteTextNaive(x, y, color, text);
+		VideoWriteTextUTF8(x, y, color, text);
 	end;
 
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
