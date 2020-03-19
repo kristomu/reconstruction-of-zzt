@@ -100,21 +100,11 @@ procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 			VideoWriteTextColor(x, y, color, text);
 	end;
 
-{ Yes, this sets EGA mode (350 scan lines) no matter whether EGA is true or
-  false. It seems to be an oversight by Tim: he used the same assembler code
-  in VideoUninstall and VideoInstall.
-  The proper modes are:
-	AX = $1200: 200 scan lines
-	AX = $1201: 350 scan lines
-	AX = $1202: 400 scan lines
-  (INTERRUP.A, Ralf Brown.) }
+{ Does nothing in Linux. The point in DOS is to change the charset from 9x16 to
+8x14. It will have to be done in some other way in Linux. I'm keeping the empty
+function as reminder to myself. TODO }
 procedure VideoToggleEGAMode(EGA: Boolean);
-	var
-		regs: Registers;
 	begin
-                regs.AX := $1201;
-                regs.BL := $30;
-                Intr($10, regs);
 	end;
 
 function VideoConfigure: boolean;
@@ -187,31 +177,22 @@ procedure VideoUninstall;
 		ClrScr;
 	end;
 
-procedure VideoSetCursorShape(value: integer);
-	var
-		regs: Registers;
-	begin
-		regs.AH := $01;
-		regs.CX := value;
-		Intr($10, regs);
-	end;
-
+{ These do nothing in Linux, but are meant to show or hide the terminal cursor.
+It will have to be done in some other way. TODO }
 procedure VideoShowCursor;
 	begin
-		VideoSetCursorShape($0607);
 		VideoCursorVisible := true;
 	end;
 
 procedure VideoHideCursor;
 	begin
-		VideoSetCursorShape($2000);
 		VideoCursorVisible := false;
 	end;
 
+{ This does nothing in Linux either. I'm keeping the empty function in case
+someone who makes e.g. an SDL version would like to implement it. }
 procedure VideoSetBorderColor(value: integer);
 	begin
-		Port[PORT_CGA_PALETTE] := value;
-		VideoBorderColor := value;
 	end;
 
 procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
