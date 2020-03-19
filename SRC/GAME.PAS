@@ -1140,7 +1140,9 @@ procedure GameUpdateSidebar;
 				VideoWriteText(65, 15, $1F, ' Be noisy');
 
 			if DebugEnabled then begin
-				Str(MemAvail, numStr);
+				{ TODO: Replace with some interesting stat 
+				  on Linux.}
+				numStr := 'lots';
 				VideoWriteText(69, 4, $1E, 'm' + numStr + ' ');
 			end;
 		end;
