@@ -55,7 +55,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos;
+uses Crt, Dos, Sysutils;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
@@ -153,6 +153,13 @@ procedure SoundCheckTimeIntr;
 		SoundTimeCheckHsec := Integer(hSec);
 	end;
 
+{ This procedure has to be changed to take into account VERY FAST computers.
+  Hopefully in a way that still works in DOS.
+  Maybe a phase locked loop-ish solution where the procedure sleeps a certain
+  number of milliseconds if the elapsed time since last check is below say,
+  half a tick. Or just delaying until the end of the tick period if we get here
+  early. }
+
 function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 	var
 		hour, minute, sec, hSec: word;
@@ -178,11 +185,15 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 			counter := hSecsTotal;
 		end else begin
 			SoundHasTimeElapsed := false;
+			{ Duration seems to be in units of 100th seconds,
+			  possibly influenced by the game speed slider.
+			  PLL later; for now, this ugly hack. }
+			Sleep(20);
 		end;
 	end;
 
 procedure SoundTimerHandler;
-	interrupt;
+	{interrupt;}
 	begin
 		Inc(TimerTicks);
 		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 0) then begin
@@ -215,9 +226,10 @@ procedure SoundTimerHandler;
 		end;
 	end;
 
+
 procedure SoundUninstall;
 	begin
-		SetIntVec($1C, SoundOldVector);
+		{SetIntVec($1C, SoundOldVector);}
 	end;
 
 function SoundParse(input: string): string;
@@ -336,6 +348,7 @@ function SoundParse(input: string): string;
 				'4'..'9': begin
 					output := output + Chr(Ord(input[1]) + $F0 - Ord('0')) + Chr(noteDuration);
 					AdvanceInput;
+				end;
 			else AdvanceInput end;
 		end;
 		SoundParse := output;
@@ -345,16 +358,17 @@ begin
 	SoundInitFreqTable;
 	SoundInitDrumTable;
 	SoundTimeCheckCounter := 36;
-	UseSystemTimeForElapsed := false;
+	UseSystemTimeForElapsed := true;
 	TimerTicks := 0;
 	SoundTimeCheckHsec := 0;
-	SoundEnabled := true;
+	SoundEnabled := false;
 	SoundBlockQueueing := false;
 	SoundClearQueue;
 	SoundDurationMultiplier := 1;
 	SoundIsPlaying := false;
 	TimerTicks := 0;
 	SoundNewVector := @SoundTimerHandler;
-	GetIntVec($1C, SoundOldVector);
-	SetIntVec($1C, SoundNewVector);
+	{ Disabled in non-DOS. Fix later.}
+	{GetIntVec($1C, SoundOldVector);
+	SetIntVec($1C, SoundNewVector);}
 end.
