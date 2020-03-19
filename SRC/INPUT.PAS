@@ -81,120 +81,9 @@ var
 	JoystickYMin, JoystickYCenter, JoystickYMax: integer;
 	InputKeyBuffer: string;
 
-function InputIsJoystickButtonPressed: boolean;
-	begin
-		InputIsJoystickButtonPressed := (Port[PORT_JOYSTICK] and $30) <> $30;
-	end;
-
-procedure InputJoystickGetCoords(var x, y: integer);
-	var
-		startTicks: word;
-	begin
-		x := 0;
-		y := 0;
-		startTicks := TimerTicks;
-		Port[PORT_JOYSTICK] := 0;
-		repeat
-			x := x + (Port[PORT_JOYSTICK] and 1);
-			y := y + (Port[PORT_JOYSTICK] and 2);
-		until ((Port[PORT_JOYSTICK] and 3) = 0) or ((TimerTicks - startTicks) > 3);
-		y := y div 2;
-		if (TimerTicks - startTicks) > 3 then begin
-			x := -1;
-			y := -1;
-		end;
-	end;
-
-function InputCalibrateJoystickPosition(msg: String; var x, y: integer): boolean;
-	var
-		charTyped: char;
-	begin
-		charTyped := #0;
-		Write(msg);
-		repeat
-			InputJoystickGetCoords(x, y);
-			if KeyPressed then
-				charTyped := ReadKey;
-		until (charTyped = #27) or (InputIsJoystickButtonPressed);
-		Delay(25);
-
-		if charTyped <> #27 then begin
-			InputCalibrateJoystickPosition := true;
-			repeat
-				if KeyPressed then charTyped := ReadKey;
-			until (not InputIsJoystickButtonPressed) or (charTyped = #27);
-		end;
-		Delay(25);
-
-		if charTyped = #27 then
-			InputCalibrateJoystickPosition := false;
-		WriteLn;
-		WriteLn;
-	end;
-
-function InputInitJoystick: boolean;
-	var
-		joyX, joyY: integer;
-	begin
-		InputJoystickGetCoords(joyX, joyY);
-		if (joyX > 0) and (joyY > 0) then  begin
-			JoystickXInitial := joyX;
-			JoystickYInitial := joyY;
-			InputInitJoystick := true;
-		end else begin
-			InputInitJoystick := false;
-		end;
-	end;
-
-procedure InputCalibrateJoystick;
-	var
-		charTyped: char;
-	label CalibrationStart;
-	begin
-	CalibrationStart:
-		InputJoystickEnabled := false;
-		WriteLn;
-		WriteLn('  Joystick calibration:  Press ESCAPE to abort.');
-		WriteLn;
-
-		if not InputCalibrateJoystickPosition(
-			'  Center joystick and press button: ',
-			JoystickXCenter, JoystickYCenter
-		) then exit;
-		if not InputCalibrateJoystickPosition(
-			'  Move joystick to UPPER LEFT corner and press button: ',
-			JoystickXMin, JoystickYMin
-		) then exit;
-		if not InputCalibrateJoystickPosition(
-			'  Move joystick to LOWER RIGHT corner and press button: ',
-			JoystickXMax, JoystickYMax
-		) then exit;
-
-		JoystickXMin := JoystickXMin - JoystickXCenter;
-		JoystickXMax := JoystickXMax - JoystickXCenter;
-		JoystickYMin := JoystickYMin - JoystickYCenter;
-		JoystickYMax := JoystickYMax - JoystickYCenter;
-
-		{ if calibration valid range -> successful }
-		if (JoystickXMin < 1) and (JoystickXMax > 1)
-			and (JoystickYMin < 1) and (JoystickYMax > 1) then
-		begin
-			InputJoystickEnabled := true;
-		end else begin
-			Write('  Calibration failed - try again (y/N)? ');
-			repeat until KeyPressed;
-			charTyped := ReadKey;
-			WriteLn;
-			if UpCase(charTyped) = 'Y' then
-				goto CalibrationStart;
-		end;
-	end;
+{ Everything joystick is right out in non-DOS. Ditto mouse. }
 
 procedure InputUpdate;
-	var
-		joyXraw, joyYraw: integer;
-		joyX, joyY: integer;
-		regs: Registers;
 	begin
 		InputDeltaX := 0;
 		InputDeltaY := 0;
@@ -240,84 +129,6 @@ procedure InputUpdate;
 			{ keyboard movement }
 			KeysUpdateModifiers;
 			InputShiftPressed := KeysShiftHeld;
-		end else if InputJoystickEnabled then begin
-			InputJoystickGetCoords(joyXraw, joyYraw);
-
-			joyX := joyXraw - JoystickXCenter;
-			joyY := joyYraw - JoystickYCenter;
-
-			if Abs(joyX) > Abs(joyY) then begin
-				if joyX < (JoystickXMin div 2) then begin
-					InputDeltaX := -1;
-					InputJoystickMoved := true;
-				end else if joyX > (JoystickXMax div 2) then begin
-					InputDeltaX := 1;
-					InputJoystickMoved := true;
-				end;
-			end else begin
-				if joyY < (JoystickYMin div 2) then begin
-					InputDeltaY := -1;
-					InputJoystickMoved := true;
-				end else if joyY > (JoystickYMax div 2) then begin
-					InputDeltaY := 1;
-					InputJoystickMoved := true;
-				end;
-			end;
-
-			if InputIsJoystickButtonPressed then begin
-				if not InputShiftAccepted then
-					InputShiftPressed := true;
-			end else begin
-				InputShiftAccepted := false;
-			end;
-		end else if InputMouseEnabled then begin
-			regs.AX := $0B;
-			Intr($33, regs);
-			InputMouseX := InputMouseX + Integer(regs.CX);
-			InputMouseY := InputMouseY + Integer(regs.DX);
-
-			if Abs(InputMouseX) > Abs(InputMouseY) then begin
-				if Abs(InputMouseX) > InputMouseActivationX then begin
-					if InputMouseX > 0 then
-						InputDeltaX := 1
-					else
-						InputDeltaX := -1;
-					InputMouseX := 0;
-				end;
-			end else if Abs(InputMouseY) > Abs(InputMouseX) then begin
-				if Abs(InputMouseY) > InputMouseActivationY then begin
-					if InputMouseY > 0 then
-						InputDeltaY := 1
-					else
-						InputDeltaY := -1;
-					InputMouseY := 0;
-				end;
-			end;
-
-			regs.AX := $03;
-			Intr($33, regs);
-
-			{ left mouse button }
-			if (regs.BX and 1) <> 0 then begin
-				if not InputShiftAccepted then
-					InputShiftPressed := true;
-			end else begin
-				InputShiftAccepted := false;
-			end;
-
-			{ right/middle mouse button }
-			if (regs.BX and 6) <> 0 then begin
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
-					InputMouseButtonX := InputDeltaX;
-					InputMouseButtonY := InputDeltaY;
-				end else begin
-					InputDeltaX := InputMouseButtonX;
-					InputDeltaY := InputMouseButtonY;
-				end;
-			end else begin
-				InputMouseButtonX := 0;
-				InputMouseButtonY := 0;
-			end;
 		end;
 
 		if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
@@ -326,20 +137,10 @@ procedure InputUpdate;
 		end;
 	end;
 
-function InputInitMouse: boolean;
-	var
-		regs: Registers;
-	begin
-		regs.AX := 0;
-		Intr($33, regs);
-		InputInitMouse := (regs.AX = 0);
-		InputInitMouse := true;
-	end;
-
 procedure InputInitDevices;
 	begin
-		InputJoystickEnabled := InputInitJoystick;
-		InputMouseEnabled := InputInitMouse;
+		InputJoystickEnabled := False;
+		InputMouseEnabled := False;
 	end;
 
 function InputConfigure: boolean;
@@ -360,22 +161,11 @@ function InputConfigure: boolean;
 				repeat until KeyPressed;
 				charTyped := UpCase(ReadKey);
 			until (charTyped = 'K')
-				or (InputJoystickEnabled and (charTyped = 'J'))
-				or (InputMouseEnabled and (charTyped = 'M'))
 				or (charTyped = #27);
 			Writeln;
 
 			InputJoystickEnabled := false;
 			InputMouseEnabled := false;
-			case charTyped of
-				'J': begin
-					InputJoystickEnabled := true;
-					InputCalibrateJoystick;
-				end;
-				'M': begin
-					InputMouseEnabled := true;
-				end;
-			end;
 			Writeln;
 		end;
 		InputConfigure := charTyped <> #27;
