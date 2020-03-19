@@ -63,7 +63,6 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 		C: Char;
 
 	begin
-		GotoXY(x+1, y+1);
 		if color > $7F then
 			TextColor(color and $F + Blink)
 		else
@@ -77,6 +76,8 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 			Write(cp437[ord(C)]);
 			offset := offset + 1;
 		end;
+		if not VideoCursorVisible then
+			GotoXY(1, 1);
 	end;
 
 procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
