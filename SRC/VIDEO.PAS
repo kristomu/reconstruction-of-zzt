@@ -33,14 +33,14 @@ interface
 	const
 		PORT_CGA_PALETTE = $03D9;
 	var
-		VideoWriteText: TVideoWriteTextProc;
 		VideoMonochrome: boolean;
 	function VideoConfigure: boolean;
-	procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
-	procedure VideoWriteTextCO40(x, y, color: byte; text: TVideoLine);
-	procedure VideoWriteTextBW80(x, y, color: byte; text: TVideoLine);
-	procedure VideoWriteTextBW40(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
+	procedure VideoToggleEGAMode(EGA: Boolean);
 	procedure VideoInstall(columns, borderColor: integer);
+	procedure VideoWriteTextNaive(x, y, color: byte; text: TVideoLine);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
@@ -56,125 +56,27 @@ var
 	VideoTextPointer: pointer;
 	VideoCursorVisible: boolean;
 
-procedure VideoWriteTextCO80(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextNaive(x, y, color: byte; text: TVideoLine);
+	{ The procedure could perhaps be replaced with a write to segment
+	  VideoTextSegment if performance is of the essence. See
+          http://www.shikadi.net/moddingwiki/B800_Text }
+
 	begin
-		inline(
-			$1E/                 { PUSH DS }
-			$1E/                 { PUSH DS }
-			$8A/$86/y/           { MOV AL, byte ptr [BP + y] }
-			$B3/$50/             { MOV BL, 0x50 }
-			$F6/$E3/             { MUL BL }
-			$2B/$DB/             { SUB BX, BX }
-			$8A/$9E/x/           { MOV BL, byte ptr [BP + x] }
-			$03/$C3/             { ADD AX, BX }
-			$03/$C0/             { ADD AX, AX }
-			$8B/$F8/             { MOV DI, AX }
-			$BE/$00/$00/         { MOV SI, 0x0 }
-			$8A/$BE/color/       { MOV BH, byte ptr [BP + color] }
-			$8A/$8E/text/        { MOV CL, byte ptr [BP + text] }
-			$22/$C9/             { AND CL, CL }
-			$74/$3E/             { JZ label_0084 }
-			$2B/$C0/             { SUB AX, AX }
-			$8E/$D8/             { MOV DS, AX }
-			$A0/$0449/           { MOV AL, [BiosBDA.VideoMode] }
-			$1F/                 { POP DS }
-			$2C/$07/             { SUB AL, 0x7 }
-			$74/$22/             { JZ label_0074 }
-			$BA/$B800/           { MOV DX, 0xB800 }
-			$8E/$DA/             { MOV DS, DX }
-			$BA/$03DA/           { MOV DX, 0x03DA }
-			{ label_005a }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			{ label_005f }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$75/$FB/             { JNZ label_005f }
-			$FA/                 { CLI }
-			{ label_0065 }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$74/$FB/             { JZ label_0065 }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$EA/             { LOOP label_005a }
-			$2A/$C0/             { SUB AL, AL }
-			$74/$10/             { JZ label_0084 }
-			{ label_0074 }
-			$BA/$B000/           { MOV DX, 0xB000 }
-			$8E/$DA/             { MOV DS, DX }
-			{ label_0079 }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$F5/             { LOOP label_0079 }
-			{ label_0084 }
-			$1F/                 { POP DS }
-			$FB                  { STI }
-		);
+		GotoXY(x+1, y+1);
+		if color > $7F then
+			TextColor(color and $F + Blink)
+		else
+			TextColor(color and $F);
+		TextBackground(color shr 4);
+		Write(text);
 	end;
 
-procedure VideoWriteTextCO40(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
 	begin
-		inline(
-			$1E/                 { PUSH DS }
-			$1E/                 { PUSH DS }
-			$8A/$86/y/           { MOV AL, byte ptr [BP + y] }
-			$B3/$28/             { MOV BL, 0x28 }
-			$F6/$E3/             { MUL BL }
-			$2B/$DB/             { SUB BX, BX }
-			$8A/$9E/x/           { MOV BL, byte ptr [BP + x] }
-			$03/$C3/             { ADD AX, BX }
-			$03/$C0/             { ADD AX, AX }
-			$8B/$F8/             { MOV DI, AX }
-			$BE/$00/$00/         { MOV SI, 0x0 }
-			$8A/$BE/color/       { MOV BH, byte ptr [BP + color] }
-			$8A/$8E/text/        { MOV CL, byte ptr [BP + text] }
-			$22/$C9/             { AND CL, CL }
-			$74/$3E/             { JZ label_0084 }
-			$2B/$C0/             { SUB AX, AX }
-			$8E/$D8/             { MOV DS, AX }
-			$A0/$0449/           { MOV AL, [BiosBDA.VideoMode] }
-			$1F/                 { POP DS }
-			$2C/$07/             { SUB AL, 0x7 }
-			$74/$22/             { JZ label_0074 }
-			$BA/$B800/           { MOV DX, 0xB800 }
-			$8E/$DA/             { MOV DS, DX }
-			$BA/$03DA/           { MOV DX, 0x03DA }
-			{ label_005a }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			{ label_005f }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$75/$FB/             { JNZ label_005f }
-			$FA/                 { CLI }
-			{ label_0065 }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$74/$FB/             { JZ label_0065 }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$EA/             { LOOP label_005a }
-			$2A/$C0/             { SUB AL, AL }
-			$74/$10/             { JZ label_0084 }
-			{ label_0074 }
-			$BA/$B000/           { MOV DX, 0xB000 }
-			$8E/$DA/             { MOV DS, DX }
-			{ label_0079 }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$F5/             { LOOP label_0079 }
-			{ label_0084 }
-			$1F/                 { POP DS }
-			$FB                  { STI }
-		);
+		VideoWriteTextNaive(x, y, color, text);
 	end;
 
-procedure VideoWriteTextBW80(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 	begin
 		if (color and $08) = $08 then begin
 			if (color and $F0) = 0 then
@@ -187,131 +89,32 @@ procedure VideoWriteTextBW80(x, y, color: byte; text: TVideoLine);
 			else
 				color := $70;
 		end;
-		inline(
-			$1E/                 { PUSH DS }
-			$1E/                 { PUSH DS }
-			$8A/$86/y/           { MOV AL, byte ptr [BP + y] }
-			$B3/$50/             { MOV BL, 0x50 }
-			$F6/$E3/             { MUL BL }
-			$2B/$DB/             { SUB BX, BX }
-			$8A/$9E/x/           { MOV BL, byte ptr [BP + x] }
-			$03/$C3/             { ADD AX, BX }
-			$03/$C0/             { ADD AX, AX }
-			$8B/$F8/             { MOV DI, AX }
-			$BE/$00/$00/         { MOV SI, 0x0 }
-			$8A/$BE/color/       { MOV BH, byte ptr [BP + color] }
-			$8A/$8E/text/        { MOV CL, byte ptr [BP + text] }
-			$22/$C9/             { AND CL, CL }
-			$74/$3E/             { JZ label_0084 }
-			$2B/$C0/             { SUB AX, AX }
-			$8E/$D8/             { MOV DS, AX }
-			$A0/$0449/           { MOV AL, [BiosBDA.VideoMode] }
-			$1F/                 { POP DS }
-			$2C/$07/             { SUB AL, 0x7 }
-			$74/$22/             { JZ label_0074 }
-			$BA/$B800/           { MOV DX, 0xB800 }
-			$8E/$DA/             { MOV DS, DX }
-			$BA/$03DA/           { MOV DX, 0x03DA }
-			{ label_005a }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			{ label_005f }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$75/$FB/             { JNZ label_005f }
-			$FA/                 { CLI }
-			{ label_0065 }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$74/$FB/             { JZ label_0065 }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$EA/             { LOOP label_005a }
-			$2A/$C0/             { SUB AL, AL }
-			$74/$10/             { JZ label_0084 }
-			{ label_0074 }
-			$BA/$B000/           { MOV DX, 0xB000 }
-			$8E/$DA/             { MOV DS, DX }
-			{ label_0079 }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$F5/             { LOOP label_0079 }
-			{ label_0084 }
-			$1F/                 { POP DS }
-			$FB                  { STI }
-		);
+		VideoWriteTextNaive(x, y, color, text);
 	end;
 
-procedure VideoWriteTextBW40(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	begin
-		if (color and $08) = $08 then begin
-			if (color and $F0) = 0 then
-				color := $0F
-			else
-				color := $7F;
-		end else begin
-			if (color and $07) <> 0 then
-				color := $07
-			else
-				color := $70;
-		end;
-		inline(
-			$1E/                 { PUSH DS }
-			$1E/                 { PUSH DS }
-			$8A/$86/y/           { MOV AL, byte ptr [BP + y] }
-			$B3/$28/             { MOV BL, 0x28 }
-			$F6/$E3/             { MUL BL }
-			$2B/$DB/             { SUB BX, BX }
-			$8A/$9E/x/           { MOV BL, byte ptr [BP + x] }
-			$03/$C3/             { ADD AX, BX }
-			$03/$C0/             { ADD AX, AX }
-			$8B/$F8/             { MOV DI, AX }
-			$BE/$00/$00/         { MOV SI, 0x0 }
-			$8A/$BE/color/       { MOV BH, byte ptr [BP + color] }
-			$8A/$8E/text/        { MOV CL, byte ptr [BP + text] }
-			$22/$C9/             { AND CL, CL }
-			$74/$3E/             { JZ label_0084 }
-			$2B/$C0/             { SUB AX, AX }
-			$8E/$D8/             { MOV DS, AX }
-			$A0/$0449/           { MOV AL, [BiosBDA.VideoMode] }
-			$1F/                 { POP DS }
-			$2C/$07/             { SUB AL, 0x7 }
-			$74/$22/             { JZ label_0074 }
-			$BA/$B800/           { MOV DX, 0xB800 }
-			$8E/$DA/             { MOV DS, DX }
-			$BA/$03DA/           { MOV DX, 0x03DA }
-			{ label_005a }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			{ label_005f }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$75/$FB/             { JNZ label_005f }
-			$FA/                 { CLI }
-			{ label_0065 }
-			$EC/                 { IN AL, DX }
-			$A8/$01/             { TEST AL, 0x1 }
-			$74/$FB/             { JZ label_0065 }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$EA/             { LOOP label_005a }
-			$2A/$C0/             { SUB AL, AL }
-			$74/$10/             { JZ label_0084 }
-			{ label_0074 }
-			$BA/$B000/           { MOV DX, 0xB000 }
-			$8E/$DA/             { MOV DS, DX }
-			{ label_0079 }
-			$46/                 { INC SI }
-			$8A/$9A/text/        { MOV BL, byte ptr [BP + SI + text] }
-			$89/$1D/             { MOV word ptr [bufIdx], BX }
-			$47/$47/             { INC bufIdx x 2 }
-			$E2/$F5/             { LOOP label_0079 }
-			{ label_0084 }
-			$1F/                 { POP DS }
-			$FB                  { STI }
-		);
+		if VideoMonochrome then
+			VideoWriteTextBW(x, y, color, text)
+		else
+			VideoWriteTextColor(x, y, color, text);
+	end;
+
+{ Yes, this sets EGA mode (350 scan lines) no matter whether EGA is true or
+  false. It seems to be an oversight by Tim: he used the same assembler code
+  in VideoUninstall and VideoInstall.
+  The proper modes are:
+	AX = $1200: 200 scan lines
+	AX = $1201: 350 scan lines
+	AX = $1202: 400 scan lines
+  (INTERRUP.A, Ralf Brown.) }
+procedure VideoToggleEGAMode(EGA: Boolean);
+	var
+		regs: Registers;
+	begin
+                regs.AX := $1201;
+                regs.BL := $30;
+                Intr($10, regs);
 	end;
 
 function VideoConfigure: boolean;
@@ -320,7 +123,6 @@ function VideoConfigure: boolean;
 	begin
 		charTyped := ' ';
 		if LastMode = 7 then begin
-			VideoWriteText := VideoWriteTextBW80;
 			VideoMonochrome := true;
 		end else begin
 			Writeln;
@@ -339,12 +141,8 @@ function VideoConfigure: boolean;
 	end;
 
 procedure VideoInstall(columns, borderColor: integer);
-	var
-		regs: Registers;
 	begin
-		regs.AX := $1201;
-		regs.BL := $30;
-		Intr($10, regs);
+		VideoToggleEGAMode(True);
 
 		if not VideoMonochrome then
 			TextBackground(borderColor);
@@ -354,23 +152,18 @@ procedure VideoInstall(columns, borderColor: integer);
 			if LastMode in [0, 1, 2, 3] then begin
 				if columns = 80 then begin
 					TextMode(BW80);
-					VideoWriteText := VideoWriteTextBW80;
 				end else begin
 					TextMode(BW40);
-					VideoWriteText := VideoWriteTextBW40;
 				end;
 			end else begin
-				VideoWriteText := VideoWriteTextBW80;
 				TextMode(7);
 				VideoColumns := 80;
 			end;
 		end else begin
 			if VideoColumns = 80 then begin
 				TextMode(CO80);
-				VideoWriteText := VideoWriteTextCO80;
 			end else begin
 				TextMode(CO40);
-				VideoWriteText := VideoWriteTextCO40;
 			end;
 			if not VideoMonochrome then
 				TextBackground(borderColor);
@@ -382,12 +175,8 @@ procedure VideoInstall(columns, borderColor: integer);
 	end;
 
 procedure VideoUninstall;
-	var
-		regs: Registers;
 	begin
-		regs.AX := $1201;
-		regs.BL := $30;
-		Intr($10, regs);
+		VideoToggleEGAMode(False);
 		TextBackground(0);
 		VideoColumns := 80;
 		if VideoMonochrome then
@@ -430,7 +219,7 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 		offset: integer;
 	begin
 		offset := (y * VideoColumns + x) * 2;
-		VideoWriteTextCO80(0, 0, 0, '');
+		VideoWriteTextColor(0, 0, 0, '');
 		if toVideo then
 			Move(data^, Ptr(VideoTextSegment, offset)^, chars * 2)
 		else
@@ -441,7 +230,6 @@ procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 begin
 	VideoBorderColor := 0;
 	VideoColumns := 80;
-	VideoWriteText := VideoWriteTextBW80;
 	if LastMode = 7 then begin
 		VideoTextSegment := $B000;
 		VideoMonochrome := true;
