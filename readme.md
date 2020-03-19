@@ -15,3 +15,24 @@ features, at least to begin with, so that ZZT can work in a terminal.
 
 In particular, I'm likely going to disable sound because direct PC speaker
 access is hard, and mouse and joystick support for similar reasons.
+
+## Linux status
+
+### Known missing features
+
+- No joystick or mouse support.
+- No sound or music.
+
+### Known bugs
+
+- Modifier keys (Shift, Ctrl, Alt...) don't work.
+- Positioning is off on certain terminals (e.g. ssh, xterm).
+- Characters look horrible on most terminals.
+- Moving the player around is still choppy and hard.
+- Scroll furling/unfurling doesn't render properly (missing VideoMove)
+- Games start on the title screen instead of the specified first board.
+
+### Suspected bugs
+
+- Possible performance regressions involving SOUNDS timer
+- File I/O may not be working (needs testing)
