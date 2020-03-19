@@ -179,7 +179,6 @@ begin
 	SoundClearQueue;
 
 	VideoUninstall;
-	Port[PORT_CGA_PALETTE] := 0;
 	TextAttr := InitialTextAttr;
 	ClrScr;
 
