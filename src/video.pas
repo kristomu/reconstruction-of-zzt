@@ -57,27 +57,53 @@ var
 	VideoTextPointer: pointer;
 	VideoCursorVisible: boolean;
 
+{ The input x,y values are offset by 0, i.e. 0,0 is upper left. }
 procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 	var
 		offset: Integer = 0;
 		C: Char;
 
+		terminalWidth: Integer;
+		terminalHeight: Integer;
+
 	begin
+		{Get the terminal height and width to avoid printing 
+		 outside it.
+		 https://stackoverflow.com/questions/26776980 }
+
+		terminalWidth := WindMaxX - WindMinX + 1;
+		terminalHeight := WindMaxY - WindMinY + 1;
+
+		if y >= terminalHeight then Exit;
+
 		if color > $7F then
 			TextColor(color and $F + Blink)
 		else
 			TextColor(color and $F);
 		TextBackground(color shr 4);
+
 		{ Hack from https://stackoverflow.com/a/35140822 
 		  A better solution will have to move away from Crt altogether.}
 		for C in text do begin
+			if x+offset >= terminalWidth then Continue;
+
+			{ Since Crt believes we're outputting ASCII, it'll
+			  "helpfully" scroll the terminal if we output multi-
+			  char unicode while at the very lower right. There's
+			  no way to avoid this misfeature, so just don't print
+			  it in that case. }
+			if (y = terminalHeight-1) and 
+			   (x+offset+length(cp437[ord(C)]) >= terminalWidth) 
+				then Continue;
+
 			GotoXY(1, 1);
 			GotoXY(x+offset+1, y+1);
 			Write(cp437[ord(C)]);
 			offset := offset + 1;
 		end;
-		if not VideoCursorVisible then
-			GotoXY(1, 1);
+		{ Move the cursor out of the way of the playing field. }
+		if (not VideoCursorVisible) and (terminalWidth > 61) then
+			GotoXY(61, 1);
 	end;
 
 procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
