@@ -25,13 +25,18 @@ access is hard, and mouse and joystick support for similar reasons.
 
 ### Known bugs
 
-- Moving the player around by holding down a key is still choppy and hard.
 - Scroll furling doesn't render properly (missing VideoMove)
 - Trying to create an object leads to a segfault. (Editing existing objects works.)
 - Cursor is always shown, even when it's not desired.
 - Objects don't run when playing a world.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
+- Pressing H for Help in the editor hangs ZZT.
+
+### Known limitations
+
+- Crt really isn't made for Unicode output and so has strange corner cases (see above)
+- Even with the stdin-flushing fix, moving the player about by holding down a key is kinda janky. It probably can't be improved without going fully to ncurses or SDL.
 
 ### Suspected bugs
 
-- Possible performance regressions involving SOUNDS timer
+- Possible performance regressions involving SOUNDS timer.
