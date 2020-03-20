@@ -57,6 +57,7 @@ procedure GameConfigure;
 		unk1: integer;
 		joystickEnabled, mouseEnabled: boolean;
 		cfgFile: text;
+		bottomRow: integer;
 	begin
 		ParsingConfigFile := true;
 		EditorEnabled := true;
@@ -82,9 +83,14 @@ procedure GameConfigure;
 		joystickEnabled := InputJoystickEnabled;
 		mouseEnabled := InputMouseEnabled;
 
+		{ Define the bottom row of the 80x25 terminal layout, or
+		  the bottom of the screen if it's smaller. }
+		bottomRow := WindMaxY - WindMinY;
+		if bottomRow > 25 then bottomRow := 25;
+
 		ParsingConfigFile := false;
 
-		Window(1, 1, 80, 25);
+		Window(1, 1, 80, bottomRow+1);
 		TextBackground(Black);
 		ClrScr;
 		TextColor(White);
@@ -97,21 +103,23 @@ procedure GameConfigure;
 		else
 			Writeln('                                  Version  3.2');
 		Writeln('                            Created by Tim Sweeney');
+		TextColor(LightGray);
+		if bottomRow < 24 then Writeln('                        Best played in 80x25 or larger.');
 		GotoXY(1, 7);
 		TextColor(Blue);
 		Write('================================================================================');
-		GotoXY(1, 24);
+		GotoXY(1, bottomRow);
 		Write('================================================================================');
 		TextColor(White);
 		GotoXY(30, 7);
 		Write(' Game Configuration ');
-		GotoXY(1, 25);
+		GotoXY(1, bottomRow+1);
 		Write(' Copyright (c) 1991 Epic MegaGames                         Press ... to abort');
 		TextColor(Black);
 		TextBackground(LightGray);
-		GotoXY(66, 25);
+		GotoXY(66, bottomRow+1);
 		Write('ESC');
-		Window(1, 8, 80, 23);
+		Window(1, 8, 80, bottomRow-2);
 		TextColor(Yellow);
 		TextBackground(Black);
 		ClrScr;
@@ -123,7 +131,7 @@ procedure GameConfigure;
 			if not VideoConfigure then
 				GameTitleExitRequested := true;
 		end;
-		Window(1, 1, 80, 25);
+		Window(1, 1, 80, bottomRow+1);
 	end;
 
 begin
