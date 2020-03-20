@@ -25,7 +25,6 @@ access is hard, and mouse and joystick support for similar reasons.
 
 ### Known bugs
 
-- Positioning is off on certain terminals (e.g. ssh, xterm).
 - Moving the player around by holding down a key is still choppy and hard.
 - Scroll furling doesn't render properly (missing VideoMove)
 - Trying to create an object leads to a segfault. (Editing existing objects works.)
