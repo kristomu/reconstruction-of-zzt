@@ -74,7 +74,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Crt, Sounds;
+uses Dos, Crt, Sounds, Termio;
 
 const
 	PORT_JOYSTICK = $0201;
@@ -93,12 +93,18 @@ procedure InputUpdate;
 		InputDeltaY := 0;
 		InputShiftPressed := false;
 		InputJoystickMoved := false;
+		{ The raw text mode that Crt places a Linux terminal into seems
+		  to make it possible to fill the keypress queue faster than
+		  ReadKey can dispose of it. So we can only read once and then
+		  need to flush the whole queue afterwards. This will lead to
+		  nonstandard behavior if objects hog all the processing power.}
 		while KeyPressed do begin
 			InputKeyPressed := ReadKey;
 			if (InputKeyPressed = #0) or (InputKeyPressed = #1) or (InputKeyPressed = #2) then
 				InputKeyBuffer := InputKeyBuffer + Chr(Ord(ReadKey) or $80)
 			else
 				InputKeyBuffer := InputKeyBuffer + InputKeyPressed;
+			TCFlush(0, TCIFLUSH); { Flush the keybuffer. }
 		end;
 		if Length(InputKeyBuffer) <> 0 then begin
 			InputKeyPressed := InputKeyBuffer[1];
