@@ -29,11 +29,14 @@ unit Video;
 interface
 	type
 		TVideoLine = string[80];
-		TVideoWriteTextProc = procedure(x, y, color: byte; text: TVideoLine);
-	const
-		PORT_CGA_PALETTE = $03D9;
+		TTextChar = record
+			Char: Char;
+                        Color: byte;
+                end;
+		TVideoBuffer = array[0..80, 0..25] of TTextChar;
 	var
 		VideoMonochrome: boolean;
+		MainBuffer: TVideoBuffer;
 		cp437: array[0..255] of String = (' ', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼', '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼', ' ', '!', '"', '#', '$', '%', '&', '''', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ');
 	function VideoConfigure: boolean;
 	procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
@@ -46,7 +49,8 @@ interface
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
-	procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
+	procedure VideoCopy(xfrom, yfrom, width, height: integer; 
+		var buf: TVideoBuffer; toVideo: boolean);
 
 implementation
 uses Crt, Dos;
@@ -84,8 +88,23 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 
 		{ Hack from https://stackoverflow.com/a/35140822 
 		  A better solution will have to move away from Crt altogether.}
+
+		{ Possible performance improvement: extract the contents of
+		  this loop to a separate procedure. }
 		for C in text do begin
-			if x+offset >= terminalWidth then Continue;
+			if x+offset >= terminalWidth then Exit;
+
+			{ The performance enhancement below doesn't work due to
+			  a strange bug I can't be arsed to track down. Somehow
+			  MainBuffer is going out of sync. TODO, fix }
+
+			{
+			if (MainBuffer[x+offset+1][y+1].Color = color) and 
+			   (MainBuffer[x+offset+1][y+1].Char = C) then begin
+				offset := offset + 1;
+				Continue;
+			end;
+			}
 
 			{ Since Crt believes we're outputting ASCII, it'll
 			  "helpfully" scroll the terminal if we output multi-
@@ -98,6 +117,8 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 
 			GotoXY(1, 1);
 			GotoXY(x+offset+1, y+1);
+			MainBuffer[x+offset+1][y+1].Color := color;
+			MainBuffer[x+offset+1][y+1].Char := C;
 			Write(cp437[ord(C)]);
 			offset := offset + 1;
 		end;
@@ -153,7 +174,10 @@ function VideoConfigure: boolean;
 			Writeln;
 			Write('  Video mode:  C)olor,  M)onochrome?  ');
 			repeat
-				repeat until KeyPressed;
+				repeat 
+					{ Don't busy-wait too much. }
+					Delay(100);
+				until KeyPressed;
 				charTyped := UpCase(ReadKey);
 			until charTyped in [#27, 'C', 'M'];
 			case charTyped of
@@ -230,19 +254,27 @@ procedure VideoSetBorderColor(value: integer);
 	begin
 	end;
 
-{ This procedure is intended to quickly move text data from a spare buffer
-  onto the main display buffer. Since Linux doesn't allow direct access to
-  B800:0 (or has a concept of this in protected mode), it can't work. I've
-  disabled the procedure for now; I'll have to find a way to make it work,
-  later. Probably either by just redrawing whatever was obscured, or I may
-  use something like ncurses windows or a manual double buffer. 
+{ X,Y are zero-indexed. If toVideo is true, it copies stored
+  character/color data from the given array to screen by using WriteText. If
+  toVideo is false, it copies the character/color data from the video memory
+  mirror to the given array. }
+procedure VideoCopy(xfrom, yfrom, width, height: integer; var buf: TVideoBuffer;
+	toVideo: boolean);
+	var
+		x, y: integer;
 
-  The procedudure is intended to move the line from (x,y) to (x+chars, y)
-  to video memory (active buffer) if toVideo is true, or from it if false. }
-procedure VideoMove(x, y, chars: integer; data: pointer; toVideo: boolean);
 	begin
+		for y := yfrom to yfrom + height - 1 do
+			for x := xfrom to xfrom + width - 1 do 
+			begin
+				if toVideo then
+					VideoWriteText(x, y, 
+					 buf[x+1][y+1].Color, 
+					 buf[x+1][y+1].Char)
+				else
+					buf[x+1][y+1] := MainBuffer[x+1][y+1];
+			end;
 	end;
-
 
 begin
 	VideoBorderColor := 0;

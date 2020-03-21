@@ -189,7 +189,9 @@ function InputConfigure: boolean;
 procedure InputReadWaitKey;
 	begin
 		repeat
-			InputUpdate
+			InputUpdate;
+			{ Don't busy-wait too much. }
+			Delay(10);
 		until InputKeyPressed <> #0;
 	end;
 

@@ -25,12 +25,12 @@ access is hard, and mouse and joystick support for similar reasons.
 
 ### Known bugs
 
-- Scroll furling doesn't render properly (missing VideoMove)
 - Trying to create an object leads to a segfault. (Editing existing objects works.)
 - Cursor is always shown, even when it's not desired.
 - Objects don't run when playing a world.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
 - Pressing H for Help in the editor hangs ZZT.
+- Possible stats corruption when going around a conveyor along with an object with stats.
 
 ### Known limitations
 
