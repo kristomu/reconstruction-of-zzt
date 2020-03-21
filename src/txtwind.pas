@@ -41,7 +41,8 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
-			ScreenCopy: array[1 .. 25] of string[160];
+			BackupBuffer: array[0..80, 0..25] of TTextChar;
+			ScreenCopy: TVideoBuffer;
 		end;
 		TResourceDataHeader = record
 			EntryCount: integer;
@@ -108,8 +109,8 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 		ix, iy: integer;
 	begin
 		with state do begin
-			for iy := 1 to (TextWindowHeight + 1) do
-				VideoMove(TextWindowX, iy + TextWindowY - 1, TextWindowWidth, @ScreenCopy[iy], false);
+			VideoCopy(TextWindowX, TextWindowY, TextWindowWidth,
+				  TextWindowHeight+1, ScreenCopy, false);
 
 			for iy := (TextWindowHeight div 2) downto 0 do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy + 1, $0F, TextWindowStrText);
@@ -134,10 +135,10 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
 				Delay(18);
-				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
-					@ScreenCopy[iy + 1], true);
-				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,
-					@ScreenCopy[(TextWindowHeight - iy) + 1], true);
+				{ Replace upper line with background. }
+				VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1, ScreenCopy, true);
+				{ Replace lower line with background. }
+				VideoCopy(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth, 1, ScreenCopy, true);
 			end;
 		end;
 	end;
@@ -282,6 +283,8 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			Hyperlink := '';
 			TextWindowDraw(state, false, viewingFile);
 			repeat
+				{ Don't busy-wait too much. }
+				Delay(10);
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
