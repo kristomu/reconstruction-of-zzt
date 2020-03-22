@@ -291,7 +291,8 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 					newLinePos := newLinePos + InputDeltaY;
 				end else if InputShiftPressed or (InputKeyPressed = KEY_ENTER) then begin
 					InputShiftAccepted := true;
-					if (Lines[LinePos]^[1]) = '!' then begin
+					{ IMP: Fix potential out-of-bounds access. }
+					if (Length(Lines[LinePos]^) > 0) and ((Lines[LinePos]^[1]) = '!') then begin
 						pointerStr := Copy(Lines[LinePos]^, 2, Length(Lines[LinePos]^) - 1);
 
 						if Pos(';', pointerStr) > 0 then begin
@@ -351,7 +352,8 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 				if newLinePos <> LinePos then begin
 					LinePos := newLinePos;
 					TextWindowDraw(state, false, viewingFile);
-					if (Lines[LinePos]^[1]) = '!' then
+					{ IMP: Fix potential out-of-bounds access.}
+					if (Length(Lines[LinePos]^) > 0) and ((Lines[LinePos]^[1]) = '!') then
 						if hyperlinkAsSelect then
 							TextWindowDrawTitle($1E, #174'Press ENTER to select this'#175)
 						else
@@ -579,7 +581,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 						New(Lines[LineCount]);
 
 						BlockRead(f, Lines[LineCount]^, 1);
-						line := PShortString(@Lines[LineCount]) + 1;
+						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
 						lineLen := Ord(Lines[LineCount]^[0]);
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';

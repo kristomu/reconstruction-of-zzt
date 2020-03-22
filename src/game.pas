@@ -146,7 +146,7 @@ procedure GenerateTransitionTable;
 
 procedure AdvancePointer(var address: pointer; count: integer);
 	begin
-		address := address + count;
+		address := Ptr(Seg(address^), Ofs(address^) + count);
 	end;
 
 procedure BoardClose;
@@ -1517,6 +1517,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 		CurrentTick := Random(100);
 		CurrentStatTicked := Board.StatCount + 1;
 
+		pauseBlink := true;
+
 		repeat
 			if GamePaused then begin
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
@@ -1710,7 +1712,7 @@ procedure GamePrintRegisterMessage;
 				isReading := true;
 				while (IOResult = 0) and isReading do begin
 					BlockRead(f, s, 1);
-					strPtr := @s + 1;
+					strPtr := Ptr(Seg(s), Ofs(s) + 1);
 					if Length(s) = 0 then begin
 						Dec(color);
 					end else begin

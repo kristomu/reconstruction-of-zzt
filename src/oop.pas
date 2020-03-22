@@ -50,7 +50,7 @@ procedure OopReadChar(statId: integer; var position: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
-				Move((Data + position)^, OopChar, 1);
+				Move(Ptr(Seg(Data^), Ofs(Data^) + position)^, OopChar, 1);
 				Inc(position);
 			end else begin
 				OopChar := #0
@@ -814,7 +814,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 				end else if OopChar = #0 then begin
 					endOfProgram := true;
 				end else begin
-					textLine := OopChar + OopReadLineToEnd(statId, position);
+{ The order of execution appears to be undefined for statements like
+  x := y + f(z) where y is a global variable and f alters it. Turbo Pascal
+  just happens to do it left-to-right, but FreePascal does not. Thus this
+  somewhat inelegant fix. (Beware global variables, folks.) }
+					textLine := OopChar;
+					textLine := textLine + OopReadLineToEnd(statId, position);
 					TextWindowAppend(textWindow, textLine);
 				end;
 			until endOfProgram or stopRunning or repeatInsNextTick or replaceStat or (insCount > 32);

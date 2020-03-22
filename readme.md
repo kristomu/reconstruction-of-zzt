@@ -27,10 +27,11 @@ access is hard, and mouse and joystick support for similar reasons.
 
 - Trying to create an object leads to a segfault. (Editing existing objects works.)
 - Cursor is always shown, even when it's not desired.
-- Objects don't run when playing a world.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
-- Pressing H for Help in the editor hangs ZZT.
-- Possible stats corruption when going around a conveyor along with an object with stats.
+- Pressing H for Help in the editor hangs ZZT. (Not a hang, the rendering just stops. Blindly pressing Q,Y gets you out of the game.)
+- Possible stats corruption when going around a conveyor along with an object with stats. (Most easily tested with a bomb.)
+- Energizers in demo.zzt get the wrong color and character after the scroll is closed. Related to the crude double-buffer.
+- Picking up an object with stats in the editor and then going to a different board crashes ZZT as the stats are no longer available. Works in DOS.
 
 ### Known limitations
 
