@@ -23,6 +23,7 @@
 	SOFTWARE.
 }
 
+{$RANGECHECKS ON}
 unit Sounds;
 
 interface
@@ -55,7 +56,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos, Sysutils;
+uses Crt, Dos, Sysutils, Math;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
@@ -96,7 +97,8 @@ procedure SoundInitFreqTable;
 		for octave := 1 to 15 do begin
 			noteBase := Exp(octave * ln2) * freqC1;
 			for note := 0 to 11 do begin
-				SoundFreqTable[octave * 16 + note] := Trunc(noteBase);
+				{ IMP: Fix integer overflow }
+				SoundFreqTable[octave * 16 + note] := Min(65535, Trunc(noteBase));
 				noteBase := noteBase * noteStep;
 			end;
 		end;

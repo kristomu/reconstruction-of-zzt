@@ -24,6 +24,7 @@
 }
 
 {$I-}
+{$RANGECHECKS ON}
 unit Video;
 
 interface
@@ -37,14 +38,14 @@ interface
 	var
 		VideoMonochrome: boolean;
 		MainBuffer: TVideoBuffer;
-		cp437: array[0..255] of String = (' ', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼', '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼', ' ', '!', '"', '#', '$', '%', '&', '''', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ');
+		cp437: array[0..255] of String = (' ', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼', '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼', ' ', '!', '"', '#', '$', '%', '&', '''', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '⌂', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ');
 	function VideoConfigure: boolean;
 	procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
 	procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoToggleEGAMode(EGA: Boolean);
 	procedure VideoInstall(columns, borderColor: integer);
-	procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
+	procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 	procedure VideoUninstall;
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
@@ -62,7 +63,7 @@ var
 	VideoCursorVisible: boolean;
 
 { The input x,y values are offset by 0, i.e. 0,0 is upper left. }
-procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
+procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 	var
 		offset: Integer = 0;
 		C: Char;
@@ -129,7 +130,7 @@ procedure VideoWriteTextUTF8(x, y, color: byte; text: TVideoLine);
 
 procedure VideoWriteTextColor(x, y, color: byte; text: TVideoLine);
 	begin
-		VideoWriteTextUTF8(x, y, color, text);
+		VideoWriteTextAsUTF8(x, y, color, text);
 	end;
 
 procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
@@ -145,7 +146,7 @@ procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 			else
 				color := $70;
 		end;
-		VideoWriteTextUTF8(x, y, color, text);
+		VideoWriteTextAsUTF8(x, y, color, text);
 	end;
 
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);

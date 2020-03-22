@@ -25,6 +25,7 @@
 
 {$I-}
 {$V-}
+{$RANGECHECKS ON}
 unit Game;
 
 interface
@@ -882,7 +883,9 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 			dataStr := '';
 			dataPtr := Data;
 
-			for i := 0 to DataLen do begin
+			{ IMP: Fix off-by-one: Don't start counting
+			  from 0 when copying data. }
+			for i := 1 to DataLen do begin
 				Move(dataPtr^, dataChr, 1);
 				if dataChr = KEY_ENTER then begin
 					TextWindowAppend(state, dataStr);
