@@ -25,6 +25,7 @@
 
 {$I-}
 {$V-}
+{$RANGECHECKS ON}
 unit Editor;
 
 interface

@@ -23,6 +23,7 @@
 	SOFTWARE.
 }
 
+{$RANGECHECKS ON}
 unit GameVars;
 
 {Every record that is to be saved must be packed; otherwise, Pascal may waste

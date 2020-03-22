@@ -24,6 +24,7 @@
 }
 
 {$I-}
+{$RANGECHECKS ON}
 unit TxtWind;
 
 interface
