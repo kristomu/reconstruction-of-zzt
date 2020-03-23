@@ -856,6 +856,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 			end;
 
 			if replaceStat then begin
+				{IMP: Fix runtime error with anything that destroys a
+				 scroll "ahead of time". }
+				if Board.Tiles[X][Y].Element = E_SCROLL then Exit;
+
 				ix := X;
 				iy := Y;
 				DamageStat(statId);
