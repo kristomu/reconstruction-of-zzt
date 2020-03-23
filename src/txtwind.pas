@@ -552,7 +552,6 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
 				if IOResult <> 0 then
 					ResourceDataHeader.EntryCount := -1;
-				Close(f);
 			end;
 
 			if entryPos = 0 then begin
@@ -565,12 +564,14 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 			if entryPos <= 0 then begin
 				Assign(tf, filename);
 				Reset(tf);
-				while (IOResult = 0) and (not Eof(tf)) do begin
-					Inc(LineCount);
-					New(Lines[LineCount]);
-					ReadLn(tf, Lines[LineCount]^);
+				if IOResult = 0 then begin
+					while (IOResult = 0) and (not Eof(tf)) do begin
+						Inc(LineCount);
+						New(Lines[LineCount]);
+						ReadLn(tf, Lines[LineCount]^);
+					end;
+					Close(tf);
 				end;
-				Close(tf);
 			end else begin
 				Assign(f, ResourceDataFilename);
 				Reset(f, 1);
