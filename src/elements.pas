@@ -907,6 +907,10 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	var
 		unk1: integer;
 	begin
+		{ IMP: Fix infinite regression when trying to push something
+		  onto itself.}
+		if (deltaX = 0) and (deltaY = 0) then Exit;
+
 		with Board.Tiles[x][y] do begin
 			if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
 				or ElementDefs[Element].Pushable then
