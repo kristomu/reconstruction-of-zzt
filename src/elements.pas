@@ -449,9 +449,11 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 	var
 		i: integer;
 		iStat: integer;
-		ix, iy: integer;
+		srcx, srcy: integer;
+		destx, desty: integer;
 		canMove: boolean;
 		tiles: array[0..7] of TTile;
+		statsIndices: array[0..7] of Integer; {IMP: Fix stat clobbering bug}
 		iMin, iMax: integer;
 		tmpTile: TTile;
 	begin
@@ -467,6 +469,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		i := iMin;
 		repeat
 			tiles[i] := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
+			statsIndices[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
 			with tiles[i] do begin
 				if Element = E_EMPTY then
 					canMove := true
@@ -481,22 +484,24 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			with tiles[i] do begin
 				if canMove then begin
 					if ElementDefs[Element].Pushable then begin
-						ix := x + DiagonalDeltaX[(i - direction + 8) mod 8];
-						iy := y + DiagonalDeltaY[(i - direction + 8) mod 8];
+						srcx := x + DiagonalDeltaX[i];
+						srcy := y + DiagonalDeltaY[i];
+
+						destx := x + DiagonalDeltaX[(i - direction + 8) mod 8];
+						desty := y + DiagonalDeltaY[(i - direction + 8) mod 8];
+
 						if ElementDefs[Element].Cycle > -1 then begin
-							tmpTile := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
-							iStat := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tiles[i];
-							Board.Tiles[ix][iy].Element := E_EMPTY;
-							MoveStat(iStat, ix, iy);
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]] := tmpTile;
+							tmpTile := Board.Tiles[srcx][srcy];
+							iStat := statsIndices[i];
+							Board.Tiles[srcx][srcy] := tiles[i];
+							Board.Tiles[destx][desty].Element := E_EMPTY;
+							MoveStat(iStat, destx, desty);
+							Board.Tiles[srcx][srcy] := tmpTile;
 						end else begin
-							Board.Tiles[ix][iy] := tiles[i];
-							BoardDrawTile(ix, iy);
+							Board.Tiles[destx][desty] := tiles[i];
 						end;
 						if not ElementDefs[tiles[(i + direction + 8) mod 8].Element].Pushable then begin
-							Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]].Element := E_EMPTY;
-							BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+							Board.Tiles[srcx][srcy].Element := E_EMPTY;
 						end;
 					end else begin
 						canMove := false;
@@ -508,6 +513,12 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 			end;
 			i := i + direction;
 		until i = iMax;
+
+		{ Draw everything to be sure that every char is updated. Doing
+		  BoardDraw inside the loop above can lead to tiles at some
+		  relative coordinates not getting drawn. }
+		for i := 0 to Length(DiagonalDeltaX)-1 do
+			BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
 	end;
 
 procedure ElementConveyorCWDraw(x, y: integer; var ch: byte);
