@@ -83,6 +83,8 @@ procedure EditorLoop;
 		unk1: array[0 .. 49] of byte;
 		copiedStat: TStat;
 		copiedHasStat: boolean;
+		copiedData: ^string;
+		copiedDataLen: integer;
 		copiedTile: TTile;
 		copiedX, copiedY: integer;
 		cursorBlinker: integer;
@@ -233,6 +235,10 @@ procedure EditorLoop;
 					end;
 				end else if copiedHasStat then begin
 					if EditorPrepareModifyStatAtCursor then begin
+						{ AddStat automatically allocates new pointers,
+						 for any potential data, so no need to do that here.
+						 Instead, we can just copy the pointer over. }
+						copiedStat.Data := copiedData;
 						AddStat(x, y, copiedTile.Element, copiedTile.Color, copiedStat.Cycle, copiedStat);
 					end
 				end else begin
@@ -520,6 +526,19 @@ procedure EditorLoop;
 					copiedHasStat := true;
 					copiedStat := Board.Stats[statId];
 					copiedTile := Board.Tiles[X][Y];
+
+					{ Copy data into temporary store if the tile has any,
+					  so the object can be moved between boards. }
+
+					if copiedDataLen > 0 then begin
+						FreeMem(copiedData, copiedDataLen);
+						copiedDataLen := 0;
+					end;
+					if dataLen > 0 then begin
+						GetMem(copiedData, DataLen);
+						copiedDataLen := DataLen;
+						Move(Data^, copiedData^, copiedDataLen);
+					end;
 					copiedX := X;
 					copiedY := Y;
 				end;
@@ -634,6 +653,7 @@ procedure EditorLoop;
 		cursorBlinker := 0;
 		copiedHasStat := false;
 		copiedTile.Element := 0;
+		copiedDataLen := 0;
 		copiedTile.Color := $0F;
 
 		if World.Info.CurrentBoard <> 0 then
@@ -931,6 +951,13 @@ procedure EditorLoop;
 				end;
 			end;
 		until editorExitRequested;
+
+		{ Deallocate copied data if there is any. }
+
+		if copiedDataLen > 0 then begin
+			FreeMem(copiedData, copiedDataLen);
+			copiedDataLen := 0;
+		end;
 
 		InputKeyPressed := #0;
 		InitElementsGame;
