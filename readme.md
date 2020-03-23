@@ -27,10 +27,10 @@ access is hard, and mouse and joystick support for similar reasons.
 
 - Cursor is always shown, even when it's not desired.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
-- Pressing H for Help in the editor hangs ZZT. (Not a hang, the rendering just stops. Blindly pressing Q,Y gets you out of the game.)
 - Energizers in demo.zzt get the wrong color and character after reading and closing a scroll. Related to the crude double-buffer.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
 - Memory leaks in BoardClose and BoardChange. Seems to be independent of the number of boards loaded or changed between, so probably something that happens only in the beginning or end. Minor.
+- ZZT.DAT help doesn't work yet (shows empty box).
 
 ### Known limitations
 
