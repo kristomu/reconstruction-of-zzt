@@ -25,7 +25,6 @@
 
 {$F+}
 {$I-}
-{$RANGECHECKS ON}
 unit Elements;
 
 interface

@@ -25,7 +25,6 @@
 
 {$I-}
 {$V-}
-{$RANGECHECKS ON}
 unit Game;
 
 interface
@@ -147,16 +146,18 @@ procedure GenerateTransitionTable;
 
 procedure AdvancePointer(var address: pointer; count: integer);
 	begin
-		address := Ptr(Seg(address^), Ofs(address^) + count);
+		address := address + count;
 	end;
 
 procedure BoardClose;
 	var
 		ix, iy: integer;
 		ptr: pointer;
+		ptrStart: pointer;
 		rle: TRleTile;
 	begin
 		ptr := IoTmpBuf;
+		ptrStart := IoTmpBuf;
 
 		Move(Board.Name, ptr^, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
@@ -209,7 +210,8 @@ procedure BoardClose;
 		end;
 
 		FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
-		World.BoardLen[World.Info.CurrentBoard] := Ofs(ptr^) - Ofs(IoTmpBuf^);
+		{ For some reason, using @IoTmpBuf instead of ptrStart causes a range check error. }
+		World.BoardLen[World.Info.CurrentBoard] := ptr - ptrStart;
 		GetMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 		Move(IoTmpBuf^, World.BoardData[World.Info.CurrentBoard]^, World.BoardLen[World.Info.CurrentBoard]);
 	end;
@@ -1717,7 +1719,8 @@ procedure GamePrintRegisterMessage;
 				isReading := true;
 				while (IOResult = 0) and isReading do begin
 					BlockRead(f, s, 1);
-					strPtr := Ptr(Seg(s), Ofs(s) + 1);
+					strPtr := @s;
+					AdvancePointer(strPtr, 1);
 					if Length(s) = 0 then begin
 						Dec(color);
 					end else begin

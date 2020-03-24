@@ -24,7 +24,6 @@
 }
 
 {$I-}
-{$RANGECHECKS ON}
 unit TxtWind;
 
 interface
@@ -583,7 +582,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 						New(Lines[LineCount]);
 
 						BlockRead(f, Lines[LineCount]^, 1);
-						line := Ptr(Seg(Lines[LineCount]^), Ofs(Lines[LineCount]^) + 1);
+						line := @LineCount + 1;
 						lineLen := Ord(Lines[LineCount]^[0]);
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';

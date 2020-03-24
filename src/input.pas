@@ -23,7 +23,6 @@
 	SOFTWARE.
 }
 
-{$RANGECHECKS ON}
 unit Input;
 
 interface

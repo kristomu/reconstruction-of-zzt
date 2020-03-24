@@ -23,7 +23,6 @@
 	SOFTWARE.
 }
 
-{$RANGECHECKS ON}
 unit Sounds;
 
 interface
