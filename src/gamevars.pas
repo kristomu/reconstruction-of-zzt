@@ -55,7 +55,7 @@ interface
 		end;
 		TElementDrawProc = procedure(x, y: integer; var ch: byte);
 		TElementTickProc = procedure(statId: integer);
-		TElementTouchProc = procedure(x, y: integer; unkArg1: integer; var deltaX, deltaY: integer);
+		TElementTouchProc = procedure(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 		TElementDef = record
 			Character: char;
 			Color: byte;
@@ -289,6 +289,9 @@ interface
 		COLOR_CHOICE_ON_BLACK = $FF;
 		COLOR_WHITE_ON_CHOICE = $FE;
 		COLOR_CHOICE_ON_CHOICE = $FD;
+		{}
+		SHOT_SOURCE_PLAYER = 0;
+		SHOT_SOURCE_ENEMY = 1;
 
 implementation
 
