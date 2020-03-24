@@ -25,7 +25,6 @@
 
 {$I-}
 {$V-}
-{$RANGECHECKS ON}
 unit Editor;
 
 interface
@@ -83,7 +82,7 @@ procedure EditorLoop;
 		unk1: array[0 .. 49] of byte;
 		copiedStat: TStat;
 		copiedHasStat: boolean;
-		copiedData: ^string;
+		copiedData: ^byte;
 		copiedDataLen: integer;
 		copiedTile: TTile;
 		copiedX, copiedY: integer;

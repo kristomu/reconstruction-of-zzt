@@ -23,7 +23,6 @@
 	SOFTWARE.
 }
 
-{$RANGECHECKS ON}
 unit GameVars;
 
 {Every record that is to be saved must be packed; otherwise, Pascal may waste
@@ -98,7 +97,7 @@ interface
 			unk1: array[0 .. 3] of byte;
 			DataPos: integer;
 			DataLen: integer;
-			Data: ^string;
+			Data: ^byte;
 		end;
 		TRleTile = packed record
 			Count: byte;

@@ -24,7 +24,6 @@
 }
 
 {$I-}
-{$RANGECHECKS ON}
 unit Video;
 
 interface
