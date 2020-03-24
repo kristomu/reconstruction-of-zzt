@@ -70,10 +70,10 @@ interface
 	procedure PopupPromptString(question: string; var buffer: TString50);
 	function Signum(val: integer): integer;
 	function Difference(a, b: integer): integer;
-	procedure DamageStat(statId: integer);
+	procedure DamageStat(attackerStatId: integer);
 	procedure BoardDamageTile(x, y: integer);
-	procedure EnemyDamage(enemyStatId: integer; x, y: integer);
-	function ShootStat(element: byte; tx, ty, deltaX, deltaY: integer; newP1: integer): boolean;
+	procedure BoardAttack(attackerStatId: integer; x, y: integer);
+	function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	procedure CalcDirectionRnd(var deltaX, deltaY: integer);
 	procedure CalcDirectionSeek(x, y: integer; var deltaX, deltaY: integer);
 	procedure TransitionDrawBoardChange;
@@ -271,7 +271,7 @@ procedure BoardOpen(boardId: integer);
 procedure BoardChange(boardId: integer);
 	begin
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[4].Color;
+		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
 		BoardClose;
 		BoardOpen(boardId);
 	end;
@@ -314,7 +314,7 @@ procedure BoardCreate;
 		end;
 
 		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Element := E_PLAYER;
-		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Color := ElementDefs[4].Color;
+		Board.Tiles[BOARD_WIDTH div 2][BOARD_HEIGHT div 2].Color := ElementDefs[E_PLAYER].Color;
 		Board.StatCount := 0;
 		Board.Stats[0].X := BOARD_WIDTH div 2;
 		Board.Stats[0].Y := BOARD_HEIGHT div 2;
@@ -1132,7 +1132,7 @@ procedure GameUpdateSidebar;
 
 			for i := 1 to 7 do begin
 				if World.Info.Keys[i] then
-					VideoWriteText(71 + i, 12, $18 + i, ElementDefs[8].Character)
+					VideoWriteText(71 + i, 12, $18 + i, ElementDefs[E_KEY].Character)
 				else
 					VideoWriteText(71 + i, 12, $1F, ' ');
 			end;
@@ -1143,7 +1143,7 @@ procedure GameUpdateSidebar;
 				VideoWriteText(65, 15, $1F, ' Be noisy');
 
 			if DebugEnabled then begin
-				{ TODO: Replace with some interesting stat 
+				{ TODO: Replace with some interesting stat
 				  on Linux.}
 				numStr := 'lots';
 				VideoWriteText(69, 4, $1E, 'm' + numStr + ' ');
@@ -1159,19 +1159,19 @@ procedure DisplayMessage(time: integer; message: string);
 		end;
 
 		if Length(message) <> 0 then begin
-			AddStat(0, 0, 2, 0, 1, StatTemplateDefault);
+			AddStat(0, 0, E_MESSAGE_TIMER, 0, 1, StatTemplateDefault);
 			{IMP: P2 is a byte, so it can hold a max value of 255.}
 			Board.Stats[Board.StatCount].P2 := Min(255, Time div (TickTimeDuration + 1));
 			Board.Info.Message := message;
 		end;
 	end;
 
-procedure DamageStat(statId: integer);
+procedure DamageStat(attackerStatId: integer);
 	var
 		oldX, oldY: integer;
 	begin
-		with Board.Stats[statId] do begin
-			if statId = 0 then begin
+		with Board.Stats[attackerStatId] do begin
+			if attackerStatId = 0 then begin
 				if World.Info.Health > 0 then begin
 					World.Info.Health := World.Info.Health - 10;
 
@@ -1209,7 +1209,7 @@ procedure DamageStat(statId: integer);
 				else
 					SoundQueue(3, #64#1#16#1#80#1#48#1)
 				end;
-				RemoveStat(statId);
+				RemoveStat(attackerStatId);
 			end;
 		end;
 	end;
@@ -1227,20 +1227,20 @@ procedure BoardDamageTile(x, y: integer);
 		end;
 	end;
 
-procedure EnemyDamage(enemyStatId: integer; x, y: integer);
+procedure BoardAttack(attackerStatId: integer; x, y: integer);
 	begin
-		if (enemyStatId = 0) and (World.Info.EnergizerTicks > 0) then begin
+		if (attackerStatId = 0) and (World.Info.EnergizerTicks > 0) then begin
 			World.Info.Score := ElementDefs[Board.Tiles[x][y].Element].ScoreValue + World.Info.Score;
 			GameUpdateSidebar;
 		end else begin
-			DamageStat(enemyStatId);
+			DamageStat(attackerStatId);
 		end;
 
-		if (enemyStatId > 0) and (enemyStatId <= CurrentStatTicked) then
+		if (attackerStatId > 0) and (attackerStatId <= CurrentStatTicked) then
 			CurrentStatTicked := CurrentStatTicked - 1;
 
 		if (Board.Tiles[x][y].Element = E_PLAYER) and (World.Info.EnergizerTicks > 0) then begin
-			World.Info.Score := ElementDefs[Board.Tiles[Board.Stats[enemyStatId].X][Board.Stats[enemyStatId].Y].Element]
+			World.Info.Score := ElementDefs[Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element]
 				.ScoreValue + World.Info.Score;
 			GameUpdateSidebar;
 		end else begin
@@ -1249,31 +1249,31 @@ procedure EnemyDamage(enemyStatId: integer; x, y: integer);
 		end;
 	end;
 
-function ShootStat(element: byte; tx, ty, deltaX, deltaY: integer; newP1: integer): boolean;
+function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	begin
 		if ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Walkable
 			or (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_WATER) then
 		begin
 			AddStat(tx + deltaX, ty + deltaY, element, ElementDefs[element].Color, 1, StatTemplateDefault);
 			with Board.Stats[Board.StatCount] do begin
-				P1 := newP1;
+				P1 := source;
 				StepX := deltaX;
 				StepY := deltaY;
 				P2 := 100;
 			end;
-			ShootStat := true;
+			BoardShoot := true;
 		end else if (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_BREAKABLE)
 			or (
 				ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Destructible
-				and ((Board.Tiles[tx + deltaX][ty + deltaY].Element = E_PLAYER) = Boolean(newP1))
+				and ((Board.Tiles[tx + deltaX][ty + deltaY].Element = E_PLAYER) = Boolean(source))
 				and (World.Info.EnergizerTicks <= 0)
 			) then
 		begin
 			BoardDamageTile(tx + deltaX, ty + deltaY);
 			SoundQueue(2, #16#1);
-			ShootStat := true;
+			BoardShoot := true;
 		end else begin
-			ShootStat := false;
+			BoardShoot := false;
 		end;
 	end;
 
@@ -1439,11 +1439,11 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(64, 10, $1E, '   Gems:');
 				VideoWriteText(64, 11, $1E, '  Score:');
 				VideoWriteText(64, 12, $1E, '   Keys:');
-				VideoWriteText(62, 7, $1F, ElementDefs[4].Character);
-				VideoWriteText(62, 8, $1B, ElementDefs[5].Character);
-				VideoWriteText(62, 9, $16, ElementDefs[6].Character);
-				VideoWriteText(62, 10, $1B, ElementDefs[7].Character);
-				VideoWriteText(62, 12, $1F, ElementDefs[8].Character);
+				VideoWriteText(62, 7, $1F, ElementDefs[E_PLAYER].Character);
+				VideoWriteText(62, 8, $1B, ElementDefs[E_AMMO].Character);
+				VideoWriteText(62, 9, $16, ElementDefs[E_TORCH].Character);
+				VideoWriteText(62, 10, $1B, ElementDefs[E_GEM].Character);
+				VideoWriteText(62, 12, $1F, ElementDefs[E_KEY].Character);
 				VideoWriteText(62, 14, $70, ' T ');
 				VideoWriteText(65, 14, $1F, ' Torch');
 				VideoWriteText(62, 15, $30, ' B ');
@@ -1529,7 +1529,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 					pauseBlink := not pauseBlink;
 
 				if pauseBlink then begin
-					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, ElementDefs[4].Color, ElementDefs[4].Character);
+					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+						ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 				end else begin
 					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
 						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
@@ -1559,7 +1560,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 						Board.Stats[0].X := Board.Stats[0].X + InputDeltaX;
 						Board.Stats[0].Y := Board.Stats[0].Y + InputDeltaY;
 						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[4].Color;
+						Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 						DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
 						DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX, Board.Stats[0].Y - InputDeltaY, 0);
@@ -1609,7 +1610,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 		end;
 
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[4].Color;
+		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
 
 		SoundBlockQueueing := false;
 	end;
