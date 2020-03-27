@@ -31,6 +31,7 @@ access is hard, and mouse and joystick support for similar reasons.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
 - Memory leaks in BoardClose and BoardChange. Seems to be independent of the number of boards loaded or changed between, so probably something that happens only in the beginning or end. Minor.
 - ZZT.DAT help doesn't work yet (shows empty box).
+- Can't load ZZT files if they don't have write permissions set, although ZZT should only need to read them.
 
 ### Known limitations
 

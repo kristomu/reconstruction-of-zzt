@@ -423,8 +423,16 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 				if color = 0 then
 					color := $0F;
 
-				if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then
-					color := ((color - 8) * $10) + $0F;
+				if ElementDefs[tile.Element].Color = COLOR_WHITE_ON_CHOICE then begin
+					{IMP: Fix range check error. Might produce slightly different
+					 colors if the original color was dark with a black background,
+					 but I'm considering that an acceptable deviation from exact
+					 bug-compatibility. Note that applying this twice
+					 (e.g. #put n blue door; #put n door always produces
+					 white as the color, just like in the original ZZT.}
+					color := color mod 8;
+					color := (color * $10) + $0F;
+				end;
 			end;
 
 			if Board.Tiles[x][y].Element = tile.Element then
