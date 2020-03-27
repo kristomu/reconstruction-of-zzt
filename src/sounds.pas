@@ -55,7 +55,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos, Sysutils, Math;
+uses Crt, Dos, Math;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
@@ -189,7 +189,7 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 			{ Duration seems to be in units of 100th seconds,
 			  possibly influenced by the game speed slider.
 			  PLL later; for now, this ugly hack. }
-			Sleep(20);
+			Delay(20);
 		end;
 	end;
 

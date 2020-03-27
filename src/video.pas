@@ -33,7 +33,7 @@ interface
 			Char: Char;
                         Color: byte;
                 end;
-		TVideoBuffer = array[0..80, 0..25] of TTextChar;
+		TVideoBuffer = array[1..80, 1..25] of TTextChar;
 	var
 		VideoMonochrome: boolean;
 		MainBuffer: TVideoBuffer;

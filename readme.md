@@ -29,14 +29,13 @@ access is hard, and mouse and joystick support for similar reasons.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
 - Energizers in demo.zzt get the wrong color and character after reading and closing a scroll. Related to the crude double-buffer.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
-- Memory leaks in BoardClose and BoardChange. Seems to be independent of the number of boards loaded or changed between, so probably something that happens only in the beginning or end. Minor.
-- ZZT.DAT help doesn't work yet (shows empty box).
 - Can't load ZZT files if they don't have write permissions set, although ZZT should only need to read them.
 
 ### Known limitations
 
 - Crt really isn't made for Unicode output and so has strange corner cases (see above)
 - Even with the stdin-flushing fix, moving the player about by holding down a key is kinda janky. It probably can't be improved without going fully to ncurses or SDL.
+- The runtime takes up much more space than the DOS version. As zoo64 doesn't, I should investigate the reason more closely.
 
 ### Suspected bugs
 
