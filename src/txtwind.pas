@@ -44,7 +44,7 @@ interface
 			BackupBuffer: array[0..80, 0..25] of TTextChar;
 			ScreenCopy: TVideoBuffer;
 		end;
-		TResourceDataHeader = record
+		TResourceDataHeader = packed record
 			EntryCount: integer;
 			Name: array[1 .. MAX_RESOURCE_DATA_FILES] of string[50];
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
@@ -582,7 +582,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 						New(Lines[LineCount]);
 
 						BlockRead(f, Lines[LineCount]^, 1);
-						line := @LineCount + 1;
+						line := Pointer(Lines[LineCount]) + 1;
 						lineLen := Ord(Lines[LineCount]^[0]);
 						if lineLen = 0 then begin
 							Lines[LineCount]^ := '';
