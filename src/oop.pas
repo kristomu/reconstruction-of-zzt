@@ -47,12 +47,8 @@ procedure OopError(statId: integer; message: string);
 	end;
 
 procedure OopReadChar(statId: integer; var position: integer);
-	var
-		DataPointer: pointer;
 	begin
 		with Board.Stats[statId] do begin
-			DataPointer := Data;
-			AdvancePointer(DataPointer, position);
 			if (position >= 0) and (position < DataLen) then begin
 				Move((Data+position)^, OopChar, 1);
 				Inc(position);

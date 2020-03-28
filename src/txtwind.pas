@@ -41,8 +41,6 @@ interface
 			Hyperlink: string[20];
 			Title: TTextWindowLine;
 			LoadedFilename: string[50];
-			BackupBuffer: array[0..80, 0..25] of TTextChar;
-			ScreenCopy: TVideoBuffer;
 		end;
 		TResourceDataHeader = packed record
 			EntryCount: integer;
@@ -50,6 +48,7 @@ interface
 			FileOffset: array[1 .. MAX_RESOURCE_DATA_FILES] of longint;
 		end;
 	var
+		ScreenCopy: TVideoBuffer;
 		TextWindowX, TextWindowY: integer;
 		TextWindowWidth, TextWindowHeight: integer;
 		TextWindowStrInnerEmpty: TVideoLine;
