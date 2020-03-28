@@ -77,7 +77,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer;
+uses Crt, Input, Printer, Gamevars, Fileops;
 
 function UpCaseString(input: string): string;
 	var
@@ -233,7 +233,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 		line: string;
 	begin
 		with state do begin
-			Rewrite(Lst);
+			OpenForWrite(Lst); {??? What is Lst?}
 			for iLine := 1 to LineCount do begin
 				line := Lines[iLine]^;
 				if Length(line) > 0 then begin
@@ -545,7 +545,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 			LoadedFilename := UpCaseString(filename);
 			if ResourceDataHeader.EntryCount = 0 then begin
 				Assign(f, ResourceDataFileName);
-				Reset(f, 1);
+				OpenForRead(f, 1);
 				if IOResult = 0 then
 					BlockRead(f, ResourceDataHeader, SizeOf(ResourceDataHeader));
 				if IOResult <> 0 then
@@ -561,7 +561,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 
 			if entryPos <= 0 then begin
 				Assign(tf, filename);
-				Reset(tf);
+				OpenForRead(tf);
 				if IOResult = 0 then begin
 					while (IOResult = 0) and (not Eof(tf)) do begin
 						Inc(LineCount);
@@ -572,7 +572,7 @@ procedure TextWindowOpenFile(filename: TTextWindowLine; var state: TTextWindowSt
 				end;
 			end else begin
 				Assign(f, ResourceDataFilename);
-				Reset(f, 1);
+				OpenForRead(f, 1);
 				Seek(f, ResourceDataHeader.FileOffset[entryPos]);
 				if IOResult = 0 then begin
 					retVal := true;
@@ -607,7 +607,7 @@ procedure TextWindowSaveFile(filename: TTextWindowLine; var state: TTextWindowSt
 	begin
 		with state do begin
 			Assign(f, filename);
-			Rewrite(f);
+			OpenForWrite(f);
 			if IOResult <> 0 then exit;
 
 			for i := 1 to LineCount do begin

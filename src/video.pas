@@ -38,6 +38,8 @@ interface
 	var
 		VideoMonochrome: boolean;
 		MainBuffer: TVideoBuffer;
+		{ Credits go to Ben Russell (iamgreaser) for this table and
+		  the logic behind WriteUnicodeAsUTF8. }
 		cp437ToUnicode: array[0 .. 255] of smallint = (
 			$0020, $263A, $263B, $2665, $2666, $2663, $2660, $2022,
 			$25D8, $25CB, $25D9, $2642, $2640, $266A, $266B, $263C,

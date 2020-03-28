@@ -107,7 +107,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax;
+uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -654,17 +654,19 @@ procedure PauseOnError;
 
 function DisplayIOError: boolean;
 	var
+		ioResVal: word;
 		errorNumStr: string[50];
 		textWindow: TTextWindowState;
 	begin
-		if IOResult = 0 then begin
+		ioResVal := IOResult;
+		if ioResVal = 0 then begin
 			DisplayIOError := false;
 			exit;
 		end;
 
 		DisplayIOError := true;
 
-		Str(IOResult, textWindow.Title);
+		Str(ioResVal, textWindow.Title);
 		textWindow.Title := 'Error # ' + textWindow.Title;
 		TextWindowInitState(textWindow);
 		TextWindowAppend(textWindow, '$DOS Error: ');
@@ -712,7 +714,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		VideoWriteText(62, 5, $1F, 'Loading.....');
 
 		Assign(f, filename + extension);
-		Reset(f, 1);
+		OpenForRead(f, 1);
 
 		if not DisplayIOError then begin
 			WorldUnload;
@@ -776,7 +778,7 @@ procedure WorldSave(filename, extension: TString50);
 		VideoWriteText(63, 5, $1F, 'Saving...');
 
 		Assign(f, filename + extension);
-		Rewrite(f, 1);
+		OpenForWrite(f, 1);
 
 		if not DisplayIOError then begin
 			ptr := IoTmpBuf;
@@ -801,11 +803,12 @@ procedure WorldSave(filename, extension: TString50);
 				BlockWrite(f, World.BoardData[i]^, World.BoardLen[i]);
 				if DisplayIOError then goto OnError;
 			end;
+
+			Close(f);
 		end;
 
 		BoardOpen(World.Info.CurrentBoard);
 		SidebarClearLine(5);
-		Close(f);
 		exit;
 
 	OnError:
@@ -1713,7 +1716,7 @@ procedure GamePrintRegisterMessage;
 		for i := 1 to ResourceDataHeader.EntryCount do begin
 			if ResourceDataHeader.Name[i] = s then begin
 				Assign(f, ResourceDataFileName);
-				Reset(f, 1);
+				OpenForRead(f, 1);
 				Seek(f, ResourceDataHeader.FileOffset[i]);
 
 				isReading := true;

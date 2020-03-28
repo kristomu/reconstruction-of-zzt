@@ -20,27 +20,63 @@
         SOFTWARE.
 }
 
-{ So as not to have to pull in a whole mathematics library just for min and
-  max. }
+{ A simple file-handling shim for Linux. All of these functions alter IOResult,
+  as is the convention in ZZT. }
 
-unit Minmax;
+{$I-}
+
+unit Fileops;
 
 interface
-	function Min(x, y: longint): longint;
-	function Max(x, y: longint): longint;
+	procedure OpenForRead(var f: file; l: LongInt);
+	procedure OpenForRead(var f: TypedFile);
+	procedure OpenForRead(var f: Text);
+	procedure OpenForWrite(var f: file; l: LongInt);
+	procedure OpenForWrite(var f: TypedFile);
+	procedure OpenForWrite(var f: Text);
+
+	const
+		FILE_READ_ONLY = 0;
+		FILE_WRITE_ONLY = 1;
+		FILE_READ_WRITE = 2;
 
 implementation
+uses Dos;
 
-function Min(x, y: longint): longint;
+procedure OpenForRead(var f: file; l: LongInt);
 	begin
-		if x <= y then Min := x
-		else Min := y;
+		FileMode := FILE_READ_ONLY;
+		Reset(f, l);
 	end;
 
-function Max(x, y: longint): longint;
+procedure OpenForRead(var f: TypedFile);
 	begin
-		if x >= y then Max := x
-		else Max := y;
+		FileMode := FILE_READ_ONLY;
+		Reset(f);
+	end;
+
+procedure OpenForRead(var f: Text);
+	begin
+		FileMode := FILE_READ_ONLY;
+		Reset(f);
+	end;
+
+procedure OpenForWrite(var f: file; l: LongInt);
+	begin
+		FileMode := FILE_WRITE_ONLY;
+		Reset(f, l);			{ Not Rewrite! I dunno why... }
+	end;
+
+procedure OpenForWrite(var f: TypedFile);
+	begin
+		FileMode := FILE_WRITE_ONLY;
+		Reset(f);
+	end;
+
+procedure OpenForWrite(var f: Text);
+	begin
+		FileMode := FILE_WRITE_ONLY;
+		Reset(f);
 	end;
 
 end.

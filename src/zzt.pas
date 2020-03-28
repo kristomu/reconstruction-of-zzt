@@ -25,7 +25,7 @@
 
 {$I-}
 program ZZT;
-uses Crt, Dos, Video, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game;
+uses Crt, Dos, Video, Sounds, Input, TxtWind, GameVars, Elements, Editor, Oop, Game, Fileops;
 
 procedure ParseArguments;
 	var
@@ -65,7 +65,7 @@ procedure GameConfigure;
 		GameVersion := '3.2';
 
 		Assign(cfgFile, 'zzt.cfg');
-		Reset(cfgFile);
+		OpenForRead(cfgFile);
 		if IOResult = 0 then begin
 			Readln(cfgFile, ConfigWorldFile);
 			Readln(cfgFile, ConfigRegistration);
