@@ -28,7 +28,6 @@ access is hard, and mouse and joystick support for similar reasons.
 - Cursor is always shown, even when it's not desired.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
-- Can't load ZZT files if they don't have write permissions set, although ZZT should only need to read them.
 
 ### Known limitations
 

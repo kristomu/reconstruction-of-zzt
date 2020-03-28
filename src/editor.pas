@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -557,7 +557,7 @@ procedure EditorLoop;
 					SidebarPromptString('Import board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
 						Assign(f, SavedBoardFileName + '.BRD');
-						Reset(f, 1);
+						OpenForRead(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
 						BoardClose;
@@ -584,7 +584,7 @@ procedure EditorLoop;
 					SidebarPromptString('Export board', '.BRD', SavedBoardFileName, PROMPT_ALPHANUM);
 					if (InputKeyPressed <> KEY_ESCAPE) and (Length(SavedBoardFileName) <> 0) then begin
 						Assign(f, SavedBoardFileName + '.BRD');
-						Rewrite(f, 1);
+						OpenForWrite(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
 						BoardClose;
@@ -968,7 +968,7 @@ procedure HighScoresLoad;
 		i: integer;
 	begin
 		Assign(f, World.Info.Name + '.HI');
-		Reset(f);
+		OpenForRead(f);
 		if IOResult = 0 then begin
 			Read(f, HighScoreList);
 		end;
@@ -986,7 +986,7 @@ procedure HighScoresSave;
 		f: file of THighScoreList;
 	begin
 		Assign(f, World.Info.Name + '.HI');
-		Rewrite(f);
+		OpenForWrite(f);
 		Write(f, HighScoreList);
 		Close(f);
 		if DisplayIOError then begin
