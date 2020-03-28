@@ -55,7 +55,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos, Math;
+uses Crt, Dos, Minmax;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin

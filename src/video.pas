@@ -31,13 +31,48 @@ interface
 		TVideoLine = string[80];
 		TTextChar = record
 			Char: Char;
-                        Color: byte;
-                end;
+			Color: byte;
+		end;
+
 		TVideoBuffer = array[1..80, 1..25] of TTextChar;
 	var
 		VideoMonochrome: boolean;
 		MainBuffer: TVideoBuffer;
-		cp437: array[0..255] of String = (' ', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼', '►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼', ' ', '!', '"', '#', '$', '%', '&', '''', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '⌂', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê', 'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü', '¢', '£', '¥', '₧', 'ƒ', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', '¿', '⌐', '¬', '½', '¼', '¡', '«', '»', '░', '▒', '▓', '│', '┤', '╡', '╢', '╖', '╕', '╣', '║', '╗', '╝', '╜', '╛', '┐', '└', '┴', '┬', '├', '─', '┼', '╞', '╟', '╚', '╔', '╩', '╦', '╠', '═', '╬', '╧', '╨', '╤', '╥', '╙', '╘', '╒', '╓', '╫', '╪', '┘', '┌', '█', '▄', '▌', '▐', '▀', 'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩', '≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∙', '·', '√', 'ⁿ', '²', '■', ' ');
+		cp437ToUnicode: array[0 .. 255] of smallint = (
+			$0020, $263A, $263B, $2665, $2666, $2663, $2660, $2022,
+			$25D8, $25CB, $25D9, $2642, $2640, $266A, $266B, $263C,
+			$25BA, $25C4, $2195, $203C, $00B6, $00A7, $25AC, $21A8,
+			$2191, $2193, $2192, $2190, $221F, $2194, $25B2, $25BC,
+
+			$0020, $0021, $0022, $0023, $0024, $0025, $0026, $0027,
+			$0028, $0029, $002A, $002B, $002C, $002D, $002E, $002F,
+			$0030, $0031, $0032, $0033, $0034, $0035, $0036, $0037,
+			$0038, $0039, $003A, $003B, $003C, $003D, $003E, $003F,
+			$0040, $0041, $0042, $0043, $0044, $0045, $0046, $0047,
+			$0048, $0049, $004A, $004B, $004C, $004D, $004E, $004F,
+			$0050, $0051, $0052, $0053, $0054, $0055, $0056, $0057,
+			$0058, $0059, $005A, $005B, $005C, $005D, $005E, $005F,
+			$0060, $0061, $0062, $0063, $0064, $0065, $0066, $0067,
+			$0068, $0069, $006A, $006B, $006C, $006D, $006E, $006F,
+			$0070, $0071, $0072, $0073, $0074, $0075, $0076, $0077,
+			$0078, $0079, $007A, $007B, $007C, $007D, $007E, $2302,
+
+			$00C7, $00FC, $00E9, $00E2, $00E4, $00E0, $00E5, $00E7,
+			$00EA, $00EB, $00E8, $00EF, $00EE, $00EC, $00C4, $00C5,
+			$00C9, $00E6, $00C6, $00F4, $00F6, $00F2, $00FB, $00F9,
+			$00FF, $00D6, $00DC, $00A2, $00A3, $00A5, $20A7, $0192,
+			$00E1, $00ED, $00F3, $00FA, $00F1, $00D1, $00AA, $00BA,
+			$00BF, $2310, $00AC, $00BD, $00BC, $00A1, $00AB, $00BB,
+			$2591, $2592, $2593, $2502, $2524, $2561, $2562, $2556,
+			$2555, $2563, $2551, $2557, $255D, $255C, $255B, $2510,
+			$2514, $2534, $252C, $251C, $2500, $253C, $255E, $255F,
+			$255A, $2554, $2569, $2566, $2560, $2550, $256C, $2567,
+			$2568, $2564, $2565, $2559, $2558, $2552, $2553, $256B,
+			$256A, $2518, $250C, $2588, $2584, $258C, $2590, $2580,
+			$03B1, $00DF, $0393, $03C0, $03A3, $03C3, $00B5, $03C4,
+			$03A6, $0398, $03A9, $03B4, $221E, $03C6, $03B5, $2229,
+			$2261, $00B1, $2265, $2264, $2320, $2321, $00F7, $2248,
+			$00B0, $2219, $00B7, $221A, $207F, $00B2, $25A0, $0020);
 	function VideoConfigure: boolean;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoToggleEGAMode(EGA: Boolean);
@@ -46,7 +81,7 @@ interface
 	procedure VideoShowCursor;
 	procedure VideoHideCursor;
 	procedure VideoSetBorderColor(value: integer);
-	procedure VideoCopy(xfrom, yfrom, width, height: integer; 
+	procedure VideoCopy(xfrom, yfrom, width, height: integer;
 		var buf: TVideoBuffer; toVideo: boolean);
 
 implementation
@@ -58,6 +93,27 @@ var
 	VideoTextPointer: pointer;
 	VideoCursorVisible: boolean;
 
+function utf8Len(codepoint: smallint): integer;
+	begin
+		if codepoint < $80 then utf8Len := 1
+		else if codepoint < $0800 then utf8Len := 2
+		else utf8Len := 3
+	end;
+
+procedure WriteUnicodeAsUTF8(codepoint: smallint);
+	begin
+		if codepoint < $80 then
+			Write(Chr(codepoint))
+		else if codepoint < $0800 then begin
+			Write(Chr(((codepoint shr  6) and $1F) or $C0));
+			Write(Chr(((codepoint shr  0) and $3F) or $80));
+		end else begin { codepoint < $10000 }
+			Write(Chr(((codepoint shr 12) and $0F) or $E0));
+			Write(Chr(((codepoint shr  6) and $3F) or $80));
+			Write(Chr(((codepoint shr  0) and $3F) or $80));
+		end;
+	end;
+
 {$F+}
 
 { The input x,y values are offset by 0, i.e. 0,0 is upper left. }
@@ -68,9 +124,10 @@ procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 
 		terminalWidth: Integer;
 		terminalHeight: Integer;
+		charPseudoEnd: Integer;
 
 	begin
-		{Get the terminal height and width to avoid printing 
+		{Get the terminal height and width to avoid printing
 		 outside it.
 		 https://stackoverflow.com/questions/26776980 }
 
@@ -85,7 +142,7 @@ procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 			TextColor(color and $F);
 		TextBackground(color shr 4);
 
-		{ Hack from https://stackoverflow.com/a/35140822 
+		{ Hack from https://stackoverflow.com/a/35140822
 		  A better solution will have to move away from Crt altogether.}
 
 		{ Possible performance improvement: extract the contents of
@@ -98,7 +155,7 @@ procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 			  MainBuffer is going out of sync. TODO, fix }
 
 			{
-			if (MainBuffer[x+offset+1][y+1].Color = color) and 
+			if (MainBuffer[x+offset+1][y+1].Color = color) and
 			   (MainBuffer[x+offset+1][y+1].Char = C) then begin
 				offset := offset + 1;
 				Continue;
@@ -110,15 +167,25 @@ procedure VideoWriteTextAsUTF8(x, y, color: byte; text: TVideoLine);
 			  char unicode while at the very lower right. There's
 			  no way to avoid this misfeature, so just don't print
 			  it in that case. }
-			if (y = terminalHeight-1) and 
-			   (x+offset+length(cp437[ord(C)]) >= terminalWidth) 
+			charPseudoEnd := x+offset+utf8Len(cp437ToUnicode[ord(C)]);
+			if (y = terminalHeight-1) and (charPseudoEnd >= terminalWidth)
 				then Continue;
 
 			GotoXY(1, 1);
 			GotoXY(x+offset+1, y+1);
 			MainBuffer[x+offset+1][y+1].Color := color;
 			MainBuffer[x+offset+1][y+1].Char := C;
-			Write(cp437[ord(C)]);
+
+			{ For the same reason, it'll corrupt every "too-wide" utf8
+			  point, so if we have any of those, just print a black-on-grey
+			  question mark. }
+			if (charPseudoEnd > terminalWidth) then begin
+				TextColor($0);
+				TextBackground($7);
+				Write('?');
+			end else
+				WriteUnicodeAsUTF8(cp437ToUnicode[ord(C)]);
+
 			offset := offset + 1;
 		end;
 		{ Move the cursor out of the way of the playing field. }
@@ -175,7 +242,7 @@ function VideoConfigure: boolean;
 			Writeln;
 			Write('  Video mode:  C)olor,  M)onochrome?  ');
 			repeat
-				repeat 
+				repeat
 					{ Don't busy-wait too much. }
 					Delay(100);
 				until KeyPressed;
@@ -266,11 +333,11 @@ procedure VideoCopy(xfrom, yfrom, width, height: integer; var buf: TVideoBuffer;
 
 	begin
 		for y := yfrom to yfrom + height - 1 do
-			for x := xfrom to xfrom + width - 1 do 
+			for x := xfrom to xfrom + width - 1 do
 			begin
 				if toVideo then
-					VideoWriteText(x, y, 
-					 buf[x+1][y+1].Color, 
+					VideoWriteText(x, y,
+					 buf[x+1][y+1].Color,
 					 buf[x+1][y+1].Char)
 				else
 					buf[x+1][y+1] := MainBuffer[x+1][y+1];

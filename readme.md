@@ -34,7 +34,6 @@ access is hard, and mouse and joystick support for similar reasons.
 
 - Crt really isn't made for Unicode output and so has strange corner cases (see above)
 - Even with the stdin-flushing fix, moving the player about by holding down a key is kinda janky. It probably can't be improved without going fully to ncurses or SDL.
-- The runtime takes up much more space than the DOS version. As zoo64 doesn't, I should investigate the reason more closely.
 
 ### Suspected bugs
 
