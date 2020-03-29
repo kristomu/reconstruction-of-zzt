@@ -666,8 +666,8 @@ function DisplayIOError: boolean;
 
 		DisplayIOError := true;
 
-		Str(ioResVal, textWindow.Title);
-		textWindow.Title := 'Error # ' + textWindow.Title;
+		{IMP: Use explanations instead of numeric error codes if possible.}
+		textWindow.Title := 'Error: ' + ErrorString(ioResVal);
 		TextWindowInitState(textWindow);
 		TextWindowAppend(textWindow, '$DOS Error: ');
 		TextWindowAppend(textWindow, '');
