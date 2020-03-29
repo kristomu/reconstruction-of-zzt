@@ -63,20 +63,33 @@ procedure OpenForRead(var f: Text);
 
 procedure OpenForWrite(var f: file; l: LongInt);
 	begin
+		{ Somewhat of a kludge to make it work both with existing
+		  write-only files and files that don't exist yet. It might
+		  have trouble with write-only directories. I don't know why
+		  Rewrite doesn't respect FileMode yet Reset does... }
+
 		FileMode := FILE_WRITE_ONLY;
-		Reset(f, l);			{ Not Rewrite! I dunno why... }
+		Reset(f, l);
+		if IOResult = 0 then Exit;
+
+		{ Couldn't open existing file. Try opening a new one. }
+		Rewrite(f, l);
 	end;
 
 procedure OpenForWrite(var f: TypedFile);
 	begin
 		FileMode := FILE_WRITE_ONLY;
 		Reset(f);
+		if IOResult = 0 then Exit;
+		Rewrite(f);
 	end;
 
 procedure OpenForWrite(var f: Text);
 	begin
 		FileMode := FILE_WRITE_ONLY;
 		Reset(f);
+		if IOResult = 0 then Exit;
+		Rewrite(f);
 	end;
 
 end.
