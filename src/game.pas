@@ -579,7 +579,7 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 
 			InputReadWaitKey;
 
-			if (Length(buffer) < width) and (InputKeyPressed >= #32) then begin
+			if (Length(buffer) < width) and (InputKeyPressed >= #32) and (not InputSpecialKeyPressed) then begin
 				if firstKeyPress then
 					buffer := '';
 				case mode of
@@ -602,6 +602,9 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 				end;
 			end else if (InputKeyPressed = KEY_LEFT) or (InputKeyPressed = KEY_BACKSPACE) then begin
 				buffer := Copy(buffer, 1, Length(buffer) - 1);
+			{IMP: Clear the whole line if Home is pressed.}
+			end else if (InputKeyPressed = KEY_HOME) then begin
+				buffer := '';
 			end;
 
 			firstKeyPress := false;
