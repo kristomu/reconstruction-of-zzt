@@ -51,8 +51,8 @@ interface
 		KEY_PAGE_DOWN = #209;
 		KEY_INSERT = #210;
 		KEY_DELETE = #211;
-		KEY_HOME = #212;
-		KEY_END = #213;
+		KEY_HOME = #199;
+		KEY_END = #207;
 		KEY_SHIFT_UP = #193;
 		KEY_SHIFT_DOWN = #194;
 		KEY_SHIFT_LEFT = #196;
@@ -64,6 +64,7 @@ interface
 		InputShiftAccepted: boolean;
 		InputJoystickEnabled: boolean;
 		InputMouseEnabled: boolean;
+		InputSpecialKeyPressed: boolean;
 		InputKeyPressed: char;
 		InputMouseX, InputMouseY: integer;
 		InputMouseActivationX, InputMouseActivationY: integer;
@@ -107,10 +108,11 @@ procedure InputUpdate;
 			InputKeyPressed := ReadKey;
 			utf[0] := Byte(InputKeyPressed);
 			{ Special keys }
-			if (InputKeyPressed = #0) or (InputKeyPressed = #1) or (InputKeyPressed = #2) then
-				InputKeyBuffer := InputKeyBuffer + Chr(Ord(ReadKey) or $80)
+			if (InputKeyPressed = #0) or (InputKeyPressed = #1) or (InputKeyPressed = #2) then begin
+				InputKeyBuffer := InputKeyBuffer + Chr(Ord(ReadKey) or $80);
+				InputSpecialKeyPressed := True;
 			{ Key corresponding to multi-byte UTF8 }
-			else if utf[0] > $7F then begin
+			end else if utf[0] > $7F then begin
 				i := 1;
 				while (i <= 3) and ByteBool((utf[0] shl i) and %10000000) do begin
 					utf[i] := Byte(ReadKey);
@@ -118,9 +120,24 @@ procedure InputUpdate;
 				end;
 
 				InputKeyBuffer := InputKeyBuffer + CodepointToCP437(UTF8ToCodepoint(utf));
+				InputSpecialKeyPressed := False;
+			end else begin { Ordinary key, or... }
+				InputSpecialKeyPressed := False;
+				{ Ugly hack for Linux console and the end key. For
+				  some reason it outputs F[F[. }
+				if (InputKeyPressed = #70) and KeyPressed then begin
+					InputKeyPressed := ReadKey;
+					if InputKeyPressed = '[' then begin
+						{ Get rid of the second F[. }
+						if KeyPressed then ReadKey;
+						if KeyPressed then ReadKey;
 
-			end else { Ordinary key }
+						InputKeyPressed := KEY_END;
+						InputSpecialKeyPressed := True;
+					end else InputKeyPressed := #70;
+				end;
 				InputKeyBuffer := InputKeyBuffer + InputKeyPressed;
+			end;
 			TCFlush(0, TCIFLUSH); { Flush the keybuffer. }
 		end;
 		if Length(InputKeyBuffer) <> 0 then begin
@@ -219,6 +236,7 @@ begin
 	InputDeltaY := 0;
 	InputShiftPressed := false;
 	InputShiftAccepted := false;
+	InputSpecialKeyPressed := false;
 	InputMouseX := 0;
 	InputMouseY := 0;
 	InputMouseActivationX := 60;

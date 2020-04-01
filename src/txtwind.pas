@@ -426,6 +426,9 @@ procedure TextWindowEdit(var state: TTextWindowState);
 					KEY_DOWN: newLinePos := LinePos + 1;
 					KEY_PAGE_UP: newLinePos := LinePos - TextWindowHeight + 4;
 					KEY_PAGE_DOWN: newLinePos := LinePos + TextWindowHeight - 4;
+					{IMP: END and HOME}
+					KEY_END: charPos := Length(Lines[LinePos]^) + 1;
+					KEY_HOME: charPos := 1;
 					KEY_RIGHT: begin
 						charPos := charPos + 1;
 						if charPos > (Length(Lines[LinePos]^) + 1) then begin
