@@ -579,7 +579,7 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 
 			InputReadWaitKey;
 
-			if (Length(buffer) < width) and (InputKeyPressed >= #32) and (InputKeyPressed < #128) then begin
+			if (Length(buffer) < width) and (InputKeyPressed >= #32) then begin
 				if firstKeyPress then
 					buffer := '';
 				case mode of
