@@ -35,11 +35,13 @@ interface
 		end;
 
 		TVideoBuffer = array[1..80, 1..25] of TTextChar;
-	var
-		VideoMonochrome: boolean;
-		MainBuffer: TVideoBuffer;
+	const
 		{ Credits go to Ben Russell (iamgreaser) for this table and
 		  the logic behind WriteUnicodeAsUTF8. }
+		{ Note, $ED now redirects to U+03D5 as identified by IBM;
+		  see Wikipedia note. https://bit.ly/39t1732 Better still
+		  would be U+1D719, but then the table would no longer be
+		  smallint.}
 		cp437ToUnicode: array[0 .. 255] of smallint = (
 			$0020, $263A, $263B, $2665, $2666, $2663, $2660, $2022,
 			$25D8, $25CB, $25D9, $2642, $2640, $266A, $266B, $263C,
@@ -72,9 +74,13 @@ interface
 			$2568, $2564, $2565, $2559, $2558, $2552, $2553, $256B,
 			$256A, $2518, $250C, $2588, $2584, $258C, $2590, $2580,
 			$03B1, $00DF, $0393, $03C0, $03A3, $03C3, $00B5, $03C4,
-			$03A6, $0398, $03A9, $03B4, $221E, $03C6, $03B5, $2229,
+			$03A6, $0398, $03A9, $03B4, $221E, $03D5, $03B5, $2229,
 			$2261, $00B1, $2265, $2264, $2320, $2321, $00F7, $2248,
 			$00B0, $2219, $00B7, $221A, $207F, $00B2, $25A0, $0020);
+	var
+		VideoMonochrome: boolean;
+		MainBuffer: TVideoBuffer;
+
 	function VideoConfigure: boolean;
 	procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	procedure VideoToggleEGAMode(EGA: Boolean);
