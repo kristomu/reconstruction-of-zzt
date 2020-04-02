@@ -1,1 +1,4 @@
 CYCLE0: The first stat has cycle 0, which freezes the title screen because a cycle-0 object is never executed, and if monitor doesn't execute, the game is unresponsive.
+PLAYER0: Putting the player stat at (0,0) causes a hang. (0,0) is outside of
+the visible board, and any message will destroy the objec there - the player
+or the monitor.

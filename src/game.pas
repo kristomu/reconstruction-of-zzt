@@ -289,16 +289,36 @@ procedure BoardOpen(boardId: integer);
 			Exit;
 		end;
 
+		Board.StatCount := Min(Board.StatCount, MAX_STAT);
+
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
 				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
-					Board.StatCount := ix - 1;
+					Board.StatCount := Max(ix - 1, 0);
 					World.Info.CurrentBoard := boardId;
 					Exit;
 				end;
+
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
 				AdvancePointer(ptr, SizeOf(TStat));
 				bytesRead := bytesRead + SizeOf(TStat);
+
+				{ SANITY: (0,0) is not available: it's used by one-line
+				  messages. }
+				{ The compromise to the Postelic position is probably to
+				  be generous, but show a warning message that the board
+				  was corrupted and attempted fixed. Do that later? }
+				if (X = 0) and (Y = 0) then begin
+					X := 1;
+					Y := 1;
+				end;
+
+				{ SANITY: Also handle more general out-of-bounds. Nothing
+				  with stats can be outside the (visible plus edge) area;
+				  the ElementTick call will fail -- or read undefined data
+				  in DOS. }
+				X := Min(Max(X, 0), BOARD_WIDTH+1);
+				Y := Min(Max(Y, 0), BOARD_HEIGHT+1);
 
 				{ SANITY: If DataLen is much too large, abort cleanly. }
 				if bytesRead + DataLen > World.BoardLen[boardId] then begin
