@@ -297,6 +297,14 @@ procedure BoardOpen(boardId: integer);
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
 				AdvancePointer(ptr, SizeOf(TStat));
 				bytesRead := bytesRead + SizeOf(TStat);
+
+				{ SANITY: If DataLen is much too large, abort cleanly. }
+				if bytesRead + DataLen > World.BoardLen[boardId] then begin
+					DataLen := 0;
+					Board.StatCount := ix;
+					Exit;
+				end;
+
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
@@ -306,6 +314,10 @@ procedure BoardOpen(boardId: integer);
 				end else if (DataLen < 0) and (-DataLen <= MAX_STAT) then begin
 					Data := Board.Stats[-DataLen].Data;
 					DataLen := Board.Stats[-DataLen].DataLen;
+				end else begin
+					{ If it's out of bounds and we didn't alloc anything,
+					  it must be set to 0.}
+					DataLen := 0;
 				end;
 			end;
 
@@ -1004,7 +1016,7 @@ procedure RemoveStat(statId: integer);
 					if (Board.Stats[i].Data = Data) and (i <> statId) then
 						goto StatDataInUse;
 				end;
-				FreeMem(Data, DataLen);
+				if DataLen > 0 then FreeMem(Data, DataLen);
 			end;
 
 		StatDataInUse:

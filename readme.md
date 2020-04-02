@@ -32,7 +32,6 @@ access is hard, and mouse and joystick support for similar reasons.
 - Sometimes happens: file not found when trying to play a world that has been successfully loaded. (NOSTATS.ZZT)
 
 ### Known bugs also in original ZZT
-- Negative Board.StatCount causes a hang when entering the board. (game.pas:1600)
 
 ### Known limitations
 
