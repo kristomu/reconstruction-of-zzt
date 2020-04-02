@@ -52,6 +52,7 @@ current state:
 - If using afl: put the tester file in a directory with tests/ and findings/
 subdirectories.
 - Run afl-fuzz -Q -f TEST.ZZT -i tests/ -o findings/ ../src/rel_zzt_fuzz TEST.ZZT
+- After finding a bug, debug zzt with it and set a breakpoint on SYSTEM_$$_INTERNALEXIT or just inspect the runtime error trace.
 
 ### Notation
 

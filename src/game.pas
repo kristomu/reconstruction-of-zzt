@@ -223,14 +223,22 @@ procedure BoardOpen(boardId: integer);
 		ptr: pointer;
 		ix, iy: integer;
 		rle: TRleTile;
+		bytesRead: integer = 0;
 	begin
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
 
 		ptr := World.BoardData[boardId];
 
+		{SANITY: Bail on very short board lengths. }
+		if World.BoardLen[boardId] < SizeOf(Board.Name) then begin
+			World.Info.CurrentBoard := boardId;
+			Exit;
+		end;
+
 		Move(ptr^, Board.Name, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
+		bytesRead := bytesRead + SizeOf(Board.Name);
 
 		ix := 1;
 		iy := 1;
@@ -239,31 +247,64 @@ procedure BoardOpen(boardId: integer);
 			if rle.Count <= 0 then begin
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
+				bytesRead := bytesRead + SizeOf(rle);
 			end;
+
+			{ SANITY: If the element is unknown, replace it with a normal. }
+			if rle.Tile.Element > MAX_ELEMENT then
+				rle.Tile.Element := E_NORMAL;
+
 			Board.Tiles[ix][iy] := rle.Tile;
 			ix := ix + 1;
 			if ix > BOARD_WIDTH then begin
 				ix := 1;
 				iy := iy + 1;
 			end;
-			rle.Count := rle.Count - 1;
-		until iy > BOARD_HEIGHT;
+
+			{ The wraparound that makes RLE byte 0 indicate a run length of
+			  256 also triggers a range check error, so do it manually. }
+			if rle.Count = 0 then
+				rle.Count := 255
+			else
+				rle.Count := rle.Count - 1;
+
+		until (iy > BOARD_HEIGHT) or (bytesRead >= World.BoardLen[boardId]);
+
+		if (SizeOf(Board.Info) + SizeOf(Board.StatCount) + bytesRead) >= World.BoardLen[boardId] then begin
+			World.Info.CurrentBoard := boardId;
+			Exit;
+		end;
 
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
+		bytesRead := bytesRead + SizeOf(Board.Info);
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
+		bytesRead := bytesRead + SizeOf(Board.StatCount);
+
+		if Board.StatCount < 0 then begin
+			World.Info.CurrentBoard := boardId;
+			Exit;
+		end;
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
+				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
+					Board.StatCount := ix - 1;
+					World.Info.CurrentBoard := boardId;
+					Exit;
+				end;
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
 				AdvancePointer(ptr, SizeOf(TStat));
+				bytesRead := bytesRead + SizeOf(TStat);
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
 					AdvancePointer(ptr, DataLen);
-				end else if DataLen < 0 then begin
+					bytesRead := bytesRead + DataLen;
+				{ SANITY: Handle out-of-bounds DataLen reference. }
+				end else if (DataLen < 0) and (-DataLen <= MAX_STAT) then begin
 					Data := Board.Stats[-DataLen].Data;
 					DataLen := Board.Stats[-DataLen].DataLen;
 				end;
@@ -750,14 +791,30 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					World.Info.IsSave := true;
 				end;
 
-				for boardId := 0 to World.BoardCount do begin
+				for boardId := 0 to Min(MAX_BOARD, World.BoardCount) do begin
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[boardId], 2);
-					GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
-					BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId]);
+
+					{ Sanity check. Abort at this position so that any
+					  boards before the corrupted one can still be
+					  recovered. TODO: Also provide a text window popup
+					  explaining why the loading was interrupted. }
+					if (IOResult <> 0) or (World.BoardLen[boardId] < 0) then begin
+						if boardId = 0 then Exit;
+						World.BoardCount := boardId - 1;
+					end else begin
+						GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
+						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId]);
+					end;
 				end;
 
 				Close(f);
+
+				{ More sanity checks. }
+				{ Am I being too Postelic? .. point. }
+				if (World.Info.CurrentBoard < 0) or
+					(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)) then
+					World.Info.CurrentBoard := 0;
 
 				BoardOpen(World.Info.CurrentBoard);
 				LoadedGameFileName := filename;
