@@ -1363,8 +1363,19 @@ procedure ElementPlayerTick(statId: integer);
 		unk1, unk2, unk3: integer;
 		i: integer;
 		bulletCount: integer;
+		canAct : boolean;
 	begin
+		{ IMP: The player, as a game element, is called every cycle, so it's
+		  impossible to freeze the game by setting cycle 0 or very high.
+		  However, to otherwise be compatible with DOS ZZT, the player can
+		  only move or shoot or anything that impacts the world when the
+		  cycle is actually right - so setting a higher cycle on the player
+		  still slows him down, as in DOS ZZT. }
+		{ Running down energizer ticks or torch light counts as affecting
+		  the world, even though it might make logical sense for torches. }
 		with Board.Stats[statId] do begin
+			canAct := (Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle));
+
 			if World.Info.EnergizerTicks > 0 then begin
 				if ElementDefs[E_PLAYER].Character = #2 then
 					ElementDefs[E_PLAYER].Character := #1
@@ -1400,7 +1411,7 @@ procedure ElementPlayerTick(statId: integer);
 					PlayerDirY := InputDeltaY;
 				end;
 
-				if (PlayerDirX <> 0) or (PlayerDirY <> 0) then begin
+				if canAct and ((PlayerDirX <> 0) or (PlayerDirY <> 0)) then begin
 					if Board.Info.MaxShots = 0 then begin
 						if MessageNoShootingNotShown then
 							DisplayMessage(200, 'Can'#39't shoot in this place!');
@@ -1434,7 +1445,7 @@ procedure ElementPlayerTick(statId: integer);
 
 				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
 					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				if canAct and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
 					if SoundEnabled and not SoundIsPlaying then
 						Sound(110);
 					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable then begin
@@ -1450,7 +1461,7 @@ procedure ElementPlayerTick(statId: integer);
 
 			case UpCase(InputKeyPressed) of
 				'T': begin
-					if World.Info.TorchTicks <= 0 then begin
+					if canAct and (World.Info.TorchTicks <= 0) then begin
 						if World.Info.Torches > 0 then begin
 							if Board.Info.IsDark then begin
 								World.Info.Torches := World.Info.Torches - 1;
@@ -1501,7 +1512,8 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if World.Info.TorchTicks > 0 then begin
-				World.Info.TorchTicks := World.Info.TorchTicks - 1;
+				if canAct then
+					World.Info.TorchTicks := World.Info.TorchTicks - 1;
 				if World.Info.TorchTicks <= 0 then begin
 					DrawPlayerSurroundings(X, Y, 0);
 					SoundQueue(3, #48#1#32#1#16#1);
@@ -1512,7 +1524,8 @@ procedure ElementPlayerTick(statId: integer);
 			end;
 
 			if World.Info.EnergizerTicks > 0 then begin
-				World.Info.EnergizerTicks := World.Info.EnergizerTicks - 1;
+				if canAct then
+					World.Info.EnergizerTicks := World.Info.EnergizerTicks - 1;
 
 				if World.Info.EnergizerTicks = 10 then
 					SoundQueue(9, #32#3#26#3#23#3#22#3#21#3#19#3#16#3)

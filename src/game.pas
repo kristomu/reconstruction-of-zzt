@@ -284,6 +284,7 @@ procedure BoardOpen(boardId: integer);
 		bytesRead := bytesRead + SizeOf(Board.StatCount);
 
 		if Board.StatCount < 0 then begin
+			Board.StatCount := 0;
 			World.Info.CurrentBoard := boardId;
 			Exit;
 		end;
@@ -1659,7 +1660,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end else begin { not GamePaused }
 				if CurrentStatTicked <= Board.StatCount then begin
 					with Board.Stats[CurrentStatTicked] do begin
-						if (Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle)) then
+						{ IMP: The game element (at stat 0) can always call
+						  a tick, but it can only act - affect the world -
+						  if the cycle is right. See ElementPlayerTick
+						  for more info. }
+						if (CurrentStatTicked = 0) or
+							((Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle))) then
+
 							ElementDefs[Board.Tiles[X][Y].Element].TickProc(CurrentStatTicked);
 
 						CurrentStatTicked := CurrentStatTicked + 1;
