@@ -21,13 +21,14 @@
 }
 
 { So as not to have to pull in a whole mathematics library just for min and
-  max. }
+  max. Now also includes sign! }
 
 unit Minmax;
 
 interface
 	function Min(x, y: longint): longint;
 	function Max(x, y: longint): longint;
+	function Sign(x: longint): longint;
 
 implementation
 
@@ -41,6 +42,13 @@ function Max(x, y: longint): longint;
 	begin
 		if x >= y then Max := x
 		else Max := y;
+	end;
+
+function Sign(x: longint): longint;
+	begin
+		if x > 0 then Sign := 1
+		else if x < 0 then Sign := -1
+		else Sign := 0
 	end;
 
 end.

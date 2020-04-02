@@ -39,7 +39,7 @@ interface
 	procedure InitEditorStatSettings;
 
 implementation
-uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game;
+uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game, Minmax;
 
 const
 	TransporterNSChars: string = '^~^-v_v-';
@@ -680,10 +680,12 @@ procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 		end;
 
 		with Board.Stats[GetStatIdAt(x, y)] do begin
+			if Cycle = 0 then Cycle := 1;
+
 			if StepX = 0 then
-				ch := Ord(TransporterNSChars[StepY * 2 + 3 + (CurrentTick div Cycle) mod 4])
+				ch := Ord(TransporterNSChars[Sign(StepY) * 2 + 3 + (CurrentTick div Cycle) mod 4])
 			else
-				ch := Ord(TransporterEWChars[StepX * 2 + 3 + (CurrentTick div Cycle) mod 4]);
+				ch := Ord(TransporterEWChars[Sign(StepX) * 2 + 3 + (CurrentTick div Cycle) mod 4]);
 		end;
 	end;
 
