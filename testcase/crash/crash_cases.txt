@@ -1,3 +1,6 @@
 CR1-CR4: Garbled metadata or too small board size.
 CR5: Duplicator without stats causes getStatIdx to return -1 and thus access
 memory outside of bounds.
+CR6: DataLen a very high positive number, leading to an out of bounds read.
+CR7: DataLen zero leading to a free-without-alloc in RemoveStat (play to 
+exercise the bug).
