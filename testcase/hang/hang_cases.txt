@@ -1,0 +1,1 @@
+CYCLE0: The first stat has cycle 0, which freezes the title screen because a cycle-0 object is never executed, and if monitor doesn't execute, the game is unresponsive.
