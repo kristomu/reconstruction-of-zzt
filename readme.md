@@ -23,11 +23,15 @@ access is hard, and mouse and joystick support for similar reasons.
 - No joystick or mouse support.
 - No sound or music.
 
-### Known bugs
+### Known bugs not in original ZZT
 
 - Cursor is always shown, even when it's not desired.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
+- Fails to load files in very long paths, e.g. /a/b/c/d/e/f/g/h/findings//.cur_input
+
+### Known bugs also in original ZZT
+- Negative Board.StatCount causes a hang when entering the board. (game.pas:1600)
 
 ### Known limitations
 
@@ -37,6 +41,17 @@ access is hard, and mouse and joystick support for similar reasons.
 ### Suspected bugs
 
 - Possible performance regressions involving SOUNDS timer.
+
+### Fuzzing
+
+ZZT really isn't equipped for fuzz testing yet. Here's how to do it in its
+current state:
+
+- Remove every video output call and Delay call
+- Compile zztfuzz.pas to get a tester (release.sh now does so)
+- If using afl: put the tester file in a directory with tests/ and findings/
+subdirectories.
+- Run afl-fuzz -Q -f TEST.ZZT -i tests/ -o findings/ ../src/rel_zzt_fuzz TEST.ZZT
 
 ### Notation
 

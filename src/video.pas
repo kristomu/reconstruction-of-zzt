@@ -36,6 +36,7 @@ interface
 
 		TVideoBuffer = array[1..80, 1..25] of TTextChar;
 	var
+		VFuzzMode: boolean;
 		VideoMonochrome: boolean;
 		MainBuffer: TVideoBuffer;
 
@@ -51,7 +52,7 @@ interface
 		var buf: TVideoBuffer; toVideo: boolean);
 
 implementation
-uses Crt, Dos, Unicode;
+uses Crt, Dos, Unicode, Fuzz;
 var
 	VideoColumns: integer;
 	VideoBorderColor: integer;
@@ -177,6 +178,7 @@ procedure VideoWriteTextBW(x, y, color: byte; text: TVideoLine);
 
 procedure VideoWriteText(x, y, color: byte; text: TVideoLine);
 	begin
+		if VFuzzMode then Exit;
 		if VideoMonochrome then
 			VideoWriteTextBW(x, y, color, text)
 		else
@@ -203,7 +205,7 @@ function VideoConfigure: boolean;
 			repeat
 				repeat
 					{ Don't busy-wait too much. }
-					Delay(100);
+					Wait(100);
 				until KeyPressed;
 				charTyped := UpCase(ReadKey);
 			until charTyped in [#27, 'C', 'M'];
@@ -304,6 +306,7 @@ procedure VideoCopy(xfrom, yfrom, width, height: integer; var buf: TVideoBuffer;
 	end;
 
 begin
+	VFuzzMode := false;
 	VideoBorderColor := 0;
 	VideoColumns := 80;
 	if LastMode = 7 then begin

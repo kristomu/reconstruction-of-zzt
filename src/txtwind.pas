@@ -77,7 +77,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer, Gamevars, Fileops;
+uses Crt, Input, Printer, Gamevars, Fileops, Fuzz;
 
 function UpCaseString(input: string): string;
 	var
@@ -116,7 +116,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(25);
+				Wait(25);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -133,7 +133,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(18);
+				Wait(18);
 				{ Replace upper line with background. }
 				VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1, ScreenCopy, true);
 				{ Replace lower line with background. }
@@ -283,7 +283,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			TextWindowDraw(state, false, viewingFile);
 			repeat
 				{ Don't busy-wait too much. }
-				Delay(10);
+				Wait(10);
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
@@ -359,7 +359,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 							TextWindowDrawTitle($1E, #174'Press ENTER for more info'#175);
 				end;
 				if InputJoystickMoved then begin
-					Delay(35);
+					Wait(35);
 				end;
 			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed;
 			if InputKeyPressed = KEY_ESCAPE then begin

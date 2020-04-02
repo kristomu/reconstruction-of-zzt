@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops, Fuzz;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -729,7 +729,7 @@ procedure EditorLoop;
 
 					VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 					if (InputKeyPressed = #0) and InputJoystickEnabled then
-						Delay(70);
+						Wait(70);
 					InputShiftAccepted := false;
 				end;
 
