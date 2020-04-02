@@ -1,0 +1,3 @@
+CR1-CR4: Garbled metadata or too small board size.
+CR5: Duplicator without stats causes getStatIdx to return -1 and thus access
+memory outside of bounds.

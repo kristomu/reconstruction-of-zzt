@@ -29,6 +29,7 @@ access is hard, and mouse and joystick support for similar reasons.
 - Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
 - Fails to load files in very long paths, e.g. /a/b/c/d/e/f/g/h/findings//.cur_input
+- Sometimes happens: file not found when trying to play a world that has been successfully loaded. (NOSTATS.ZZT)
 
 ### Known bugs also in original ZZT
 - Negative Board.StatCount causes a hang when entering the board. (game.pas:1600)

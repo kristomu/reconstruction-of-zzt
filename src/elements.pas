@@ -275,15 +275,15 @@ procedure ElementCentipedeHeadTick(statId: integer);
 						iy := StepY;
 						if Follower < 0 then begin
 							if (Board.Tiles[tx - ix][ty - iy].Element = E_CENTIPEDE_SEGMENT)
-								and (Board.Stats[GetStatIdAt(tx - ix, ty - iy)].Leader < 0) then
+								and (GetStatIdAt(tx - ix, ty - iy) >= 0) and (Board.Stats[GetStatIdAt(tx - ix, ty - iy)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx - ix, ty - iy)
 							end else if (Board.Tiles[tx - iy][ty - ix].Element = E_CENTIPEDE_SEGMENT)
-								and (Board.Stats[GetStatIdAt(tx - iy, ty - ix)].Leader < 0) then
+								and (GetStatIdAt(tx - iy, ty - ix) >= 0) and (Board.Stats[GetStatIdAt(tx - iy, ty - ix)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx - iy, ty - ix);
 							end else if (Board.Tiles[tx + iy][ty + ix].Element = E_CENTIPEDE_SEGMENT)
-								and (Board.Stats[GetStatIdAt(tx + iy, ty + ix)].Leader < 0) then
+								and (GetStatIdAt(tx + iy, ty + ix) >= 0) and (Board.Stats[GetStatIdAt(tx + iy, ty + ix)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx + iy, ty + ix);
 							end;
@@ -556,6 +556,10 @@ procedure ElementConveyorCCWTick(statId: integer);
 
 procedure ElementBombDraw(x, y: integer; var ch: byte);
 	begin
+		if GetStatIdAt(x, y) < 0 then begin
+			ch := 11;
+			Exit;
+		end;
 		with Board.Stats[GetStatIdAt(x, y)] do
 			if P1 <= 1 then
 				ch := 11
@@ -612,6 +616,7 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 		finishSearch: boolean;
 		isValidDest: boolean;
 	begin
+		if GetStatIdAt(x + deltaX, y + deltaY) < 0 then Exit;
 		with Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)] do begin
 			if (deltaX = StepX) and (deltaY = StepY) then begin
 				ix := X;
@@ -641,7 +646,7 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 						end;
 						if Element = E_TRANSPORTER then begin
 							iStat := GetStatIdAt(ix, iy);
-							if (Board.Stats[iStat].StepX = -deltaX) and (Board.Stats[iStat].StepY = -deltaY) then
+							if (iStat >= 0) and (Board.Stats[iStat].StepX = -deltaX) and (Board.Stats[iStat].StepY = -deltaY) then
 								isValidDest := true;
 						end;
 					end;
@@ -669,6 +674,11 @@ procedure ElementTransporterTick(statId: integer);
 
 procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 	begin
+		if GetStatIdAt(x, y) < 0 then begin
+			ch := Ord(' '); { What DOS ZZT draws. }
+			Exit;
+		end;
+
 		with Board.Stats[GetStatIdAt(x, y)] do begin
 			if StepX = 0 then
 				ch := Ord(TransporterNSChars[StepY * 2 + 3 + (CurrentTick div Cycle) mod 4])
@@ -781,7 +791,8 @@ procedure ElementSlimeTouch(x, y: integer; sourceStatId: integer; var deltaX, de
 		color: integer;
 	begin
 		color := Board.Tiles[x][y].Color;
-		DamageStat(GetStatIdAt(x, y));
+		if GetStatIdAt(x, y) >= 0 then
+			DamageStat(GetStatIdAt(x, y));
 		Board.Tiles[x][y].Element := E_BREAKABLE;
 		Board.Tiles[x][y].Color := color;
 		BoardDrawTile(x, y);
@@ -934,6 +945,13 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 
 procedure ElementDuplicatorDraw(x, y: integer; var ch: byte);
 	begin
+		{SANITY: If there are no stats, abort outright.
+		 It might be better to replace GetStatIdAt with a function
+		 that returns an all-zeroes stat if there's nothing there.
+		 Later?}
+		ch := 250;
+		if GetStatIdAt(x, y) = -1 then Exit;
+
 		with Board.Stats[GetStatIdAt(x, y)] do
 			case P1 of
 				1: ch := 250;
@@ -963,6 +981,8 @@ procedure ElementObjectTick(statId: integer);
 
 procedure ElementObjectDraw(x, y: integer; var ch: byte);
 	begin
+		ch := 1;
+		if GetStatIdAt(x, y) = -1 then Exit;
 		ch := Board.Stats[GetStatIdAt(x, y)].P1;
 	end;
 
@@ -971,6 +991,7 @@ procedure ElementObjectTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 		statId: integer;
 		retVal: boolean;
 	begin
+		if GetStatIdAt(x, y) = -1 then Exit;
 		statId := GetStatIdAt(x, y);
 		retVal := OopSend(-statId, 'TOUCH', false);
 	end;
@@ -1041,12 +1062,17 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 	begin
 		statId := GetStatIdAt(x, y);
 
+		textWindow.Selectable := false;
+		textWindow.LinePos := 1;
+
+		SoundQueue(2, SoundParse('c-c+d-d+e-e+f-f+g-g'));
+
+		if statId < 0 then begin
+			Board.Tiles[x][y].Element := E_EMPTY;
+			Exit;
+		end;
+
 		with Board.Stats[statId] do begin
-			textWindow.Selectable := false;
-			textWindow.LinePos := 1;
-
-			SoundQueue(2, SoundParse('c-c+d-d+e-e+f-f+g-g'));
-
 			DataPos := 0;
 			OopExecute(statId, DataPos, 'Scroll');
 		end;
@@ -1138,6 +1164,8 @@ procedure ElementPushableTouch(x, y: integer; sourceStatId: integer; var deltaX,
 
 procedure ElementPusherDraw(x, y: integer; var ch: byte);
 	begin
+		ch := 31;
+		if GetStatIdAt(x, y) = -1 then Exit;
 		with Board.Stats[GetStatIdAt(x, y)] do begin
 			if StepX = 1 then
 				ch := 16
@@ -1164,6 +1192,8 @@ procedure ElementPusherTick(statId: integer);
 		end;
 
 		statId := GetStatIdAt(startX, startY);
+		if statId < 0 then Exit;
+
 		with Board.Stats[statId] do begin
 			if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
 				MoveStat(statId, X + StepX, Y + StepY);
@@ -1171,6 +1201,7 @@ procedure ElementPusherTick(statId: integer);
 
 				if Board.Tiles[X - (StepX * 2)][Y - (StepY * 2)].Element = E_PUSHER then begin
 					i := GetStatIdAt(X - (StepX * 2), Y - (StepY * 2));
+					if i = -1 then Exit;
 					if (Board.Stats[i].StepX = StepX) and (Board.Stats[i].StepY = StepY) then
 						ElementDefs[E_PUSHER].TickProc(i);
 				end;

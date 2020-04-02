@@ -1400,7 +1400,10 @@ procedure BoardPassageTeleport(x, y: integer);
 		col := Board.Tiles[x][y].Color;
 
 		oldBoard := World.Info.CurrentBoard;
-		BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
+
+		{ Handle passages without stats. }
+		if GetStatIdAt(x, y) < 0 then BoardChange(oldBoard)
+		else BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
 
 		newX := 0;
 		for ix := 1 to BOARD_WIDTH do
