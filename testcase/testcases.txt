@@ -1,0 +1,9 @@
+CONVEYOR.BRD	Example of conveyor stat overwriting bug
+
+NOSTAT.ZZT	A bunch of items without stats, to test behavior when GetStatId
+		fails. Also, a transport next to the transport without stats
+		(exercises another bug if you enter it from below), and a
+		centipede (for fuzz testing purposes).
+
+crash/		Worlds and boards that produce crashes
+hang/		Worlds and boards that produce hangs/hard lockups
