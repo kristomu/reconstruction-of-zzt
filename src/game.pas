@@ -85,6 +85,7 @@ interface
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
 	procedure GamePrintRegisterMessage;
+	procedure GameRunFewCycles(cycles:integer);
 const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -107,7 +108,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops, Fuzz;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -443,7 +444,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
 
 			if editable then begin
-				Delay(25);
+				Wait(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -482,7 +483,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		repeat
 			if editable then begin
 				if InputJoystickMoved then
-					Delay(45);
+					Wait(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
 				InputUpdate;
@@ -529,7 +530,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
-				Delay(35);
+				Wait(35);
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -653,7 +654,7 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		Wait(2000);
 	end;
 
 function DisplayIOError: boolean;
@@ -1700,6 +1701,34 @@ procedure GameTitleLoop;
 				end;
 			until boardChanged or GameTitleExitRequested;
 		until GameTitleExitRequested;
+	end;
+
+{-KM-}
+
+procedure GameRunFewCycles(cycles:integer);
+	var
+		boardChanged: boolean;
+		startPlay: boolean;
+		i: integer;
+	begin
+		GameTitleExitRequested := false;
+		JustStarted := false;
+		ReturnBoardId := 0;
+		boardChanged := true;
+
+		if not WorldLoad(StartupWorldFileName, '.ZZT', true) then WorldCreate;
+
+		ReturnBoardId := World.Info.CurrentBoard;
+		BoardChange(0);
+		JustStarted := false;
+
+		for i := 1 to cycles do begin
+			GameStateElement := E_MONITOR;
+			startPlay := false;
+			GamePaused := false;
+			GamePlayLoop(boardChanged);
+			boardChanged := false;
+		end;
 	end;
 
 procedure GamePrintRegisterMessage;

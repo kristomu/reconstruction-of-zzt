@@ -32,6 +32,7 @@ interface
 			Data: array[1 .. 255] of word;
 		end;
 	var
+		SFuzzMode : boolean;
 		SoundEnabled: boolean;
 		SoundBlockQueueing: boolean;
 		SoundCurrentPriority: integer;
@@ -55,7 +56,7 @@ interface
 	function SoundParse(input: string): string;
 
 implementation
-uses Crt, Dos, Minmax;
+uses Crt, Dos, Minmax, Fuzz;
 
 procedure SoundQueue(priority: integer; pattern: string);
 	begin
@@ -137,7 +138,7 @@ procedure SoundPlayDrum(var drum: TDrumData);
 	begin
 		for i := 1 to drum.Len do begin
 			Sound(drum.Data[i]);
-			Delay(1);
+			Wait(1);
 		end;
 		NoSound;
 	end;
@@ -167,6 +168,11 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 		hSecsDiff: word;
 		hSecsTotal: integer;
 	begin
+		if SFuzzMode then begin
+			SoundHasTimeElapsed := true;
+			Exit;
+		end;
+
 		if (SoundTimeCheckCounter > 0) and ((SoundTimeCheckCounter mod 2) = 1) then begin
 			SoundTimeCheckCounter := SoundTimeCheckCounter - 1;
 			SoundCheckTimeIntr;
@@ -189,7 +195,7 @@ function SoundHasTimeElapsed(var counter: integer; duration: integer): boolean;
 			{ Duration seems to be in units of 100th seconds,
 			  possibly influenced by the game speed slider.
 			  PLL later; for now, this ugly hack. }
-			Delay(20);
+			Wait(20);
 		end;
 	end;
 
@@ -357,6 +363,7 @@ begin
 	SoundTimeCheckCounter := 36;
 	UseSystemTimeForElapsed := true;
 	TimerTicks := 0;
+	SFuzzMode := false;
 	SoundTimeCheckHsec := 0;
 	SoundEnabled := false;
 	SoundBlockQueueing := false;
