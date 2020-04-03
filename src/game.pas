@@ -252,7 +252,11 @@ procedure BoardOpen(boardId: integer);
 		      does. DOS ZZT would instead write past the bounds of the
 		      scratch space when cleaning up, which means authors can't use
 		      any RLE count 0 pairs without risking a glitch or crash
-		      anyway. }
+		      anyway.
+
+		      BoardClose and BoardOpen may still desynchronize, but what
+		      BoardClose outputs will never be longer than what BoardOpen
+		      inputs, which is okay.}
 			if rle.Count <= 0 then begin
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
@@ -298,6 +302,13 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
+				{ Updating Board.StatCount doesn't lead to an early exit
+				  from the for loop the way it does in C, thus this hack.
+				  The better approach would be to refactor into multiple
+				  procedures: one for doing RLE, one for doing stats, and
+				  one for handling references. }
+				if ix > Board.StatCount then Continue;
+
 				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
 					Board.StatCount := Max(ix - 1, 0);
 					World.Info.CurrentBoard := boardId;
@@ -355,7 +366,17 @@ procedure BoardOpen(boardId: integer);
 					  DOS ZZT, so cycles should do nothing too. If
 					  we're pointing at another reference or out of
 					  bounds, do nothing. }
-					if (-DataLen > Board.StatCount) or
+					{ Furthermore, if we're the player, do nothing.
+					  Due to the way that BoardClose works, letting the
+					  player refer to a later object's data can't be
+					  allowed. Strictly speaking, referring to a later
+					  object is not allowed in general, but as long as
+					  the object doing the referring is not the player,
+					  we can pretend (in BoardClose) that the later object
+					  refers to the earlier's data instead. This is not
+					  possible with the player, because the reference
+					  DataLen would then be -0, which is just 0.}
+					if (ix = 0) or (-DataLen > Board.StatCount) or
 					   (Board.Stats[-DataLen].DataLen < 0) then
 						DataLen := 0;
 

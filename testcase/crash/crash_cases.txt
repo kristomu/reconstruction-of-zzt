@@ -13,3 +13,4 @@ TRANSTEP: Transporters with very large xstep,ystep crash the game.
 CR8: Too large BoardLen (exceeding the size of the game file).
 CR9: Use of a board tile with RLE count 0 causes desynchronization and subsequent crash on cleanup.
 CR10: Multi-stage reference DataLen < 0 (i.e. object 1 points at object 2 which points at...)
+CR11: The player stats has a data reference (DataLen < 0) to a later object with data. This causes a double free and a crash.
