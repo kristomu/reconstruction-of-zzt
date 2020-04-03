@@ -5,5 +5,8 @@ NOSTAT.ZZT	A bunch of items without stats, to test behavior when GetStatId
 		(exercises another bug if you enter it from below), and a
 		centipede (for fuzz testing purposes).
 
+OVERFLOW.ZZT	A world with a title board that exceeds the 20k hard limit. May
+		cause a crash or arbitrary behavior.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups

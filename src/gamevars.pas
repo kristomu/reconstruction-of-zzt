@@ -42,6 +42,7 @@ interface
 		TORCH_DX = 8;
 		TORCH_DY = 5;
 		TORCH_DIST_SQR = 50;
+		MAX_BOARD_LEN = 20000;
 	type
 		TString50 = string[50];
 		TCoord = packed record
@@ -155,7 +156,7 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. 19999] of byte;
+		TIoTmpBuf = array[0 .. (MAX_BOARD_LEN-1)] of byte;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
