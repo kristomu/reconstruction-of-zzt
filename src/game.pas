@@ -328,6 +328,10 @@ procedure BoardOpen(boardId: integer);
 				end;
 
 				if DataLen > 0 then begin
+					{ SANITY: If DataLen is too long, truncate it. }
+					DataLen := Min(0, Max(DataLen,
+						World.BoardLen[boardId]-bytesRead));
+
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
 					AdvancePointer(ptr, DataLen);
@@ -841,8 +845,15 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 						GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
 						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId],
 							actuallyRead);
-						{ SANITY: reallocate and update board len if it's
-						  too long. }
+						{ SANITY: If reading the whole board would lead to an
+					  	  overflow down the line, pretend we only read the
+					  	  MAX_BOARD_LEN first. }
+					  	{ Note: This should pop up a message to prevent
+					      data loss on later saving. Do that later, TODO. }
+					  	actuallyRead := Min(actuallyRead, MAX_BOARD_LEN);
+						{ SANITY: reallocate and update board len if
+						  there's a mismatch between how much we were told
+						  we could read, and how much we actually read. }
 						if actuallyRead <> World.BoardLen[boardId] then begin
 							World.BoardData[boardId] := ReAllocMem(World.BoardData[boardId],
 								actuallyRead);
