@@ -30,6 +30,7 @@ access is hard, and mouse and joystick support for similar reasons.
 - Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
 - Fails to load files in very long paths, e.g. /a/b/c/d/e/f/g/h/findings//.cur_input
 - Sometimes happens: file not found when trying to play a world that has been successfully loaded. (NOSTATS.ZZT)
+- Regression: memory leaks on opening and/or closing boards. Fix later once ZZT is robust to fuzzing (probably by making it crash when a leak is detected, and then rerunning fuzz).
 
 ### Known bugs also in original ZZT
 

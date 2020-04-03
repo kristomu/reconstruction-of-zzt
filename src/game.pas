@@ -778,6 +778,7 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		ptr: pointer;
 		boardId: integer;
 		loadProgress: integer;
+		actuallyRead: integer;
 	procedure SidebarAnimateLoading;
 		begin
 			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
@@ -833,11 +834,20 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					  recovered. TODO: Also provide a text window popup
 					  explaining why the loading was interrupted. }
 					if (IOResult <> 0) or (World.BoardLen[boardId] < 0) then begin
+						World.BoardLen[boardId] := 0;
 						if boardId = 0 then Exit;
 						World.BoardCount := boardId - 1;
 					end else begin
 						GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
-						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId]);
+						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId],
+							actuallyRead);
+						{ SANITY: reallocate and update board len if it's
+						  too long. }
+						if actuallyRead <> World.BoardLen[boardId] then begin
+							World.BoardData[boardId] := ReAllocMem(World.BoardData[boardId],
+								actuallyRead);
+							World.BoardLen[boardId] := actuallyRead;
+						end;
 					end;
 				end;
 
