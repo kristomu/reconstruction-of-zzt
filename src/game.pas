@@ -244,10 +244,20 @@ procedure BoardOpen(boardId: integer);
 		iy := 1;
 		rle.Count := 0;
 		repeat
+			{ ZZT used to have a "feature" where an RLE count of 0 would
+		      mean 256 repetitions of the tile. However, because it never
+		      writes those RLE counts itself, it would get desynchronized
+		      on a board close and crash. Therefore, we must simply ignore
+		      such rle count 0 bytes, even though that is not what DOS ZZT
+		      does. DOS ZZT would instead write past the bounds of the
+		      scratch space when cleaning up, which means authors can't use
+		      any RLE count 0 pairs without risking a glitch or crash
+		      anyway. }
 			if rle.Count <= 0 then begin
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
 				bytesRead := bytesRead + SizeOf(rle);
+				if rle.Count = 0 then Continue;
 			end;
 
 			{ SANITY: If the element is unknown, replace it with a normal. }
@@ -261,12 +271,7 @@ procedure BoardOpen(boardId: integer);
 				iy := iy + 1;
 			end;
 
-			{ The wraparound that makes RLE byte 0 indicate a run length of
-			  256 also triggers a range check error, so do it manually. }
-			if rle.Count = 0 then
-				rle.Count := 255
-			else
-				rle.Count := rle.Count - 1;
+			rle.Count := rle.Count - 1;
 
 		until (iy > BOARD_HEIGHT) or (bytesRead >= World.BoardLen[boardId]);
 
@@ -296,7 +301,7 @@ procedure BoardOpen(boardId: integer);
 				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
 					Board.StatCount := Max(ix - 1, 0);
 					World.Info.CurrentBoard := boardId;
-					Exit;
+					Continue;
 				end;
 
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
@@ -324,28 +329,47 @@ procedure BoardOpen(boardId: integer);
 				if bytesRead + DataLen > World.BoardLen[boardId] then begin
 					DataLen := 0;
 					Board.StatCount := ix;
-					Exit;
+					Continue;
 				end;
 
 				if DataLen > 0 then begin
 					{ SANITY: If DataLen is too long, truncate it. }
-					DataLen := Min(0, Max(DataLen,
+					DataLen := Max(0, Min(DataLen,
 						World.BoardLen[boardId]-bytesRead));
 
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
 					AdvancePointer(ptr, DataLen);
 					bytesRead := bytesRead + DataLen;
-				{ SANITY: Handle out-of-bounds DataLen reference. }
-				end else if (DataLen < 0) and (-DataLen <= MAX_STAT) then begin
-					Data := Board.Stats[-DataLen].Data;
-					DataLen := Board.Stats[-DataLen].DataLen;
-				end else begin
-					{ If it's out of bounds and we didn't alloc anything,
-					  it must be set to 0.}
-					DataLen := 0;
 				end;
 			end;
+
+		{ SANITY: Process referential DataLen variables. This must be
+		  done after the former loop because otherwise it could be
+		  using incorrect data. }
+
+		{ TODO: Do something about reference loops (e.g. item 1 points to
+		  item 2 which points back at item 1). DFS? I'm going to
+		  need a test case first.}
+
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if (DataLen < 0) then begin
+					if -DataLen <= Board.StatCount then begin
+						{ Placeholder for later bugfix. }
+						if Board.Stats[-DataLen].DataLen < 0 then
+							RunError(1);
+						Data := Board.Stats[-DataLen].Data;
+						DataLen := Board.Stats[-DataLen].DataLen;
+					end else begin
+						{ If the variable refers to something that's out
+						  of bounds, it must be set to 0. }
+						DataLen := 0;
+						Data := nil;
+					end;
+				end;
+			end;
+		end;
 
 		World.Info.CurrentBoard := boardId;
 	end;

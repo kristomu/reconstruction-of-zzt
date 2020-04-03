@@ -1,3 +1,7 @@
+The files starting in CR may be dirty - i.e. they can crash the game for other
+reasons than the bug listed and are much larger than required to demonstrate
+the error. This because they're raw output from the fuzzer.
+
 CR1-CR4: Garbled metadata or too small board size.
 CR5: Duplicator without stats causes getStatIdx to return -1 and thus access
 memory outside of bounds.
@@ -7,3 +11,4 @@ exercise the bug).
 CYCLE0: Transporters and players with cycle 0 crash and hang the game respectively.
 TRANSTEP: Transporters with very large xstep,ystep crash the game.
 CR8: Too large BoardLen (exceeding the size of the game file).
+CR9: Use of a board tile with RLE count 0 causes desynchronization and subsequent crash on cleanup.
