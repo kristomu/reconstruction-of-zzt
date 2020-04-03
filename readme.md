@@ -42,6 +42,7 @@ access is hard, and mouse and joystick support for similar reasons.
 ### Suspected bugs
 
 - Possible performance regressions involving SOUNDS timer.
+- Will probably crash on getting a black key since memory access is much stricter here.
 
 ### Fuzzing
 
