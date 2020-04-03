@@ -347,24 +347,20 @@ procedure BoardOpen(boardId: integer);
 		  done after the former loop because otherwise it could be
 		  using incorrect data. }
 
-		{ TODO: Do something about reference loops (e.g. item 1 points to
-		  item 2 which points back at item 1). DFS? I'm going to
-		  need a test case first.}
-
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
-				if (DataLen < 0) then begin
-					if -DataLen <= Board.StatCount then begin
-						{ Placeholder for later bugfix. }
-						if Board.Stats[-DataLen].DataLen < 0 then
-							RunError(1);
+				if DataLen < 0 then begin
+					{ Well-behaved reference chains do nothing in
+					  DOS ZZT, so cycles should do nothing too. If
+					  we're pointing at another reference or out of
+					  bounds, do nothing. }
+					if (-DataLen > Board.StatCount) or
+					   (Board.Stats[-DataLen].DataLen < 0) then
+						DataLen := 0;
+
+					if DataLen < 0 then begin
 						Data := Board.Stats[-DataLen].Data;
 						DataLen := Board.Stats[-DataLen].DataLen;
-					end else begin
-						{ If the variable refers to something that's out
-						  of bounds, it must be set to 0. }
-						DataLen := 0;
-						Data := nil;
 					end;
 				end;
 			end;
