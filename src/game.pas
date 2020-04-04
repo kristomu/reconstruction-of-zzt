@@ -823,6 +823,8 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		boardId: integer;
 		loadProgress: integer;
 		actuallyRead: integer;
+		firstZero: integer;
+		i: integer;
 	procedure SidebarAnimateLoading;
 		begin
 			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
@@ -836,6 +838,20 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 		SidebarClearLine(5);
 		SidebarClearLine(5);
 		VideoWriteText(62, 5, $1F, 'Loading.....');
+
+		{ filenames must be C strings, which means that they are terminated
+		  at the first 00, and thus we must remove everything from the first
+		  00 out. Not doing this can cause Assign to assign stdin to
+		  the file handle, with predictable results. }
+
+		firstZero := Length(filename)+1;
+		for i := Length(filename) downto 1 do
+			if filename[i] = #0 then
+				firstZero := i;
+
+		SetLength(filename, firstZero-1);
+
+		if filename + extension = '' then Exit;
 
 		Assign(f, filename + extension);
 		OpenForRead(f, 1);
@@ -868,6 +884,13 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					World.Info.CurrentBoard := 0;
 					World.Info.IsSave := true;
 				end;
+
+				{ If the board count is negative, set it to zero. This should
+				  also signal that the world is corrupt. Another option
+				  would be to make all the fields unsigned, but who needs
+				  worlds with >32k boards anyway? Besides, they'd crash
+				  DOS ZZT. }
+				if World.BoardCount < 0 then World.BoardCount := 0;
 
 				for boardId := 0 to Min(MAX_BOARD, World.BoardCount) do begin
 					SidebarAnimateLoading;
@@ -1885,6 +1908,14 @@ procedure GameRunFewCycles(cycles:integer);
 		for i := 1 to cycles do begin
 			GameStateElement := E_MONITOR;
 			startPlay := false;
+			GamePaused := false;
+			GamePlayLoop(boardChanged);
+			boardChanged := false;
+		end;
+
+		for i := 1 to cycles do begin
+			GameStateElement := E_PLAYER;
+			startPlay := true;
 			GamePaused := false;
 			GamePlayLoop(boardChanged);
 			boardChanged := false;

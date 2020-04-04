@@ -174,7 +174,7 @@ begin
 	GenerateTransitionTable;
 	WorldCreate;
 
-	GameRunFewCycles(3);
+	GameRunFewCycles(20);
 
 	Dispose(IoTmpBuf);
 
