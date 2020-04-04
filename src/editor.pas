@@ -1069,6 +1069,7 @@ procedure HighScoresAdd(score: integer);
 		name: string[50];
 		i, listPos: integer;
 	begin
+		if FuzzMode then Exit;
 		listPos := 1;
 		while (listPos <= 30) and (score < HighScoreList[listPos].Score) do
 			listPos := listPos + 1;
