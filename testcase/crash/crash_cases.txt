@@ -18,3 +18,4 @@ CR12: Number of boards < 0 causes read from unallocated memory. Also (not yet fi
 CR13: Loading this in the editor causes a crash related to board length (possible division by zero). Needs further investigation.
 COLORS: Range error check as a white on white star color overflows its color, and when a star with P2 stat 0 underflows. Also delayed crashes picking up black keys or touching black doors.
 STRANGE: Exercises a lot of centipede out-of-bounds bugs related to stepX and stepY.
+LONG: Crash due to printing a very large number of short lines. (Omega Lock)
