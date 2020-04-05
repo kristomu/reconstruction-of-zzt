@@ -77,7 +77,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer, Gamevars, Fileops, Fuzz;
+uses Crt, Input, Printer, Gamevars, Fileops, Fuzz, Minmax;
 
 function UpCaseString(input: string): string;
 	var
@@ -146,6 +146,7 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 	var
 		lineY: integer;
 		textOffset, textColor, textX: integer;
+		displayLineLength: integer;
 	begin
 		with state do begin
 			lineY := ((TextWindowY + lpos) - LinePos) + (TextWindowHeight div 2) + 1;
@@ -160,28 +161,41 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 					textOffset := 1;
 					textColor := $1E;
 					textX := TextWindowX + 4;
+					displayLineLength := 0;
 					if Length(state.Lines[lpos]^) > 0 then begin
+						{ IMP: Determine how many characters we can show
+						  without making the line too long in the text box. }
+						displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 						case state.Lines[lpos]^[1] of
 							'!': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
 								VideoWriteText(textX + 2, lineY, $1D, #16);
 								textX := textX + 5;
 								textColor := $1F;
+
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 							end;
 							':': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
 								textColor := $1F;
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 							end;
 							'$': begin
 								textOffset := 2;
 								textColor := $1F;
-								textX := (textX - 4) + ((TextWindowWidth - Length(Lines[lpos]^)) div 2);
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
+
+								textX := (textX - 4) + ((TextWindowWidth - displayLineLength) div 2);
 							end;
 						end;
 					end;
 					if textOffset > 0 then begin
 						VideoWriteText(textX, lineY, textColor,
-							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+							Copy(Lines[lpos]^, textOffset, displayLineLength));
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
@@ -234,7 +248,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 		line: string;
 	begin
 		with state do begin
-			OpenForWrite(Lst); {??? What is Lst?}
+			OpenForWrite(Lst); {??? What is Lst? Printer output?}
 			for iLine := 1 to LineCount do begin
 				line := Lines[iLine]^;
 				if Length(line) > 0 then begin
@@ -255,6 +269,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 						line := '          ' + line
 					end;
 				end;
+
 				WriteLn(Lst, line);
 				if IOResult <> 0 then begin
 					Close(Lst);
