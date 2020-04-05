@@ -302,17 +302,10 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
-				{ Updating Board.StatCount doesn't lead to an early exit
-				  from the for loop the way it does in C, thus this hack.
-				  The better approach would be to refactor into multiple
-				  procedures: one for doing RLE, one for doing stats, and
-				  one for handling references. }
-				if ix > Board.StatCount then Continue;
-
 				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
 					Board.StatCount := Max(ix - 1, 0);
 					World.Info.CurrentBoard := boardId;
-					Continue;
+					Break;
 				end;
 
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
@@ -491,6 +484,10 @@ procedure BoardDrawTile(x, y: integer);
 	var
 		ch: byte;
 	begin
+		{ Don't draw tiles outside of the playing viewport}
+		if (x <= 0) or (y <= 0) then Exit;
+		if (x > BOARD_WIDTH) or (y > BOARD_HEIGHT) then Exit;
+
 		with Board.Tiles[x][y] do begin
 			if not Board.Info.IsDark
 				or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
