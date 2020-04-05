@@ -1,0 +1,17 @@
+This directory is for test cases that lead to a crash if you do a particular
+set of actions. If a file both has an "instant" crash (crash either on load
+or on play) and a delayed crash, I'll place it in the other crash directory
+with a note to that effect.
+
+LOCKED.ZZT: Super Lock locked ZZT file. Will crash the editor if you try to
+enter the locked board. Also useful as a test of whether the board select
+screen will honor label jumps (KevEdit doesn't) and if the loader can recover
+last boards with wrong board size based on file size.
+
+LOCKED2.ZZT: Like LOCKED.ZZT, but there's a valid board at the end, after the
+corrupted board, so recovering last boards will no longer work. (TODO, fix
+this one)
+
+BORDER.ZZT: ZAPing in a corner causes range check errors. Going out of bounds
+after having ZAPed causes writes to unallocated memory on DOS, or crash on
+Linux.

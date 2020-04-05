@@ -229,7 +229,10 @@ function InputConfigure: boolean;
 
 procedure InputReadWaitKey;
 	begin
-		if FuzzMode then Exit;
+		if FuzzMode then begin
+			InputKeyPressed := 'Y';
+			Exit;
+		end;
 
 		repeat
 			InputUpdate;

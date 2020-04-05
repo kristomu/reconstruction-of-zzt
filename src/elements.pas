@@ -46,6 +46,20 @@ const
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
 
+function ValidCoord(x, y:integer):boolean;
+	begin
+		if (x < 0) or (y < 0) then begin
+			ValidCoord := false;
+			Exit;
+		end;
+		if (x > BOARD_WIDTH+1) or (y > BOARD_HEIGHT+1) then begin
+			ValidCoord := false;
+			Exit;
+		end;
+		ValidCoord := true;
+	end;
+
+
 procedure ElementDefaultTick(statId: integer);
 	begin
 	end;
@@ -143,6 +157,8 @@ procedure ElementRuffianTick(statId: integer);
 					CalcDirectionSeek(X, Y, StepX, StepY);
 				end;
 
+				if not ValidCoord(X+StepX, Y+StepY) then Exit;
+
 				with Board.Tiles[X + StepX][Y + StepY] do begin
 					if Element = E_PLAYER then begin
 						BoardAttack(statId, X + StepX, Y + StepY)
@@ -184,6 +200,8 @@ procedure ElementBearTick(statId: integer);
 			end;
 
 		Movement:
+			if not ValidCoord(X+deltaX, Y+deltaY) then Exit;
+
 			with Board.Tiles[X + deltaX][Y + deltaY] do begin
 				if ElementDefs[Element].Walkable then begin
 					MoveStat(statId, X + deltaX, Y + deltaY);
@@ -200,7 +218,11 @@ procedure ElementCentipedeHeadTick(statId: integer);
 		ix, iy: integer;
 		tx, ty: integer;
 		tmp: integer;
+		seenFollower: array[0..MAX_STAT] of boolean;
+
 	begin
+		for tmp := 0 to MAX_STAT do seenFollower[tmp] := false;
+
 		with Board.Stats[statId] do begin
 			if (X = Board.Stats[0].X) and (Random(10) < P1) then begin
 				StepY := Signum(Board.Stats[0].Y - Y);
@@ -212,24 +234,24 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				CalcDirectionRnd(StepX, StepY);
 			end;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-				and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+			if ValidCoord(X+StepX, Y+StepY) and (not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
+				and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER)) then
 			begin
 				ix := StepX;
 				iy := StepY;
 				tmp := ((Random(2) * 2) - 1) * StepY;
 				StepY := ((Random(2) * 2) - 1) * StepX;
 				StepX := tmp;
-				if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+				if ValidCoord(X+StepX, Y+StepY) and (not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
+					and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER)) then
 				begin
 					StepX := -StepX;
 					StepY := -StepY;
-					if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
-						and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER) then
+					if ValidCoord(X+StepX, Y+StepY) and (not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
+						and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER)) then
 					begin
-						if ElementDefs[Board.Tiles[X - ix][Y - iy].Element].Walkable
-							or (Board.Tiles[X - ix][Y - iy].Element = E_PLAYER) then
+						if ValidCoord(X-iy, Y-iy) and (ElementDefs[Board.Tiles[X - ix][Y - iy].Element].Walkable
+							or (Board.Tiles[X - ix][Y - iy].Element = E_PLAYER)) then
 						begin
 							StepX := -ix;
 							StepY := -iy;
@@ -252,7 +274,7 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				end;
 				Board.Stats[statId].Follower := Board.Stats[statId].Leader;
 				Board.Tiles[Board.Stats[statId].X][Board.Stats[statId].Y].Element := E_CENTIPEDE_HEAD;
-			end else if Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER then begin
+			end else if ValidCoord(X + StepX, Y + StepY) and (Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER) then begin
 				if Follower <> -1 then begin
 					Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element := E_CENTIPEDE_HEAD;
 					Board.Stats[Follower].StepX := StepX;
@@ -261,7 +283,9 @@ procedure ElementCentipedeHeadTick(statId: integer);
 				end;
 				BoardAttack(statId, X + StepX, Y + StepY);
 			end else begin
-				MoveStat(statId, X + StepX, Y + StepY);
+				if ValidCoord(X+StepX, Y+StepY) then
+					MoveStat(statId, X + StepX, Y + StepY);
+
 				tx := X - StepX;
 				ty := Y - StepY;
 				ix := StepX;
@@ -273,16 +297,17 @@ procedure ElementCentipedeHeadTick(statId: integer);
 						ty := Y - StepY;
 						ix := StepX;
 						iy := StepY;
+
 						if Follower < 0 then begin
-							if (Board.Tiles[tx - ix][ty - iy].Element = E_CENTIPEDE_SEGMENT)
+							if ValidCoord(tx - ix, ty - iy) and (Board.Tiles[tx - ix][ty - iy].Element = E_CENTIPEDE_SEGMENT)
 								and (GetStatIdAt(tx - ix, ty - iy) >= 0) and (Board.Stats[GetStatIdAt(tx - ix, ty - iy)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx - ix, ty - iy)
-							end else if (Board.Tiles[tx - iy][ty - ix].Element = E_CENTIPEDE_SEGMENT)
+							end else if ValidCoord(tx - iy, ty - ix) and  (Board.Tiles[tx - iy][ty - ix].Element = E_CENTIPEDE_SEGMENT)
 								and (GetStatIdAt(tx - iy, ty - ix) >= 0) and (Board.Stats[GetStatIdAt(tx - iy, ty - ix)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx - iy, ty - ix);
-							end else if (Board.Tiles[tx + iy][ty + ix].Element = E_CENTIPEDE_SEGMENT)
+							end else if ValidCoord(tx + iy, ty + ix) and (Board.Tiles[tx + iy][ty + ix].Element = E_CENTIPEDE_SEGMENT)
 								and (GetStatIdAt(tx + iy, ty + ix) >= 0) and (Board.Stats[GetStatIdAt(tx + iy, ty + ix)].Leader < 0) then
 							begin
 								Follower := GetStatIdAt(tx + iy, ty + ix);
@@ -295,9 +320,17 @@ procedure ElementCentipedeHeadTick(statId: integer);
 							Board.Stats[Follower].P2 := P2;
 							Board.Stats[Follower].StepX := tx - Board.Stats[Follower].X;
 							Board.Stats[Follower].StepY := ty - Board.Stats[Follower].Y;
-							MoveStat(Follower, tx, ty);
+							if ValidCoord(tx, ty) then
+								MoveStat(Follower, tx, ty);
 						end;
-						statId := Follower;
+
+						{ Avoid infinite follower loops. }
+						if (Follower < 0) or seenFollower[Follower] then
+							statId := -1
+						else begin
+							statId := Follower;
+							seenFollower[Follower] := true;
+						end;
 					end;
 				until statId = -1;
 			end;
@@ -330,6 +363,13 @@ procedure ElementBulletTick(statId: integer);
 		TryMove:
 			ix := X + StepX;
 			iy := Y + StepY;
+			if not ValidCoord(ix, iy) then begin
+				StepX := 0;
+				StepY := 0;
+				ix := X;
+				iy := Y;
+			end;
+
 			iElem := Board.Tiles[ix][iy].Element;
 
 			if ElementDefs[iElem].Walkable or (iElem = E_WATER) then begin
@@ -357,7 +397,7 @@ procedure ElementBulletTick(statId: integer);
 				exit;
 			end;
 
-			if (Board.Tiles[X + StepY][Y + StepX].Element = E_RICOCHET) and firstTry then begin
+			if ValidCoord(X+StepY, Y+StepX) and (Board.Tiles[X + StepY][Y + StepX].Element = E_RICOCHET) and firstTry then begin
 				ix := StepX;
 				StepX := -StepY;
 				StepY := -ix;
@@ -367,7 +407,7 @@ procedure ElementBulletTick(statId: integer);
 				exit;
 			end;
 
-			if (Board.Tiles[X - StepY][Y - StepX].Element = E_RICOCHET) and firstTry then begin
+			if ValidCoord(X-StepY, Y-StepX) and (Board.Tiles[X - StepY][Y - StepX].Element = E_RICOCHET) and firstTry then begin
 				ix := StepX;
 				StepX := StepY;
 				StepY := ix;
@@ -692,7 +732,7 @@ procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 procedure ElementStarDraw(x, y: integer; var ch: byte);
 	begin
 		ch := Ord(StarAnimChars[(CurrentTick mod 4) + 1]);
-		Board.Tiles[x][y].Color := Board.Tiles[x][y].Color + 1;
+		Board.Tiles[x][y].Color := (Board.Tiles[x][y].Color + 1) mod 255;
 		if Board.Tiles[x][y].Color > 15 then
 			Board.Tiles[x][y].Color := 9;
 	end;
@@ -700,7 +740,9 @@ procedure ElementStarDraw(x, y: integer; var ch: byte);
 procedure ElementStarTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			P2 := P2 - 1;
+			if P2 = 0 then P2 := 255
+			else P2 := P2 - 1;
+
 			if P2 <= 0 then begin
 				RemoveStat(statId);
 			end else if (P2 mod 2) = 0 then begin
@@ -927,6 +969,8 @@ procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 			if ((Element = E_SLIDER_NS) and (deltaX = 0)) or ((Element = E_SLIDER_EW) and (deltaY = 0))
 				or ElementDefs[Element].Pushable then
 			begin
+				if not ValidCoord(x + deltaX, y + deltaY) then Exit;
+
 				if Board.Tiles[x + deltaX][y + deltaY].Element = E_TRANSPORTER then
 					ElementTransporterMove(x, y, deltaX, deltaY)
 				else if Board.Tiles[x + deltaX][y + deltaY].Element <> E_EMPTY then
@@ -1082,20 +1126,55 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 		RemoveStat(GetStatIdAt(x, y));
 	end;
 
+function HasKey(key: byte): boolean;
+	begin
+		{ Black keys are a special case because testing for them
+		  accesses adjacent memory on DOS.}
+		if (key mod 8) = 0 then
+			HasKey := World.Info.Gems >= 256
+		else
+			HasKey := World.Info.Keys[key mod 8];
+	end;
+
+procedure SetKey(key: byte);
+	begin
+		if (key mod 8) = 0 then
+			World.Info.Gems := World.Info.Gems + 256
+		else
+			World.Info.Keys[key] := true;
+	end;
+
+procedure ClearKey(key: byte);
+	begin
+		if (key mod 8) = 0 then
+			World.Info.Gems := World.Info.Gems - 256
+		else
+			World.Info.Keys[key] := false;
+	end;
+
 procedure ElementKeyTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	var
 		key: integer;
+		keyName: string;
 	begin
 		key := Board.Tiles[x][y].Color mod 8;
 
-		if World.Info.Keys[key] then begin
-			DisplayMessage(200, 'You already have a '+ColorNames[key]+' key!');
+		{ Black keys are a special case because testing for them
+		  accesses adjacent memory on DOS. So too the message.}
+		if key = 0 then begin
+			keyName := '.-'#5'....\'#4'Blue    '#5'Green   '#4'Cyan    '#3'Red     '#6'Yellow  '#5'White';
+		end else begin
+			keyName := ColorNames[key];
+		end;
+
+		if HasKey(key) then begin
+			DisplayMessage(200, 'You already have a '+keyName+' key!');
 			SoundQueue(2, #48#2#32#2);
 		end else begin
-			World.Info.Keys[key] := true;
+			SetKey(key);
 			Board.Tiles[x][y].Element := E_EMPTY;
 			GameUpdateSidebar;
-			DisplayMessage(200, 'You now have the '+ColorNames[key]+' key.');
+			DisplayMessage(200, 'You now have the '+keyName+' key.');
 			SoundQueue(2, #64#1#68#1#71#1#64#1#68#1#71#1#64#1#68#1#71#1#80#2);
 		end;
 	end;
@@ -1140,20 +1219,27 @@ procedure ElementPassageTouch(x, y: integer; sourceStatId: integer; var deltaX, 
 procedure ElementDoorTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	var
 		key: integer;
+		keyName: string;
 	begin
 		key := (Board.Tiles[x][y].Color div 16) mod 8;
 
-		if World.Info.Keys[key] then begin
+		if key = 0 then begin
+			keyName := '.-'#5'....\'#4'Blue    '#5'Green   '#4'Cyan    '#3'Red     '#6'Yellow  '#5'White';
+		end else begin
+			keyName := ColorNames[key];
+		end;
+
+		if HasKey(key) then begin
 			Board.Tiles[x][y].Element := E_EMPTY;
 			BoardDrawTile(x, y);
 
-			World.Info.Keys[key] := false;
+			ClearKey(key);
 			GameUpdateSidebar;
 
-			DisplayMessage(200, 'The '+ColorNames[key]+' door is now open.');
+			DisplayMessage(200, 'The '+keyName+' door is now open.');
 			SoundQueue(3, #48#1#55#1#59#1#48#1#55#1#59#1#64#4);
 		end else begin
-			DisplayMessage(200, 'The '+ColorNames[key]+' door is locked!');
+			DisplayMessage(200, 'The '+keyName+' door is locked!');
 			SoundQueue(3, #23#1#16#1);
 		end;
 	end;
@@ -1188,7 +1274,7 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
+			if ValidCoord(X+StepX, Y+StepY) and ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
 				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
 			end;
 		end;
@@ -1197,11 +1283,11 @@ procedure ElementPusherTick(statId: integer);
 		if statId < 0 then Exit;
 
 		with Board.Stats[statId] do begin
-			if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
+			if ValidCoord(X+StepX, Y+StepY) and ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
 				MoveStat(statId, X + StepX, Y + StepY);
 				SoundQueue(2, #21#1);
 
-				if Board.Tiles[X - (StepX * 2)][Y - (StepY * 2)].Element = E_PUSHER then begin
+				if (ValidCoord(X - (StepX * 2), X - (StepX * 2))) and (Board.Tiles[X - (StepX * 2)][X - (StepX * 2)].Element = E_PUSHER) then begin
 					i := GetStatIdAt(X - (StepX * 2), Y - (StepY * 2));
 					if i = -1 then Exit;
 					if (Board.Stats[i].StepX = StepX) and (Board.Stats[i].StepY = StepY) then
@@ -1445,9 +1531,10 @@ procedure ElementPlayerTick(statId: integer);
 				PlayerDirX := InputDeltaX;
 				PlayerDirY := InputDeltaY;
 
-				ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
-					X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
-				if canAct and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
+				if ValidCoord(X+InputDeltaX, Y+InputDeltaY) then
+					ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].TouchProc(
+						X + InputDeltaX, Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
+				if ValidCoord(X+InputDeltaX, Y+InputDeltaY) and canAct and ((InputDeltaX <> 0) or (InputDeltaY <> 0)) then begin
 					if SoundEnabled and not SoundIsPlaying then
 						Sound(110);
 					if ElementDefs[Board.Tiles[X + InputDeltaX][Y + InputDeltaY].Element].Walkable then begin
