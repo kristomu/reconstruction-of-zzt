@@ -1377,7 +1377,8 @@ procedure DamageStat(attackerStatId: integer);
 							DrawPlayerSurroundings(oldX, oldY, 0);
 							DrawPlayerSurroundings(X, Y, 0);
 
-							GamePaused := true;
+							if not FuzzMode then
+								GamePaused := true;
 						end;
 						SoundQueue(4, #16#1#32#1#19#1#35#1);
 					end else begin
@@ -1910,6 +1911,9 @@ procedure GameRunFewCycles(cycles:integer);
 			GamePlayLoop(boardChanged);
 			boardChanged := false;
 		end;
+
+		InputDeltaX := 1;
+		InputDeltaY := 0;
 
 		for i := 1 to cycles do begin
 			GameStateElement := E_PLAYER;

@@ -45,6 +45,11 @@ const
 	TransporterNSChars: string = '^~^-v_v-';
 	TransporterEWChars: string = '(<('#179')>)'#179;
 	StarAnimChars: string = #179'/'#196'\';
+var
+	{ For keeping track of what boards we've visited when going
+	      gallivanting across board edges. }
+	BoardEdgeSeen: array[0..MAX_BOARD] of boolean;
+	i: integer;
 
 function ValidCoord(x, y:integer):boolean;
 	begin
@@ -636,6 +641,8 @@ procedure ElementBombTick(statId: integer);
 
 procedure ElementBombTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
 	begin
+		if GetStatIdAt(x, y) < 0 then Exit;
+
 		with Board.Stats[GetStatIdAt(x, y)] do begin
 			if P1 = 0 then begin
 				P1 := 9;
@@ -1350,6 +1357,7 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 		neighborId: integer;
 		boardId: integer;
 		entryX, entryY: integer;
+		destBoardId: integer;
 	begin
 		entryX := Board.Stats[0].X;
 		entryY := Board.Stats[0].Y;
@@ -1369,8 +1377,19 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 
 		if Board.Info.NeighborBoards[neighborId] <> 0 then begin
 			boardId := World.Info.CurrentBoard;
-			BoardChange(Board.Info.NeighborBoards[neighborId]);
+			destBoardId := Board.Info.NeighborBoards[neighborId];
+
+			{ Bail if going through leads to an infinite loop. }
+			if BoardEdgeSeen[destBoardId] then begin
+				BoardChange(boardId);
+				Exit;
+			end;
+
+			if destBoardId > World.BoardCount then destBoardId := boardId;
+
+			BoardChange(destBoardId);
 			if Board.Tiles[entryX][entryY].Element <> E_PLAYER then begin
+				BoardEdgeSeen[destBoardId] := true;
 				ElementDefs[Board.Tiles[entryX][entryY].Element].TouchProc(
 					entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
 			end;
@@ -1389,6 +1408,9 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 				BoardChange(boardId);
 			end;
 		end;
+
+		{ Clean up. }
+		for i := 0 to MAX_BOARD do BoardEdgeSeen[i] := false;
 	end;
 
 procedure ElementWaterTouch(x, y: integer; sourceStatId: integer; var deltaX, deltaY: integer);
@@ -2107,6 +2129,8 @@ procedure InitElementsGame;
 	begin
 		InitElementDefs;
 		ForceDarknessOff := false;
+
+		for i := 0 to MAX_BOARD do BoardEdgeSeen[i] := false;
 	end;
 
 procedure InitEditorStatSettings;
