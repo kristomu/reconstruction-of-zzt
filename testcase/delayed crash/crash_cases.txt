@@ -9,9 +9,11 @@ screen will honor label jumps (KevEdit doesn't) and if the loader can recover
 last boards with wrong board size based on file size.
 
 LOCKED2.ZZT: Like LOCKED.ZZT, but there's a valid board at the end, after the
-corrupted board, so recovering last boards will no longer work. (TODO, fix
-this one)
+corrupted board, so recovering last boards will no longer work.
 
 BORDER.ZZT: ZAPing in a corner causes range check errors. Going out of bounds
 after having ZAPed causes writes to unallocated memory on DOS, or crash on
 Linux.
+
+EDGELOOP.ZZT: Infinite loop (and stack overflow) when touching a board edge
+that touches a board edge that...
