@@ -51,20 +51,6 @@ var
 	BoardEdgeSeen: array[0..MAX_BOARD] of boolean;
 	i: integer;
 
-function ValidCoord(x, y:integer):boolean;
-	begin
-		if (x < 0) or (y < 0) then begin
-			ValidCoord := false;
-			Exit;
-		end;
-		if (x > BOARD_WIDTH+1) or (y > BOARD_HEIGHT+1) then begin
-			ValidCoord := false;
-			Exit;
-		end;
-		ValidCoord := true;
-	end;
-
-
 procedure ElementDefaultTick(statId: integer);
 	begin
 	end;
@@ -1379,13 +1365,13 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 			boardId := World.Info.CurrentBoard;
 			destBoardId := Board.Info.NeighborBoards[neighborId];
 
+			if destBoardId > World.BoardCount then destBoardId := boardId;
+
 			{ Bail if going through leads to an infinite loop. }
 			if BoardEdgeSeen[destBoardId] then begin
 				BoardChange(boardId);
 				Exit;
 			end;
-
-			if destBoardId > World.BoardCount then destBoardId := boardId;
 
 			BoardChange(destBoardId);
 			if Board.Tiles[entryX][entryY].Element <> E_PLAYER then begin
