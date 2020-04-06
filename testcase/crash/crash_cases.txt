@@ -14,8 +14,15 @@ CR8: Too large BoardLen (exceeding the size of the game file).
 CR9: Use of a board tile with RLE count 0 causes desynchronization and subsequent crash on cleanup.
 CR10: Multi-stage reference DataLen < 0 (i.e. object 1 points at object 2 which points at...)
 CR11: The player stats has a data reference (DataLen < 0) to a later object with data. This causes a double free and a crash.
-CR12: Number of boards < 0 causes read from unallocated memory. Also (not yet fixed, unknown cause) crash when trying to get board info in editor.
-CR13: Loading this in the editor causes a crash related to board length (possible division by zero). Needs further investigation.
+CR12: Number of boards < 0 causes read from unallocated memory. Also very long board title causes crash when trying to get board info in editor.
 COLORS: Range error check as a white on white star color overflows its color, and when a star with P2 stat 0 underflows. Also delayed crashes picking up black keys or touching black doors.
 STRANGE: Exercises a lot of centipede out-of-bounds bugs related to stepX and stepY.
 LONG: Crash due to printing a very large number of short lines. (Omega Lock)
+MULTI: Many crashes:
+	- BoardData length zero causes game to read outside of allocated memory
+	- Very long board title causes problems in the editor
+	- Board edge with corrupt neighbor board data causes out-of-bounds
+		access to BoardEdgeSeen
+	- Player object is at the boundary (where the board edges are); causes
+		crash when playing and the game is paused.
+	- Out-of-bounds stats X,Y leads to trouble.

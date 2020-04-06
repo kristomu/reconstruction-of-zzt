@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops, Fuzz;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops, Fuzz, Minmax;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -1098,15 +1098,21 @@ procedure HighScoresAdd(score: integer);
 
 function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TString50;
 	var
-		boardData: pointer;
+		boardData: ^byte;
 		copiedName: string[50];
 	begin
 		if (boardId = 0) and titleScreenIsNone then
 			EditorGetBoardName := 'None'
 		else if (boardId = World.Info.CurrentBoard) then
 			EditorGetBoardName := Board.Name
+		else if (World.BoardLen[boardId] < 1) then
+			EditorGetBoardName := ''
 		else begin
 			boardData := World.BoardData[boardId];
+
+			{ SANITY: Range check on board name length. }
+			boardData^ := Min(boardData^, SizeOf(copiedName));
+
 			Move(boardData^, copiedName, SizeOf(copiedName));
 			EditorGetBoardName := copiedName;
 		end;

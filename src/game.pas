@@ -33,6 +33,11 @@ interface
 		PROMPT_NUMERIC = 0;
 		PROMPT_ALPHANUM = 1;
 		PROMPT_ANY = 2;
+
+	{ Sanity checks. }
+	function ValidCoord(x, y:integer):boolean;
+	function CoordInsideViewport(x, y:integer):boolean;
+
 	procedure SidebarClearLine(y: integer);
 	procedure SidebarClear;
 	procedure GenerateTransitionTable;
@@ -109,6 +114,32 @@ const
 
 implementation
 uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops, Fuzz;
+
+function ValidCoord(x, y:integer):boolean;
+	begin
+		if (x < 0) or (y < 0) then begin
+			ValidCoord := false;
+			Exit;
+		end;
+		if (x > BOARD_WIDTH+1) or (y > BOARD_HEIGHT+1) then begin
+			ValidCoord := false;
+			Exit;
+		end;
+		ValidCoord := true;
+	end;
+
+function CoordInsideViewport(x, y:integer): boolean;
+	begin
+		if (x <= 0) or (y <= 0) then begin
+			CoordInsideViewport := false;
+			Exit;
+		end;
+		if (x > BOARD_WIDTH) or (y > BOARD_HEIGHT) then begin
+			CoordInsideViewport := false;
+			Exit;
+		end;
+		CoordInsideViewport := true;
+	end;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -220,7 +251,7 @@ procedure BoardClose;
 
 procedure BoardOpen(boardId: integer);
 	var
-		ptr: pointer;
+		ptr: ^byte;
 		ix, iy: integer;
 		rle: TRleTile;
 		bytesRead: integer = 0;
@@ -230,11 +261,26 @@ procedure BoardOpen(boardId: integer);
 
 		ptr := World.BoardData[boardId];
 
-		{SANITY: Bail on very short board lengths. }
+		{SANITY: Bail on very short board lengths.}
 		if World.BoardLen[boardId] < SizeOf(Board.Name) then begin
+			BoardCreate;
 			World.Info.CurrentBoard := boardId;
+
+			{ Get what we can of the title. There must be at least
+		      two bytes: a size signifier and a letter. Otherwise,
+		      just consider the title to be blank. }
+			if World.BoardLen[boardId] > 1 then begin
+				ptr^ := Min(ptr^, World.BoardLen[boardId]-1);
+				Move(ptr^, Board.Name, ptr^);
+			end else begin
+				Board.Name := '';
+			end;
+
 			Exit;
 		end;
+
+		{ SANITY: Range check on board name length. }
+		ptr^ := Min(ptr^, SizeOf(Board.Name));
 
 		Move(ptr^, Board.Name, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
@@ -313,11 +359,14 @@ procedure BoardOpen(boardId: integer);
 				bytesRead := bytesRead + SizeOf(TStat);
 
 				{ SANITY: (0,0) is not available: it's used by one-line
-				  messages. }
+				  messages. TODO? Put that into ValidCoord so that
+				  every object is barred from 0,0? Yes, but then we'd
+				  have to make an exception for the message so that *it*
+				  isn't barred... }
 				{ The compromise to the Postelic position is probably to
 				  be generous, but show a warning message that the board
 				  was corrupted and attempted fixed. Do that later? }
-				if (X = 0) and (Y = 0) then begin
+				if (not ValidCoord(X, Y)) or ((X = 0) and (Y = 0)) then begin
 					X := 1;
 					Y := 1;
 				end;
@@ -485,8 +534,7 @@ procedure BoardDrawTile(x, y: integer);
 		ch: byte;
 	begin
 		{ Don't draw tiles outside of the playing viewport}
-		if (x <= 0) or (y <= 0) then Exit;
-		if (x > BOARD_WIDTH) or (y > BOARD_HEIGHT) then Exit;
+		if not CoordInsideViewport(x, y) then Exit;
 
 		with Board.Tiles[x][y] do begin
 			if not Board.Info.IsDark
@@ -892,6 +940,9 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				for boardId := 0 to Min(MAX_BOARD, World.BoardCount) do begin
 					SidebarAnimateLoading;
+
+					if boardId > World.BoardCount then continue;
+
 					BlockRead(f, World.BoardLen[boardId], 2);
 
 					{ Sanity check. Abort at this position so that any
@@ -900,8 +951,13 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 					  explaining why the loading was interrupted. }
 					if (IOResult <> 0) or (World.BoardLen[boardId] < 0) then begin
 						World.BoardLen[boardId] := 0;
-						if boardId = 0 then Exit;
+						if boardId = 0 then begin
+							WorldUnload;
+							Exit;
+						end;
 						World.BoardCount := boardId - 1;
+						{ No more boards to be had, so break. }
+						Break;
 					end else begin
 						GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
 						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId],
@@ -1024,6 +1080,9 @@ function GameWorldLoad(extension: TString50): boolean;
 		GameWorldLoad := false;
 		textWindow.Selectable := true;
 
+		{ TODO: Sort file names somehow! Since they all have to be stored
+	      in the text window, we could just sort the lines once they're
+	      stored in there. }
 		FindFirst('*' + extension, AnyFile, fileSearchRec);
 		while DosError = 0 do begin
 			entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
@@ -1714,11 +1773,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
 					pauseBlink := not pauseBlink;
 
-				if pauseBlink then begin
+				if pauseBlink and CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y) then begin
 					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
 						ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 				end else begin
-					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
+					if CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y) and
+						(Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER) then
 						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
 					else
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
@@ -1730,12 +1790,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
 
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				if ((InputDeltaX <> 0) or (InputDeltaY <> 0)) and ValidCoord(Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY) then begin
 					ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
 						Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				end;
 
-				if ((InputDeltaX <> 0) or (InputDeltaY <> 0))
+				if ((InputDeltaX <> 0) or (InputDeltaY <> 0)) and ValidCoord(Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
 					and ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].Walkable
 				then begin
 					{ Move player }
