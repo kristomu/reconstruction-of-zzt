@@ -17,3 +17,5 @@ Linux.
 
 EDGELOOP.ZZT: Infinite loop (and stack overflow) when touching a board edge
 that touches a board edge that...
+
+SCROLL.ZZT: A few scroll crash bugs.

@@ -1116,7 +1116,7 @@ procedure ElementScrollTouch(x, y: integer; sourceStatId: integer; var deltaX, d
 			OopExecute(statId, DataPos, 'Scroll');
 		end;
 
-		RemoveStat(GetStatIdAt(x, y));
+		RemoveStat(statId);
 	end;
 
 function HasKey(key: byte): boolean;
