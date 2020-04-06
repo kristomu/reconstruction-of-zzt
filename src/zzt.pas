@@ -179,6 +179,8 @@ begin
 
 		GameTitleLoop;
 
+		{LEAKFIX: Remember to dispose of *everything* in use. }
+		WorldUnload;
 		Dispose(IoTmpBuf);
 	end;
 
