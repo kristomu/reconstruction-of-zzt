@@ -431,6 +431,21 @@ procedure BoardOpen(boardId: integer);
 		end;
 
 		World.Info.CurrentBoard := boardId;
+
+		{ Since we disregard BoardLen on the last board now, we need
+	      to set it back to what was actually interpreted as a board in
+	      case the ZZT file has a bunch of junk appended to it. NOTE: This
+	      COULD cause data loss, but we should be safe. If you modify
+	      BoardOpen, *make sure that bytesRead never becomes smaller than
+	      the actual number of bytes read!*
+	      Just for extra safety, only do it if this is the last board.
+	      (TODO later: show a message instead if the board is loaded in the
+	      editor.) }
+	    if boardId = World.BoardCount then begin
+			World.BoardLen[boardId] := Min(MAX_BOARD_LEN, bytesRead);
+			World.BoardData[boardId] := ReAllocMem(World.BoardData[boardId],
+				World.BoardLen[boardId]);
+		end;
 	end;
 
 procedure BoardChange(boardId: integer);
@@ -959,6 +974,13 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 						{ No more boards to be had, so break. }
 						Break;
 					end else begin
+						{ If it's the last board, get everything we can.
+						  This recovers the last Super Lock-corrupted board.
+						  actuallyRead below will adjust the board length back
+						  if we're dealing with an ordinary world. }
+						if boardId = World.BoardCount then
+							World.BoardLen[boardId] := MAX_BOARD_LEN;
+
 						GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
 						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId],
 							actuallyRead);
@@ -981,8 +1003,8 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				Close(f);
 
-				{ More sanity checks. }
-				{ Am I being too Postelic? .. point. }
+				{ More sanity checks. If the current board number is
+				  negative or too high, set it to zero. }
 				if (World.Info.CurrentBoard < 0) or
 					(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)) then
 					World.Info.CurrentBoard := 0;

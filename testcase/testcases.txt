@@ -12,5 +12,8 @@ LTITLE.ZZT	A very long title makes editing annoying. Can possibly be used
 		to read outside of allocated memory in certain cases (not shown
 		here.)
 
+LOCKED.ZZT	A Super Lock locked world with the last board corrupted by Super
+		Lock. Use it to test if the last board can be recovered.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
