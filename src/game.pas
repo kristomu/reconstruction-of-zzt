@@ -209,10 +209,11 @@ procedure BoardClose;
 			end;
 		end;
 
-		FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 		{ For some reason, using @IoTmpBuf instead of ptrStart causes a range check error. }
 		World.BoardLen[World.Info.CurrentBoard] := ptr - ptrStart;
-		GetMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
+		{ LEAKFIX: Needs to be ReAllocMem instead of Get/Free because first time
+		  around the memory isn't allocated yet.}
+		ReAllocMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 		Move(IoTmpBuf^, World.BoardData[World.Info.CurrentBoard]^, World.BoardLen[World.Info.CurrentBoard]);
 	end;
 
