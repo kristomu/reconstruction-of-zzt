@@ -1010,7 +1010,7 @@ procedure ElementObjectTick(statId: integer);
 				OopExecute(statId, DataPos, 'Interaction');
 
 			if (StepX <> 0) or (StepY <> 0) then begin
-				if ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then
+				if ValidCoord(X + StepX, Y + StepY) and ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then
 					MoveStat(statId, X + StepX, Y + StepY)
 				else
 					retVal := OopSend(-statId, 'THUD', false);
@@ -1045,14 +1045,14 @@ procedure ElementDuplicatorTick(statId: integer);
 				BoardDrawTile(X, Y);
 			end else begin
 				P1 := 0;
-				if Board.Tiles[X - StepX][Y - StepY].Element = E_PLAYER then begin
+				if ValidCoord(X - StepX, Y - StepY) and ValidCoord(X + StepX, Y + StepY) and  (Board.Tiles[X - StepX][Y - StepY].Element = E_PLAYER) then begin
 					ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element]
 						.TouchProc(X + StepX, Y + StepY, 0, InputDeltaX, InputDeltaY);
 				end else begin
-					if Board.Tiles[X - StepX][Y - StepY].Element <> E_EMPTY then
+					if ValidCoord(X - StepX, Y - StepY) and (Board.Tiles[X - StepX][Y - StepY].Element <> E_EMPTY) then
 						ElementPushablePush(X - StepX, Y - StepY, -StepX, -StepY);
 
-					if Board.Tiles[X - StepX][Y - StepY].Element = E_EMPTY then begin
+					if ValidCoord(X - StepX, Y - StepY) and (Board.Tiles[X - StepX][Y - StepY].Element = E_EMPTY) then begin
 						sourceStatId := GetStatIdAt(X + StepX, Y + StepY);
 						if sourceStatId > 0 then begin
 							if Board.StatCount < 174 then begin

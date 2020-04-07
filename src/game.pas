@@ -191,6 +191,8 @@ procedure BoardClose;
 		ptr := IoTmpBuf;
 		ptrStart := IoTmpBuf;
 
+		if World.BoardLen[World.Info.CurrentBoard] = 0 then Exit;
+
 		Move(Board.Name, ptr^, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
 
@@ -866,8 +868,14 @@ procedure WorldUnload;
 		i: integer;
 	begin
 		BoardClose;
-		for i := 0 to World.BoardCount do
-			FreeMem(World.BoardData[i], World.BoardLen[i]);
+		{ Reallocating to 0 is better than freeing because it's then
+	      possible to reallocate back to a higher level later, if
+	      required. That BoardLen is 0 also makes it obvious that the
+	      boards have been unloaded. }
+		for i := 0 to World.BoardCount do begin
+			World.BoardLen[i] := 0;
+			ReAllocMem(World.BoardData[i], World.BoardLen[i]);
+		end;
 	end;
 
 function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
@@ -1779,7 +1787,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 		exitLoop := false;
 
 		CurrentTick := Random(100);
-		CurrentStatTicked := Board.StatCount + 1;
+		if not FuzzMode then
+			CurrentStatTicked := Board.StatCount + 1;
 
 		pauseBlink := true;
 
@@ -1985,10 +1994,12 @@ procedure GameRunFewCycles(cycles:integer);
 			GamePaused := false;
 			GamePlayLoop(boardChanged);
 			boardChanged := false;
+			CurrentStatTicked := CurrentStatTicked + 1;
 		end;
 
 		InputDeltaX := 1;
 		InputDeltaY := 0;
+		CurrentStatTicked := 0;
 
 		{ When the player enters a board, ZZT calls BoardEnter, so we have
 		  to, too. }
@@ -2000,6 +2011,7 @@ procedure GameRunFewCycles(cycles:integer);
 			GamePaused := false;
 			GamePlayLoop(boardChanged);
 			boardChanged := false;
+			CurrentStatTicked := CurrentStatTicked + 1;
 		end;
 	end;
 

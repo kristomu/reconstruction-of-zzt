@@ -26,3 +26,4 @@ MULTI: Many crashes:
 	- Player object is at the boundary (where the board edges are); causes
 		crash when playing and the game is paused.
 	- Out-of-bounds stats X,Y leads to trouble.
+CR14_DUP: Duplicator with out-of-bounds XStep and YStep.
