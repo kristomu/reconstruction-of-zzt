@@ -3,19 +3,25 @@ set of actions. If a file both has an "instant" crash (crash either on load
 or on play) and a delayed crash, I'll place it in the other crash directory
 with a note to that effect.
 
-LOCKED.ZZT: Super Lock locked ZZT file. Will crash the editor if you try to
-enter the locked board. Also useful as a test of whether the board select
-screen will honor label jumps (KevEdit doesn't) and if the loader can recover
-last boards with wrong board size based on file size.
+LOCKED.ZZT	Super Lock locked ZZT file. Will crash the editor if you try to
+		enter the locked board. Also useful as a test of whether the
+		board select screen will honor label jumps (KevEdit doesn't)
+		and if the loader can recover last boards with wrong board size
+		based on file size.
 
-LOCKED2.ZZT: Like LOCKED.ZZT, but there's a valid board at the end, after the
-corrupted board, so recovering last boards will no longer work.
+LOCKED2.ZZT	Like LOCKED.ZZT, but there's a valid board at the end, after the
+		corrupted board, so recovering last boards will no longer work.
 
-BORDER.ZZT: ZAPing in a corner causes range check errors. Going out of bounds
-after having ZAPed causes writes to unallocated memory on DOS, or crash on
-Linux.
+BORDER.ZZT	ZAPing in a corner causes range check errors. Going out of
+		bounds after having ZAPed causes writes to unallocated memory
+		on DOS, or crash on Linux.
 
-EDGELOOP.ZZT: Infinite loop (and stack overflow) when touching a board edge
-that touches a board edge that...
+EDGELOOP.ZZT	Infinite loop (and stack overflow) when touching a board edge
+		that touches a board edge that...
 
-SCROLL.ZZT: A few scroll crash bugs.
+SCROLL.ZZT	A few scroll crash bugs.
+
+INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
+		board. Allowing the stats to be added can cause a crash in
+		BoardClose as the serialized representation overflows the
+		buffer.

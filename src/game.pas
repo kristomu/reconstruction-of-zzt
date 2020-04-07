@@ -1164,9 +1164,18 @@ procedure CopyStatDataToTextWindow(statId: integer; var state: TTextWindowState)
 
 procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; template: TStat);
 	begin
+		{ First of all: check if we have space. If not, no can do! }
+		if (template.Data = nil) and
+			(World.BoardLen[World.Info.CurrentBoard] + SizeOf(TStat) > MAX_BOARD_LEN) then
+			Exit;
+		if (template.Data <> nil) and
+			(World.BoardLen[World.Info.CurrentBoard] + SizeOf(TStat) + template.DataLen > MAX_BOARD_LEN) then
+			Exit;
+
 		if Board.StatCount < MAX_STAT then begin
 			Board.StatCount := Board.StatCount + 1;
 			Board.Stats[Board.StatCount] := template;
+			World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] + SizeOf(TStat);
 			with Board.Stats[Board.StatCount] do begin
 				X := tx;
 				Y := ty;
@@ -1178,6 +1187,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 			if template.Data <> nil then begin
 				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
 				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
+				World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] + template.DataLen;
 			end;
 
 			if ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop then
@@ -1196,13 +1206,19 @@ procedure RemoveStat(statId: integer);
 		i: integer;
 	label StatDataInUse;
 	begin
+		if statId > Board.StatCount then RunError(400);
+		if statId = 0 then Exit;
+
 		with Board.Stats[statId] do begin
 			if DataLen <> 0 then begin
 				for i := 1 to Board.StatCount do begin
 					if (Board.Stats[i].Data = Data) and (i <> statId) then
 						goto StatDataInUse;
 				end;
-				if DataLen > 0 then FreeMem(Data, DataLen);
+				if DataLen > 0 then begin
+					FreeMem(Data, DataLen);
+					World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] - DataLen;
+				end;
 			end;
 
 		StatDataInUse:
@@ -1210,7 +1226,7 @@ procedure RemoveStat(statId: integer);
 				CurrentStatTicked := CurrentStatTicked - 1;
 
 			Board.Tiles[X][Y] := Under;
-			if Y > 0 then
+			if (X > 0) and (Y > 0) then
 				BoardDrawTile(X, Y);
 
 			for i := 1 to Board.StatCount do begin
@@ -1229,8 +1245,10 @@ procedure RemoveStat(statId: integer);
 				end;
 			end;
 
-			for i := (statId + 1) to Board.StatCount do
+			for i := (statId + 1) to Board.StatCount do begin
 				Board.Stats[i - 1] := Board.Stats[i];
+			end;
+			World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] - SizeOf(TStat);
 			Board.StatCount := Board.StatCount - 1;
 		end;
 	end;

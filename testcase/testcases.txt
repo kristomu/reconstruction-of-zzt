@@ -19,5 +19,10 @@ CHURN.ZZT	Allocates and deallocates lots of memory (2 MB) from repeatedly
 		entering the board it exited. Crashes DOS ZZT with a heap 
 		overflow.
 
+INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
+		board. Allowing the stats to be added can cause a crash in
+		BoardClose as the serialized representation overflows the
+		buffer.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
