@@ -261,14 +261,17 @@ procedure BoardOpen(boardId: integer);
 
 		ptr := World.BoardData[boardId];
 
-		{SANITY: Bail on very short board lengths.}
+		{ Create a default yellow border board, because we might need
+		  to abort before the board is fully specced. }
+		BoardCreate;
+
+		{SANITY: Reconstruct the title. We need at least a size of
+		 two bytes for the title: a size designation and the first
+		 letter of the title. If we don't even have that, let the
+		 title be blank.}
 		if World.BoardLen[boardId] < SizeOf(Board.Name) then begin
-			BoardCreate;
 			World.Info.CurrentBoard := boardId;
 
-			{ Get what we can of the title. There must be at least
-		      two bytes: a size signifier and a letter. Otherwise,
-		      just consider the title to be blank. }
 			if World.BoardLen[boardId] > 1 then begin
 				ptr^ := Min(ptr^, World.BoardLen[boardId]-1);
 				Move(ptr^, Board.Name, ptr^);
@@ -302,7 +305,12 @@ procedure BoardOpen(boardId: integer);
 
 		      BoardClose and BoardOpen may still desynchronize, but what
 		      BoardClose outputs will never be longer than what BoardOpen
-		      inputs, which is okay.}
+		      inputs, which is okay.
+
+		  	  If you absolutely need this functionality, you would have to
+		  	  increment an auxiliary counter by one every time you get an
+		  	  RLE count 0 byte and then allocate that much extra scratch
+		  	  space. But keeping two counts like that is a pain, so I don't.}
 			if rle.Count <= 0 then begin
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
@@ -431,21 +439,6 @@ procedure BoardOpen(boardId: integer);
 		end;
 
 		World.Info.CurrentBoard := boardId;
-
-		{ Since we disregard BoardLen on the last board now, we need
-	      to set it back to what was actually interpreted as a board in
-	      case the ZZT file has a bunch of junk appended to it. NOTE: This
-	      COULD cause data loss, but we should be safe. If you modify
-	      BoardOpen, *make sure that bytesRead never becomes smaller than
-	      the actual number of bytes read!*
-	      Just for extra safety, only do it if this is the last board.
-	      (TODO later: show a message instead if the board is loaded in the
-	      editor.) }
-	    if boardId = World.BoardCount then begin
-			World.BoardLen[boardId] := Min(MAX_BOARD_LEN, bytesRead);
-			World.BoardData[boardId] := ReAllocMem(World.BoardData[boardId],
-				World.BoardLen[boardId]);
-		end;
 	end;
 
 procedure BoardChange(boardId: integer);
@@ -1996,6 +1989,10 @@ procedure GameRunFewCycles(cycles:integer);
 
 		InputDeltaX := 1;
 		InputDeltaY := 0;
+
+		{ When the player enters a board, ZZT calls BoardEnter, so we have
+		  to, too. }
+		BoardEnter;
 
 		for i := 1 to cycles do begin
 			GameStateElement := E_PLAYER;
