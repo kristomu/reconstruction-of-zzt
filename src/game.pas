@@ -307,10 +307,10 @@ procedure BoardOpen(boardId: integer);
 		      BoardClose outputs will never be longer than what BoardOpen
 		      inputs, which is okay.
 
-		  	  If you absolutely need this functionality, you would have to
-		  	  increment an auxiliary counter by one every time you get an
-		  	  RLE count 0 byte and then allocate that much extra scratch
-		  	  space. But keeping two counts like that is a pain, so I don't.}
+		      If you absolutely need this functionality, you would have to
+		      increment an auxiliary counter by one every time you get an
+		      RLE count 0 byte and then allocate that much extra scratch
+		      space. But keeping two counts like that is a pain, so I don't.}
 			if rle.Count <= 0 then begin
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));

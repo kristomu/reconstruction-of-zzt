@@ -176,6 +176,8 @@ begin
 
 	GameRunFewCycles(20);
 
+	{LEAKFIX: Remember to dispose of *everything* in use. }
+	WorldUnload;
 	Dispose(IoTmpBuf);
 
 	SoundUninstall;

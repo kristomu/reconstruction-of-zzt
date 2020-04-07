@@ -49,6 +49,9 @@ procedure DisableSignalHandlers;
 
         fpSigAction(SIGILL,na,oa);
         fpSigAction(SIGSEGV,na,oa);
+
+        Dispose(na);
+        Dispose(oa);
     end;
 
 procedure Wait(ms: Cardinal);
