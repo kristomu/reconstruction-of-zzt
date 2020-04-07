@@ -1368,12 +1368,13 @@ procedure ElementBoardEdgeTouch(x, y: integer; sourceStatId: integer; var deltaX
 			if destBoardId > World.BoardCount then destBoardId := boardId;
 
 			{ Bail if going through leads to an infinite loop. }
-			if BoardEdgeSeen[destBoardId] then begin
-				BoardChange(boardId);
-				Exit;
-			end;
+			if BoardEdgeSeen[destBoardId] then Exit;
 
-			BoardChange(destBoardId);
+			{ No need to swap in and out a new board if it's the board
+			  we're on. }
+			if destBoardId <> boardId then
+				BoardChange(destBoardId);
+
 			if Board.Tiles[entryX][entryY].Element <> E_PLAYER then begin
 				BoardEdgeSeen[destBoardId] := true;
 				ElementDefs[Board.Tiles[entryX][entryY].Element].TouchProc(

@@ -15,5 +15,9 @@ LTITLE.ZZT	A very long title makes editing annoying. Can possibly be used
 LOCKED.ZZT	A Super Lock locked world with the last board corrupted by Super
 		Lock. Use it to test if the last board can be recovered.
 
+CHURN.ZZT	Allocates and deallocates lots of memory (2 MB) from repeatedly
+		entering the board it exited. Crashes DOS ZZT with a heap 
+		overflow.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups

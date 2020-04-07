@@ -2,3 +2,5 @@ CYCLE0: The first stat has cycle 0, which freezes the title screen because a cyc
 PLAYER0: Putting the player stat at (0,0) causes a hang. (0,0) is outside of
 the visible board, and any message will destroy the objec there - the player
 or the monitor.
+SCROLL: Touching a scroll and making the parser read the last byte, and that
+last byte being #, hangs the game. See the file for more info.
