@@ -27,3 +27,5 @@ MULTI: Many crashes:
 		crash when playing and the game is paused.
 	- Out-of-bounds stats X,Y leads to trouble.
 CR14_DUP: Duplicator with out-of-bounds XStep and YStep.
+CNOSTAT: Conveyor trying to convey tiles that usually have stats, but don't
+	here.

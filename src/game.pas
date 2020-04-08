@@ -440,6 +440,16 @@ procedure BoardOpen(boardId: integer);
 			end;
 		end;
 
+		{ SANITY: Positive Leader and Follower values must be indices
+		  to stats. If they're too large, they're corrupt: set them to
+		  zero. }
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if Follower > Board.StatCount then Follower := 0;
+				if Leader > Board.StatCount then Leader := 0;
+			end;
+		end;
+
 		World.Info.CurrentBoard := boardId;
 	end;
 
@@ -1196,7 +1206,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 				Board.Tiles[tx][ty].Color := color;
 			Board.Tiles[tx][ty].Element := element;
 
-			if ty > 0 then
+			if CoordInsideViewport(tx, ty) then
 				BoardDrawTile(tx, ty);
 		end;
 	end;
@@ -1206,7 +1216,9 @@ procedure RemoveStat(statId: integer);
 		i: integer;
 	label StatDataInUse;
 	begin
-		if statId > Board.StatCount then RunError(400);
+		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
+		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+
 		if statId = 0 then Exit;
 
 		with Board.Stats[statId] do begin
@@ -1226,7 +1238,7 @@ procedure RemoveStat(statId: integer);
 				CurrentStatTicked := CurrentStatTicked - 1;
 
 			Board.Tiles[X][Y] := Under;
-			if (X > 0) and (Y > 0) then
+			if CoordInsideViewport(X, Y) then
 				BoardDrawTile(X, Y);
 
 			for i := 1 to Board.StatCount do begin
@@ -1273,6 +1285,10 @@ function BoardPrepareTileForPlacement(x, y: integer): boolean;
 		statId: integer;
 		result: boolean;
 	begin
+		if not ValidCoord(x, y) then begin
+			BoardPrepareTileForPlacement := false;
+			Exit;
+		end;
 		statId := GetStatIdAt(x, y);
 		if statId > 0 then begin
 			RemoveStat(statId);
@@ -1295,6 +1311,9 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		oldX, oldY: integer;
 		oldBgColor: integer;
 	begin
+		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
+		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+
 		with Board.Stats[statId] do begin
 			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
 

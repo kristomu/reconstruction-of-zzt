@@ -43,6 +43,9 @@ interface
 		TORCH_DY = 5;
 		TORCH_DIST_SQR = 50;
 		MAX_BOARD_LEN = 20000;
+
+		ERR_STATID_TOO_HIGH = 400;
+		ERR_STATID_DOESNT_EXIST = 401;
 	type
 		TString50 = string[50];
 		TCoord = packed record
@@ -142,7 +145,7 @@ interface
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = packed record
 			BoardCount: integer;

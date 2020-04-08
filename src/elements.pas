@@ -525,7 +525,10 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 							iStat := statsIndices[i];
 							Board.Tiles[srcx][srcy] := tiles[i];
 							Board.Tiles[destx][desty].Element := E_EMPTY;
-							MoveStat(iStat, destx, desty);
+							{ If the object should have stats but doesn't...
+						      don't crash! }
+							if iStat <> -1 then
+								MoveStat(iStat, destx, desty);
 							Board.Tiles[srcx][srcy] := tmpTile;
 						end else begin
 							Board.Tiles[destx][desty] := tiles[i];
@@ -1267,7 +1270,7 @@ procedure ElementPusherTick(statId: integer);
 			startX := X;
 			startY := Y;
 
-			if ValidCoord(X+StepX, Y+StepY) and ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable then begin
+			if ValidCoord(X+StepX, Y+StepY) and (not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable) then begin
 				ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
 			end;
 		end;
