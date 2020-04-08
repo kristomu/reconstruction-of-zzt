@@ -42,7 +42,7 @@ interface
 	procedure SidebarClear;
 	procedure GenerateTransitionTable;
 	procedure AdvancePointer(var address: pointer; count: integer);
-	procedure BoardClose;
+	procedure BoardClose(showTruncationNote: boolean);
 	procedure BoardOpen(boardId: integer);
 	procedure BoardChange(boardId: integer);
 	procedure BoardCreate;
@@ -60,6 +60,7 @@ interface
 	procedure SidebarPromptString(prompt: string; extension: TString50; var filename: string; promptMode: byte);
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
+	procedure DisplayTruncationNote;
 	procedure WorldUnload;
 	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 	procedure WorldSave(filename, extension: TString50);
@@ -181,15 +182,17 @@ procedure AdvancePointer(var address: pointer; count: integer);
 		address := address + count;
 	end;
 
-procedure BoardClose;
+procedure BoardClose(showTruncationNote: boolean);
 	var
 		ix, iy: integer;
 		ptr: pointer;
 		ptrStart: pointer;
 		rle: TRleTile;
+		cleanupNeeded: boolean;
 	begin
 		ptr := IoTmpBuf;
 		ptrStart := IoTmpBuf;
+		cleanupNeeded := false;
 
 		if World.BoardLen[World.Info.CurrentBoard] = 0 then Exit;
 
@@ -245,10 +248,30 @@ procedure BoardClose;
 
 		{ For some reason, using @IoTmpBuf instead of ptrStart causes a range check error. }
 		World.BoardLen[World.Info.CurrentBoard] := ptr - ptrStart;
+
+		{ If we're using too much space, truncate the size, feed the
+		  whole thing back through BoardOpen to fix the inevitable
+		  corruption, then run BoardClose again.
+		  This smart-ass solution should allow us to keep all the smarts of
+		  board parsing in BoardOpen and nowt have to duplicate any logic. }
+		{ Such a situation should *only* happen if RLE is too large (see
+		  RLEFLOW.ZZT), because AddStat should reject adding stats when
+		  there's no room. }
+		if World.BoardLen[World.Info.CurrentBoard] > MAX_BOARD_LEN then begin
+			World.BoardLen[World.Info.CurrentBoard] := MAX_BOARD_LEN;
+			cleanupNeeded := true;
+		end;
+
 		{ LEAKFIX: Needs to be ReAllocMem instead of Get/Free because first time
 		  around the memory isn't allocated yet.}
 		ReAllocMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 		Move(IoTmpBuf^, World.BoardData[World.Info.CurrentBoard]^, World.BoardLen[World.Info.CurrentBoard]);
+
+		if cleanupNeeded then begin
+			BoardOpen(World.Info.CurrentBoard);
+			BoardClose(false);
+			if showTruncationNote then DisplayTruncationNote;
+		end;
 	end;
 
 procedure BoardOpen(boardId: integer);
@@ -388,11 +411,11 @@ procedure BoardOpen(boardId: integer);
 				X := Min(Max(X, 0), BOARD_WIDTH+1);
 				Y := Min(Max(Y, 0), BOARD_HEIGHT+1);
 
-				{ SANITY: If DataLen is much too large, abort cleanly. }
+				{ SANITY: If DataLen is much too large, truncate. We'll
+			      then stop processing more objects next round around
+			      the loop. }
 				if bytesRead + DataLen > World.BoardLen[boardId] then begin
-					DataLen := 0;
-					Board.StatCount := ix;
-					Continue;
+					DataLen := World.BoardLen[boardId] - bytesRead;
 				end;
 
 				if DataLen > 0 then begin
@@ -457,8 +480,10 @@ procedure BoardChange(boardId: integer);
 	begin
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
-		BoardClose;
-		BoardOpen(boardId);
+		if boardId <> World.Info.CurrentBoard then begin
+			BoardClose(true);
+			BoardOpen(boardId);
+		end;
 	end;
 
 procedure BoardCreate;
@@ -873,11 +898,35 @@ function DisplayIOError: boolean;
 		TextWindowFree(textWindow);
 	end;
 
+procedure DisplayTruncationNote;
+	var
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Warning: Potential data loss';
+		TextWindowInitState(textWindow);
+		TextWindowAppend(textWindow, '$Warning:');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, 'A board that was just saved was too large');
+		TextWindowAppend(textWindow, 'and some data had to be cut. This might');
+		TextWindowAppend(textWindow, 'lead to data loss. If you haven''t saved');
+		TextWindowAppend(textWindow, 'yet, do so under another name and make');
+		TextWindowAppend(textWindow, 'the board smaller!');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, 'If you''re just playing, tell the author');
+		TextWindowAppend(textWindow, 'of the world you''re playing.');
+
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+	end;
+
 procedure WorldUnload;
 	var
 		i: integer;
 	begin
-		BoardClose;
+		{ no need to show any notices if the world's to be unloaded. }
+		BoardClose(false);
 		{ Reallocating to 0 is better than freeing because it's then
 	      possible to reallocate back to a higher level later, if
 	      required. That BoardLen is 0 also makes it obvious that the
@@ -1040,7 +1089,7 @@ procedure WorldSave(filename, extension: TString50);
 		version: integer;
 	label OnError;
 	begin
-		BoardClose;
+		BoardClose(true);
 		VideoWriteText(63, 5, $1F, 'Saving...');
 
 		Assign(f, filename + extension);

@@ -51,7 +51,7 @@ const
 procedure EditorAppendBoard;
 	begin
 		if World.BoardCount < MAX_BOARD then begin
-			BoardClose;
+			BoardClose(true);
 
 			World.BoardCount := World.BoardCount + 1;
 			World.Info.CurrentBoard := World.BoardCount;
@@ -560,7 +560,9 @@ procedure EditorLoop;
 						OpenForRead(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
-						BoardClose;
+						{ The old board is toast; no need to warn about
+						  data loss. }
+						BoardClose(false);
 						FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 						BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
 						if not DisplayIOError then begin
@@ -587,7 +589,7 @@ procedure EditorLoop;
 						OpenForWrite(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
-						BoardClose;
+						BoardClose(true);
 						BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
 						BlockWrite(f, World.BoardData[World.Info.CurrentBoard]^,
 							World.BoardLen[World.Info.CurrentBoard]);

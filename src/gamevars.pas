@@ -159,7 +159,17 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. (MAX_BOARD_LEN-1)] of byte;
+	const
+		{ This is used to make sure IoTmpBuf is always large enough to hold
+	      what changes may happen to the board. In the worst case, the board
+	      is completely empty when loaded but takes max space due to stats,
+	      then during play, the board gets filled with random tiles. That
+	      will require MAX_RLE_OVERFLOW additional bytes to hold. So by
+	      dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
+	  	  that it can never run out of space from RLE shenanigans. }
+		MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * SizeOf(TRleTile);
+	type
+		TIoTmpBuf = array[0 .. (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)] of byte;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
