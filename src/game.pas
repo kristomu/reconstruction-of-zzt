@@ -856,6 +856,7 @@ function GameWorldLoad(extension: TString50): boolean;
 			TextWindowAppend(textWindow, entryName);
 			FindNext(fileSearchRec);
 		end;
+		TextWindowSort(textWindow); { Sort the file names. }
 		TextWindowAppend(textWindow, 'Exit');
 
 		TextWindowDrawOpen(textWindow);
