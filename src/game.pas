@@ -194,8 +194,6 @@ procedure BoardClose(showTruncationNote: boolean);
 		ptrStart := IoTmpBuf;
 		cleanupNeeded := false;
 
-		if World.BoardLen[World.Info.CurrentBoard] = 0 then Exit;
-
 		Move(Board.Name, ptr^, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
 
