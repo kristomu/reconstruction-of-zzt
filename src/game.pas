@@ -390,14 +390,14 @@ procedure BoardOpen(boardId: integer);
 					Break;
 				end;
 
+				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
+				AdvancePointer(ptr, SizeOf(TStat));
+				bytesRead := bytesRead + SizeOf(TStat);
+
 				{ SANITY: If the element underneath is unknown, replace it
 				  with a normal. }
 				if Under.Element > MAX_ELEMENT then
 					Under.Element := E_NORMAL;
-
-				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
-				AdvancePointer(ptr, SizeOf(TStat));
-				bytesRead := bytesRead + SizeOf(TStat);
 
 				{ SANITY: (0,0) is not available: it's used by one-line
 				  messages. TODO? Put that into ValidCoord so that
@@ -1015,7 +1015,11 @@ function WorldLoad(filename, extension: TString50): boolean;
 				  DOS ZZT. }
 				if World.BoardCount < 0 then World.BoardCount := 0;
 
-				for boardId := 0 to Min(MAX_BOARD, World.BoardCount) do begin
+				{ If there are too many boards, ditto. (That's a more serious
+				  problem, as it may cut off boards outright.) }
+				World.BoardCount := Min(MAX_BOARD, World.BoardCount);
+
+				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 
 					if boardId > World.BoardCount then continue;
@@ -1231,6 +1235,9 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 			(World.BoardLen[World.Info.CurrentBoard] + SizeOf(TStat) + template.DataLen > MAX_BOARD_LEN) then
 			Exit;
 
+		{ Can't put anything on top of the player. }
+		if (tx = Board.Stats[0].X) and (ty = Board.Stats[0].Y) then Exit;
+
 		if Board.StatCount < MAX_STAT then begin
 			Board.StatCount := Board.StatCount + 1;
 			Board.Stats[Board.StatCount] := template;
@@ -1369,6 +1376,16 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 
 			iUnder := Board.Stats[statId].Under;
 			Board.Stats[statId].Under := Board.Tiles[newX][newY];
+
+			{ If trying to move atop the player, reject this. The object
+			  is simply destroyed instead, as if a player was set on top
+			  afterwards. }
+			if (newX = Board.Stats[0].X) and (newY = Board.Stats[0].Y) then begin
+				Board.Tiles[X][Y] := iUnder;
+				X := newX;
+				Y := newY;
+				Exit;
+			end;
 
 			if Board.Tiles[X][Y].Element = E_PLAYER then
 				Board.Tiles[newX][newY].Color := Board.Tiles[X][Y].Color
@@ -1698,12 +1715,8 @@ procedure BoardPassageTeleport(x, y: integer);
 					newY := iy;
 				end;
 
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_EMPTY;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := 0;
-		if newX <> 0 then begin
-			Board.Stats[0].X := newX;
-			Board.Stats[0].Y := newY;
-		end;
+		{ Move the player onto the passage. }
+		MoveStat(0, newX, newY);
 
 		GamePaused := true;
 		SoundQueue(4, #48#1#52#1#55#1#49#1#53#1#56#1#50#1#54#1#57#1#51#1#55#1#58#1#52#1#56#1#64#1);

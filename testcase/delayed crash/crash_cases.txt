@@ -25,3 +25,6 @@ INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
 		board. Allowing the stats to be added can cause a crash in
 		BoardClose as the serialized representation overflows the
 		buffer.
+
+MBOARD.ZZT	Too many boards. Trying to load and then quit creates an
+		overflow in WorldUnload.
