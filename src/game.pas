@@ -365,6 +365,11 @@ procedure BoardOpen(boardId: integer);
 		AdvancePointer(ptr, SizeOf(Board.Info));
 		bytesRead := bytesRead + SizeOf(Board.Info);
 
+		if not ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY) then begin
+			Board.Info.StartPlayerX := 1;
+			Board.Info.StartPlayerY := 1;
+		end;
+
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
 		bytesRead := bytesRead + SizeOf(Board.StatCount);
@@ -384,6 +389,11 @@ procedure BoardOpen(boardId: integer);
 					World.Info.CurrentBoard := boardId;
 					Break;
 				end;
+
+				{ SANITY: If the element underneath is unknown, replace it
+				  with a normal. }
+				if Under.Element > MAX_ELEMENT then
+					Under.Element := E_NORMAL;
 
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
 				AdvancePointer(ptr, SizeOf(TStat));
@@ -1352,6 +1362,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 	begin
 		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
 		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+		if (Board.Stats[statId].X = newX) and (Board.Stats[statId].Y = newY) then Exit;
 
 		with Board.Stats[statId] do begin
 			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
@@ -1526,12 +1537,11 @@ procedure DamageStat(attackerStatId: integer);
 							SoundQueue(4, #32#1#35#1#39#1#48#1#16#1);
 
 							{ Move player to start }
-							Board.Tiles[X][Y].Element := E_EMPTY;
-							BoardDrawTile(X, Y);
 							oldX := X;
 							oldY := Y;
-							X := Board.Info.StartPlayerX;
-							Y := Board.Info.StartPlayerY;
+							if ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY) then
+								MoveStat(0, Board.Info.StartPlayerX, Board.Info.StartPlayerY);
+							BoardDrawTile(oldX, oldY);
 							DrawPlayerSurroundings(oldX, oldY, 0);
 							DrawPlayerSurroundings(X, Y, 0);
 
@@ -1949,6 +1959,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 					InputUpdate;
 				end;
 			end;
+
+			{ Crash if the invariant that the player (or monitor) must exist
+			  and be at the X,Y given by stat 0 is violated. }
+			if (not ValidCoord(Board.Stats[0].X, Board.Stats[0].y)) or
+			(Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element <> GameStateElement) then
+				RunError(ERR_NO_PLAYER);
+
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
 		SoundClearQueue;

@@ -32,3 +32,5 @@ CNOSTAT: Conveyor trying to convey tiles that usually have stats, but don't
 RLEFLOW: An almost full board becomes less compressible after some tiles change.
 This can cause a crash in BoardClose as the serialized representation overflows
 the buffer.
+UNKUND: Having a tile with stats move and expose an out-of-bounds element
+underneath causes a crash.

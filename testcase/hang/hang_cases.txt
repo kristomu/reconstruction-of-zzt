@@ -4,3 +4,5 @@ the visible board, and any message will destroy the objec there - the player
 or the monitor.
 SCROLL: Touching a scroll and making the parser read the last byte, and that
 last byte being #, hangs the game. See the file for more info.
+ZAPVOID: Playing and then getting zapped with re-entry if zapped set outside of
+bounds causes a hang because ZZT can't place the player on the board again.

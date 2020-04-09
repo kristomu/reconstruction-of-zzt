@@ -46,6 +46,8 @@ interface
 
 		ERR_STATID_TOO_HIGH = 400;
 		ERR_STATID_DOESNT_EXIST = 401;
+
+		ERR_NO_PLAYER = 500;	{ Invariant violation. }
 	type
 		TString50 = string[50];
 		TCoord = packed record
