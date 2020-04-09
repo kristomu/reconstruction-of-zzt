@@ -610,9 +610,9 @@ procedure EditorLoop;
 		var
 			i: integer;
 			tileAt: TTile;
-			toFill, filled: byte;
-			xPosition: array[0 .. 255] of integer;
-			yPosition: array[0 .. 255] of integer;
+			toFill, filled: integer;
+			xPosition: array[0 .. BOARD_WIDTH * BOARD_HEIGHT * 4] of integer;
+			yPosition: array[0 .. BOARD_WIDTH * BOARD_HEIGHT * 4] of integer;
 		begin
 			toFill := 1;
 			filled := 0;
@@ -622,6 +622,8 @@ procedure EditorLoop;
 				if (Board.Tiles[x][y].Element <> tileAt.Element)
 					or (Board.Tiles[x][y].Color <> tileAt.Color) then
 					for i := 0 to 3 do
+						if not CoordInsideViewport(x + NeighborDeltaX[i],
+							y + NeighborDeltaY[i]) then Continue;
 						with Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]] do begin
 							if (Element = from.Element)
 								and ((from.Element = 0) or (Color = from.Color)) then
