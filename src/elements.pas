@@ -29,6 +29,7 @@ unit Elements;
 
 interface
 	uses GameVars;
+	procedure SetElement(x, y: integer; element: byte);
 	procedure ElementMove(oldX, oldY, newX, newY: integer);
 	procedure ElementPushablePush(x, y: integer; deltaX, deltaY: integer);
 	procedure DrawPlayerSurroundings(x, y: integer; bombPhase: integer);
@@ -50,6 +51,13 @@ var
 	      gallivanting across board edges. }
 	BoardEdgeSeen: array[0..MAX_BOARD] of boolean;
 	i: integer;
+
+procedure SetElement(x, y: integer; element: byte);
+	begin
+		{ Not if it's the player. }
+		if (Board.Stats[0].X = x) and (Board.Stats[0].Y = y) then Exit;
+		Board.Tiles[x][y].Element := element;
+	end;
 
 procedure ElementDefaultTick(statId: integer);
 	begin
@@ -255,7 +263,7 @@ procedure ElementCentipedeHeadTick(statId: integer);
 			end;
 
 			if (StepX = 0) and (StepY = 0) then begin
-				Board.Tiles[X][Y].Element := E_CENTIPEDE_SEGMENT;
+				SetElement(X, Y, E_CENTIPEDE_SEGMENT);
 				Leader := -1;
 				while Board.Stats[statId].Follower > 0 do begin
 					tmp := Board.Stats[statId].Follower;
@@ -264,10 +272,10 @@ procedure ElementCentipedeHeadTick(statId: integer);
 					statId := tmp;
 				end;
 				Board.Stats[statId].Follower := Board.Stats[statId].Leader;
-				Board.Tiles[Board.Stats[statId].X][Board.Stats[statId].Y].Element := E_CENTIPEDE_HEAD;
+				SetElement(Board.Stats[statId].X, Board.Stats[statId].Y, E_CENTIPEDE_HEAD);
 			end else if ValidCoord(X + StepX, Y + StepY) and (Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER) then begin
 				if Follower <> -1 then begin
-					Board.Tiles[Board.Stats[Follower].X][Board.Stats[Follower].Y].Element := E_CENTIPEDE_HEAD;
+					SetElement(Board.Stats[Follower].X, Board.Stats[Follower].Y, E_CENTIPEDE_HEAD);
 					Board.Stats[Follower].StepX := StepX;
 					Board.Stats[Follower].StepY := StepY;
 					BoardDrawTile(Board.Stats[Follower].X, Board.Stats[Follower].Y);
@@ -333,7 +341,7 @@ procedure ElementCentipedeSegmentTick(statId: integer);
 		with Board.Stats[statId] do begin
 			if Leader < 0 then begin
 				if Leader < -1 then
-					Board.Tiles[X][Y].Element := E_CENTIPEDE_HEAD
+					SetElement(X, Y, E_CENTIPEDE_HEAD)
 				else
 					Leader := Leader - 1;
 			end;
@@ -1065,7 +1073,7 @@ procedure ElementDuplicatorTick(statId: integer);
 									Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
 								BoardDrawTile(X - StepX, Y - StepY);
 							end;
-						end else if sourceStatId <> 0 then begin
+						end else if (sourceStatId <> 0) and ValidCoord(X + StepX, Y + StepY) then begin
 							Board.Tiles[X - StepX][Y - StepY]
 								:= Board.Tiles[X + StepX][Y + StepY];
 							BoardDrawTile(X - StepX, Y - StepY);
