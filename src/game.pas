@@ -62,7 +62,7 @@ interface
 	function DisplayIOError: boolean;
 	procedure DisplayTruncationNote;
 	procedure WorldUnload;
-	function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
+	function WorldLoad(filename, extension: TString50): boolean;
 	procedure WorldSave(filename, extension: TString50);
 	procedure GameWorldSave(prompt: TString50; var filename: TString50; extension: TString50);
 	function GameWorldLoad(extension: TString50): boolean;
@@ -937,7 +937,7 @@ procedure WorldUnload;
 		end;
 	end;
 
-function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
+function WorldLoad(filename, extension: TString50): boolean;
 	var
 		f: file;
 		ptr: pointer;
@@ -999,12 +999,6 @@ function WorldLoad(filename, extension: TString50; titleOnly: boolean): boolean;
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
-
-				if titleOnly then begin
-					World.BoardCount := 0;
-					World.Info.CurrentBoard := 0;
-					World.Info.IsSave := true;
-				end;
 
 				{ If the board count is negative, set it to zero. This should
 				  also signal that the world is corrupt. Another option
@@ -1162,9 +1156,6 @@ function GameWorldLoad(extension: TString50): boolean;
 		GameWorldLoad := false;
 		textWindow.Selectable := true;
 
-		{ TODO: Sort file names somehow! Since they all have to be stored
-	      in the text window, we could just sort the lines once they're
-	      stored in there. }
 		FindFirst('*' + extension, AnyFile, fileSearchRec);
 		while DosError = 0 do begin
 			entryName := Copy(fileSearchRec.Name, 1, Length(fileSearchRec.name) - 4);
@@ -1188,7 +1179,7 @@ function GameWorldLoad(extension: TString50): boolean;
 			if Pos(' ', entryName) <> 0 then
 				entryName := Copy(entryName, 1, Pos(' ', entryName) - 1);
 
-			GameWorldLoad := WorldLoad(entryName, extension, false);
+			GameWorldLoad := WorldLoad(entryName, extension);
 			TransitionDrawToFill(#219, $44);
 		end;
 
@@ -1851,7 +1842,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 			if Length(StartupWorldFileName) <> 0 then begin
 				SidebarClearLine(8);
 				VideoWriteText(69, 8, $1F, StartupWorldFileName);
-				if not WorldLoad(StartupWorldFileName, '.ZZT', true) then WorldCreate;
+				if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
 			end;
 			ReturnBoardId := World.Info.CurrentBoard;
 			BoardChange(0);
@@ -2005,7 +1996,7 @@ procedure GameTitleLoop;
 					end;
 					'P': begin
 						if World.Info.IsSave and not DebugEnabled then begin
-							startPlay := WorldLoad(World.Info.Name, '.ZZT', false);
+							startPlay := WorldLoad(World.Info.Name, '.ZZT');
 							ReturnBoardId := World.Info.CurrentBoard;
 						end else begin
 							startPlay := true;
@@ -2069,7 +2060,7 @@ procedure GameRunFewCycles(cycles:integer);
 		ReturnBoardId := 0;
 		boardChanged := true;
 
-		if not WorldLoad(StartupWorldFileName, '.ZZT', true) then WorldCreate;
+		if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
 
 		ReturnBoardId := World.Info.CurrentBoard;
 		BoardChange(0);
