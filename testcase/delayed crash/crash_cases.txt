@@ -32,3 +32,8 @@ MBOARD.ZZT	Too many boards. Trying to load and then quit creates an
 EDGECASE.ZZT	Placing a player on (1,0) and then going right violates the
 		player invariant if BoardOpen calls BoardCreate. (It would
 		probably freeze the game if there weren't an invariant.)
+
+EDGECAS2.ZZT	As EDGECASE, except the destination board has no player.
+		Causes an invariant violation because moving to a board
+		edge with a player at the other end but player's stats
+		somewhere else doesn't create a player at those stats.

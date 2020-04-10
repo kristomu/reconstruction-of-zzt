@@ -493,6 +493,15 @@ procedure BoardOpen(boardId: integer);
 			end;
 		end;
 
+		{ SANITY: If there's neither a player nor a monitor at the position
+		  indicated by stats 0, place a player there to keep the invariant
+		  that one should always exist on every board. }
+		with Board.Stats[0] do begin
+			if (Board.Tiles[X][Y].Element <> E_PLAYER) and
+			   (Board.Tiles[X][Y].Element <> E_MONITOR) then
+			   Board.Tiles[X][Y].Element := E_PLAYER;
+		end;
+
 		World.Info.CurrentBoard := boardId;
 	end;
 
