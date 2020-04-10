@@ -24,5 +24,9 @@ INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
 		BoardClose as the serialized representation overflows the
 		buffer.
 
+LEAK.ZZT	Demonstrates a memory leak in unpatched ZZT: AddStat checks
+		whether a stat has data by using Data <> 0, but DataLen can
+		still be zero with Data <> 0.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups

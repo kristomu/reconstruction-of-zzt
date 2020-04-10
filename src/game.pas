@@ -428,16 +428,21 @@ procedure BoardOpen(boardId: integer);
 					DataLen := World.BoardLen[boardId] - bytesRead;
 				end;
 
-				if DataLen > 0 then begin
+				if DataLen > 0 then
 					{ SANITY: If DataLen is too long, truncate it. }
-					DataLen := Max(0, Min(DataLen,
-						World.BoardLen[boardId]-bytesRead));
+					DataLen := Min(DataLen,
+						World.BoardLen[boardId]-bytesRead);
 
+				{ Only allocate if data length is still positive... }
+				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
 					Move(ptr^, Data^, DataLen);
 					AdvancePointer(ptr, DataLen);
 					bytesRead := bytesRead + DataLen;
 				end;
+
+				{ Otherwise, clear Data to avoid potential leaks later. }
+				if DataLen = 0 then Data := nil;
 			end;
 
 		{ SANITY: Process referential DataLen variables. This must be
@@ -1050,6 +1055,11 @@ function WorldLoad(filename, extension: TString50): boolean;
 				  problem, as it may cut off boards outright.) }
 				World.BoardCount := Min(MAX_BOARD, World.BoardCount);
 
+				{ Don't accept CurrentBoard values that are too large or
+				  small. }
+				World.Info.CurrentBoard := Max(0, Min(World.BoardCount,
+					World.Info.CurrentBoard));
+
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
 
@@ -1075,6 +1085,10 @@ function WorldLoad(filename, extension: TString50): boolean;
 						  This recovers the last Super Lock-corrupted board.
 						  actuallyRead below will adjust the board length back
 						  if we're dealing with an ordinary world. }
+						{ TODO: If we have a board with >20k followed by ordinary
+						  boards, then this will destroy the ordinary boards.
+						  So fast-forward the distance if that happens, so the
+						  remaining boards can be read. }
 						if boardId = World.BoardCount then
 							World.BoardLen[boardId] := MAX_BOARD_LEN;
 
@@ -1281,7 +1295,7 @@ procedure AddStat(tx, ty: integer; element: byte; color, tcycle: integer; templa
 				DataPos := 0;
 			end;
 
-			if template.Data <> nil then begin
+			if (template.Data <> nil) and (template.DataLen > 0) then begin
 				GetMem(Board.Stats[Board.StatCount].Data, template.DataLen);
 				Move(template.Data^, Board.Stats[Board.StatCount].Data^, template.DataLen);
 				World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] + template.DataLen;
