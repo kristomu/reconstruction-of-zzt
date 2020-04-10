@@ -1445,7 +1445,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			Board.Tiles[newX][newY].Element := Board.Tiles[X][Y].Element;
 			{ Don't remove the player if he's at the old position. This can
 			  happen with multiple stats with the same coordinate. }
-			if (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
+			if (statId = 0) or (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
 				Board.Tiles[X][Y] := iUnder;
 
 			oldX := X;
