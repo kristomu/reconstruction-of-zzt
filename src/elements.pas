@@ -606,7 +606,7 @@ procedure ElementBombDraw(x, y: integer; var ch: byte);
 			if P1 <= 1 then
 				ch := 11
 			else
-				ch := 48 + P1;
+				ch := (48 + P1) mod 256;
 	end;
 
 procedure ElementBombTick(statId: integer);
@@ -888,6 +888,8 @@ procedure ElementBlinkWallTick(statId: integer);
 				else
 					el := E_BLINK_RAY_NS;
 
+				if not ValidCoord(ix, iy) then Exit;
+
 				while (Board.Tiles[ix][iy].Element = el)
 					and (Board.Tiles[ix][iy].Color = Board.Tiles[X][Y].Color) do
 				begin
@@ -935,7 +937,7 @@ procedure ElementBlinkWallTick(statId: integer);
 
 						ix := ix + StepX;
 						iy := iy + StepY;
-					until hitBoundary;
+					until hitBoundary or not ValidCoord(ix, iy);
 
 					P3 := (P2 * 2) + 1;
 				end;

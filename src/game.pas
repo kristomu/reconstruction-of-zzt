@@ -1370,6 +1370,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
 		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
 		if (Board.Stats[statId].X = newX) and (Board.Stats[statId].Y = newY) then Exit;
+		if not CoordInsideViewport(newX, newY) then Exit;
 
 		with Board.Stats[statId] do begin
 			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
@@ -1707,7 +1708,14 @@ procedure BoardPassageTeleport(x, y: integer);
 		if GetStatIdAt(x, y) < 0 then BoardChange(oldBoard)
 		else BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
 
+		{ Set a default position that's outside the viewport, so that if
+	      there's no passage of the appropriate color at the destination
+	      board, the player appears at his initial location at the
+	      destination. (Do what DOS ZZT does, but without
+	      relying on out-of-bounds memory access...) }
 		newX := 0;
+		newY := 0;
+
 		for ix := 1 to BOARD_WIDTH do
 			for iy := 1 to BOARD_HEIGHT do
 				if (Board.Tiles[ix][iy].Element = E_PASSAGE) and (Board.Tiles[ix][iy].Color = col) then begin
@@ -1790,6 +1798,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 	var
 		exitLoop: boolean;
 		pauseBlink: boolean;
+		playerTileElem: byte;
 	procedure GameDrawSidebar;
 		begin
 			SidebarClear;
@@ -1974,9 +1983,14 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end;
 
 			{ Crash if the invariant that the player (or monitor) must exist
-			  and be at the X,Y given by stat 0 is violated. }
-			if (not ValidCoord(Board.Stats[0].X, Board.Stats[0].y)) or
-			(Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element <> GameStateElement) then
+			  and be at the X,Y given by stat 0 is violated. We have to check
+			  for both player and monitor no matter what the GameStateElement
+			  is in order to support Chronos' Forced Play hack. }
+			if not ValidCoord(Board.Stats[0].X, Board.Stats[0].Y) then
+				RunError(ERR_NO_PLAYER);
+
+			playerTileElem := Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+			if (playerTileElem <> E_PLAYER) and (playerTileElem <> E_MONITOR) then
 				RunError(ERR_NO_PLAYER);
 
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
