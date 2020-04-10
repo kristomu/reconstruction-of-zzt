@@ -524,7 +524,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		textWindow: TTextWindowState;
 		textLine: string;
 		deltaX, deltaY: integer;
-		ix, iy: integer;
+		i, ix, iy: integer;
 		stopRunning: boolean;
 		replaceStat: boolean;
 		endOfProgram: boolean;
@@ -542,6 +542,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		insCount: integer;
 		argTile: TTile;
 		argTile2: TTile;
+		dataInUse: boolean;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -797,10 +798,29 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							OopReadWord(statId, position);
 							bindStatId := 0;
 							if OopIterateStat(statId, bindStatId, OopWord) then begin
-								FreeMem(Data, DataLen);
-								Data := Board.Stats[bindStatId].Data;
-								DataLen := Board.Stats[bindStatId].DataLen;
-								position := 0;
+								dataInUse := false;
+
+								{ We can't bind if we're bound to someone else.
+								  Do some reference counting to find out if
+								  that's the case. }
+								for i := 0 to Board.StatCount do begin
+									if (i <> statId) and (Board.Stats[i].Data = Data) then begin
+										dataInUse := true;
+										Break;
+									end;
+								end;
+
+								if dataInUse then begin
+									OopError(statId, 'Can''t bind to ' + OopWord +
+										' when someone is bound to you!' );
+								end else begin
+									{ Binding when someone's bound to us
+									  would lead to a double free *here*. }
+									FreeMem(Data, DataLen);
+									Data := Board.Stats[bindStatId].Data;
+									DataLen := Board.Stats[bindStatId].DataLen;
+									position := 0;
+								end;
 							end;
 						end else begin
 							textLine := OopWord;

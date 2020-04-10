@@ -39,3 +39,5 @@ CR16: StepX, StepY values with absolute value near 32767 cause crash when adding
 or subtracting them from other values. Fixed by truncating these values on load.
 CR17: StepX = 0, StepY = 0 and cycle of Follower values causes infinite loop in centipede head.
 CR18: Very large World.Info.CurrentBoard causes crash in BoardClose.
+DATAPOS: Double-free/use-after-free bug involving BIND when already bound. See
+the world for more info.
