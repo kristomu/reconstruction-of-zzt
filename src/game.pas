@@ -507,13 +507,23 @@ procedure BoardCreate;
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
 
+		{ In a very rare situation, the player may be at (1,0) and try
+		  to go right. Then DOS ZZT will transport the player to the
+		  neighbor board's initial position because the player at (1,0)
+		  is preserved. Before this fix, it would cause a crash on Linux
+		  due to violating the player invariant (the edge would overwrite
+		  the player). }
 		for ix := 0 to BOARD_WIDTH+1 do begin
-			Board.Tiles[ix][0] := TileBoardEdge;
-			Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
+			if Board.Tiles[ix][0].Element <> E_PLAYER then
+				Board.Tiles[ix][0] := TileBoardEdge;
+			if Board.Tiles[ix][BOARD_HEIGHT+1].Element <> E_PLAYER then
+				Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
 		end;
 		for iy := 0 to BOARD_HEIGHT+1 do begin
-			Board.Tiles[0][iy] := TileBoardEdge;
-			Board.Tiles[BOARD_WIDTH+1][iy] := TileBoardEdge;
+			if Board.Tiles[0][iy].Element <> E_PLAYER then
+				Board.Tiles[0][iy] := TileBoardEdge;
+			if Board.Tiles[BOARD_WIDTH+1][iy].Element <> E_PLAYER then
+				Board.Tiles[BOARD_WIDTH+1][iy] := TileBoardEdge;
 		end;
 
 		for ix := 1 to BOARD_WIDTH do

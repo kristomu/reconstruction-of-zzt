@@ -28,3 +28,7 @@ INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
 
 MBOARD.ZZT	Too many boards. Trying to load and then quit creates an
 		overflow in WorldUnload.
+
+EDGECASE.ZZT	Placing a player on (1,0) and then going right violates the
+		player invariant if BoardOpen calls BoardCreate. (It would
+		probably freeze the game if there weren't an invariant.)
