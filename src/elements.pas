@@ -52,11 +52,23 @@ var
 	BoardEdgeSeen: array[0..MAX_BOARD] of boolean;
 	i: integer;
 
+function ValidStatIdx(x: integer): boolean;
+	begin
+		ValidStatIdx := (x >= 0) and (x < Board.StatCount);
+	end;
+
 procedure SetElement(x, y: integer; element: byte);
 	begin
 		{ Not if it's the player. }
 		if (Board.Stats[0].X = x) and (Board.Stats[0].Y = y) then Exit;
 		Board.Tiles[x][y].Element := element;
+	end;
+
+procedure ColorCycle(x, y: integer);
+	begin
+		Board.Tiles[x][y].Color := (Board.Tiles[x][y].Color + 1) mod 255;
+		if Board.Tiles[x][y].Color > 15 then
+			Board.Tiles[x][y].Color := 9;
 	end;
 
 procedure ElementDefaultTick(statId: integer);
@@ -78,7 +90,7 @@ procedure ElementMessageTimerTick(statId: integer);
 			case X of
 				0: begin
 					VideoWriteText((60 - Length(Board.Info.Message)) div 2, 24, 9 + (P2 mod 7), ' '+Board.Info.Message+' ');
-					P2 := P2 - 1;
+					if P2 > 0 then P2 := P2 - 1;
 					if P2 <= 0 then begin
 						RemoveStat(statId);
 						CurrentStatTicked := CurrentStatTicked - 1;
@@ -265,16 +277,23 @@ procedure ElementCentipedeHeadTick(statId: integer);
 			if (StepX = 0) and (StepY = 0) then begin
 				SetElement(X, Y, E_CENTIPEDE_SEGMENT);
 				Leader := -1;
-				while Board.Stats[statId].Follower > 0 do begin
+				while ValidStatIdx(statId) and (Board.Stats[statId].Follower > 0) do begin
 					tmp := Board.Stats[statId].Follower;
 					Board.Stats[statId].Follower := Board.Stats[statId].Leader;
 					Board.Stats[statId].Leader := tmp;
 					statId := tmp;
+
+					{ Avoid infinite follower loops. }
+					if seenFollower[tmp] then
+						statId := -1
+					else seenFollower[tmp] := true;
 				end;
-				Board.Stats[statId].Follower := Board.Stats[statId].Leader;
-				SetElement(Board.Stats[statId].X, Board.Stats[statId].Y, E_CENTIPEDE_HEAD);
+				if ValidStatIdx(statId) then begin
+					Board.Stats[statId].Follower := Board.Stats[statId].Leader;
+					SetElement(Board.Stats[statId].X, Board.Stats[statId].Y, E_CENTIPEDE_HEAD);
+				end;
 			end else if ValidCoord(X + StepX, Y + StepY) and (Board.Tiles[X + StepX][Y + StepY].Element = E_PLAYER) then begin
-				if Follower <> -1 then begin
+				if ValidStatIdx(Follower) and ValidCoord(Board.Stats[Follower].X, Board.Stats[Follower].Y) then begin
 					SetElement(Board.Stats[Follower].X, Board.Stats[Follower].Y, E_CENTIPEDE_HEAD);
 					Board.Stats[Follower].StepX := StepX;
 					Board.Stats[Follower].StepY := StepY;
@@ -313,7 +332,7 @@ procedure ElementCentipedeHeadTick(statId: integer);
 							end;
 						end;
 
-						if Follower > 0 then begin
+						if (Follower > 0) and ValidStatIdx(Follower) then begin
 							Board.Stats[Follower].Leader := statId;
 							Board.Stats[Follower].P1 := P1;
 							Board.Stats[Follower].P2 := P2;
@@ -615,7 +634,7 @@ procedure ElementBombTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if P1 > 0 then begin
-				P1 := P1 - 1;
+				P1 := (P1 - 1);
 				BoardDrawTile(X, Y);
 
 				if P1 = 1 then begin
@@ -724,7 +743,7 @@ procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 		end;
 
 		with Board.Stats[GetStatIdAt(x, y)] do begin
-			if Cycle = 0 then Cycle := 1;
+			if Cycle <= 0 then Cycle := 1;
 
 			if StepX = 0 then
 				ch := Ord(TransporterNSChars[Sign(StepY) * 2 + 3 + (CurrentTick div Cycle) mod 4])
@@ -736,9 +755,7 @@ procedure ElementTransporterDraw(x, y: integer; var ch: byte);
 procedure ElementStarDraw(x, y: integer; var ch: byte);
 	begin
 		ch := Ord(StarAnimChars[(CurrentTick mod 4) + 1]);
-		Board.Tiles[x][y].Color := (Board.Tiles[x][y].Color + 1) mod 255;
-		if Board.Tiles[x][y].Color > 15 then
-			Board.Tiles[x][y].Color := 9;
+		ColorCycle(x, y);
 	end;
 
 procedure ElementStarTick(statId: integer);
@@ -878,7 +895,7 @@ procedure ElementBlinkWallTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
 			if P3 = 0 then
-				P3 := P1 + 1;
+				P3 := (P1 + 1) mod 256;
 			if P3 = 1 then begin
 				ix := X + StepX;
 				iy := Y + StepY;
@@ -890,14 +907,14 @@ procedure ElementBlinkWallTick(statId: integer);
 
 				if not ValidCoord(ix, iy) then Exit;
 
-				while (Board.Tiles[ix][iy].Element = el)
+				while ValidCoord(ix, iy) and (Board.Tiles[ix][iy].Element = el)
 					and (Board.Tiles[ix][iy].Color = Board.Tiles[X][Y].Color) do
 				begin
 					Board.Tiles[ix][iy].Element := E_EMPTY;
 					BoardDrawTile(ix, iy);
 					ix := ix + StepX;
 					iy := iy + StepY;
-					P3 := (P2) * 2 + 1;
+					P3 := ((P2) * 2 + 1) mod 256;
 				end;
 
 				if ((X + StepX) = ix) and ((Y + StepY) = iy) then begin
@@ -939,10 +956,10 @@ procedure ElementBlinkWallTick(statId: integer);
 						iy := iy + StepY;
 					until hitBoundary or not ValidCoord(ix, iy);
 
-					P3 := (P2 * 2) + 1;
+					P3 := ((P2 * 2) + 1) mod 256;
 				end;
 			end else begin
-				P3 := P3 - 1;
+				if P3 > 0 then P3 := P3 - 1;
 			end;
 		end;
 	end;
@@ -1098,10 +1115,7 @@ procedure ElementDuplicatorTick(statId: integer);
 procedure ElementScrollTick(statId: integer);
 	begin
 		with Board.Stats[statId] do begin
-			Board.Tiles[X][Y].Color := Board.Tiles[X][Y].Color + 1;
-			if Board.Tiles[X][Y].Color > $0F then
-				Board.Tiles[X][Y].Color := $09;
-
+			ColorCycle(X, Y);
 			BoardDrawTile(X, Y);
 		end;
 	end;

@@ -34,3 +34,7 @@ This can cause a crash in BoardClose as the serialized representation overflows
 the buffer.
 UNKUND: Having a tile with stats move and expose an out-of-bounds element
 underneath causes a crash.
+CR15: Wrong StepX, StepY values makes blinkwall crash.
+CR16: StepX, StepY values with absolute value near 32767 cause crash when adding
+or subtracting them from other values. Fixed by truncating these values on load.
+CR17: StepX = 0, StepY = 0 and cycle of Follower values causes infinite loop in centipede head.

@@ -335,6 +335,8 @@ procedure BoardOpen(boardId: integer);
 		      RLE count 0 byte and then allocate that much extra scratch
 		      space. But keeping two counts like that is a pain, so I don't.}
 			if rle.Count <= 0 then begin
+				{ Not enough space? Get outta here. }
+				if bytesRead + SizeOf(rle) > World.BoardLen[boardId] then Break;
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
 				bytesRead := bytesRead + SizeOf(rle);
@@ -473,11 +475,21 @@ procedure BoardOpen(boardId: integer);
 
 		{ SANITY: Positive Leader and Follower values must be indices
 		  to stats. If they're too large, they're corrupt: set them to
-		  zero. }
+		  zero.
+		  Furthermore, there's no need for StepX and StepY to be out of
+		  range of the board area, and clamping these values helps
+		  avoid a ton of over/underflow problems whose fixes would
+		  otherwise clutter up the code... }
 		for ix := 0 to Board.StatCount do begin
 			with Board.Stats[ix] do begin
 				if Follower > Board.StatCount then Follower := 0;
 				if Leader > Board.StatCount then Leader := 0;
+
+				if StepX < -BOARD_WIDTH then StepX := -BOARD_WIDTH;
+				if StepX > BOARD_WIDTH then StepX := BOARD_WIDTH;
+
+				if StepY < -BOARD_HEIGHT then StepY := -BOARD_HEIGHT;
+				if StepY > BOARD_HEIGHT then StepY := BOARD_HEIGHT;
 			end;
 		end;
 
