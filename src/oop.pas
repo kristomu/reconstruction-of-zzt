@@ -354,22 +354,22 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 	begin
 		OopParseTile := false;
 		tile.Color := 0;
+		tile.Element := E_BOARD_EDGE;
 
 		OopReadWord(statId, position);
 		for i := 1 to 7 do begin
 			if OopWord = OopStringToWord(ColorNames[i]) then begin
 				tile.Color := i + $08;
 				OopReadWord(statId, position);
-				goto ColorFound;
+				Break;
 			end;
 		end;
-	ColorFound:
 
 		for i := 0 to MAX_ELEMENT do begin
 			if OopWord = OopStringToWord(ElementDefs[i].Name) then begin
 				OopParseTile := true;
 				tile.Element := i;
-				exit;
+				Break;
 			end;
 		end;
 	end;

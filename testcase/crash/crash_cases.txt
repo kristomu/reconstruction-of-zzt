@@ -41,3 +41,7 @@ CR17: StepX = 0, StepY = 0 and cycle of Follower values causes infinite loop in 
 CR18: Very large World.Info.CurrentBoard causes crash in BoardClose.
 DATAPOS: Double-free/use-after-free bug involving BIND when already bound. See
 the world for more info.
+CR19: Moving a stat that's placed upon the player (stacked stats) off the player
+could remove him and thus violate the invariant. This is highly technical to
+pull off, involving follower indices pointing at a stat whose coordinates are
+the same as the player.

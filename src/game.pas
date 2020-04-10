@@ -402,10 +402,10 @@ procedure BoardOpen(boardId: integer);
 					Under.Element := E_NORMAL;
 
 				{ SANITY: (0,0) is not available: it's used by one-line
-				  messages. TODO? Put that into ValidCoord so that
-				  every object is barred from 0,0? Yes, but then we'd
-				  have to make an exception for the message so that *it*
-				  isn't barred... }
+				  messages. So if the stat is at (0,0) or another
+				  unavailable position, put it into (1,1). TODO? Make
+				  a note of which are thus placed, and place them on
+				  empty spots on the board instead if possible... }
 				{ The compromise to the Postelic position is probably to
 				  be generous, but show a warning message that the board
 				  was corrupted and attempted fixed. Do that later? }
@@ -1338,7 +1338,11 @@ procedure RemoveStat(statId: integer);
 			if statId < CurrentStatTicked then
 				CurrentStatTicked := CurrentStatTicked - 1;
 
-			Board.Tiles[X][Y] := Under;
+			{ Don't remove the player if he's at the old position. This can
+			  happen with multiple stats with the same coordinate. }
+			if (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
+				Board.Tiles[X][Y] := Under;
+
 			if CoordInsideViewport(X, Y) then
 				BoardDrawTile(X, Y);
 
@@ -1427,9 +1431,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 			  is simply destroyed instead, as if a player was set on top
 			  afterwards. }
 			if (newX = Board.Stats[0].X) and (newY = Board.Stats[0].Y) then begin
-				Board.Tiles[X][Y] := iUnder;
-				X := newX;
-				Y := newY;
+				RemoveStat(statId);
 				Exit;
 			end;
 
@@ -1441,7 +1443,10 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				Board.Tiles[newX][newY].Color := (Board.Tiles[X][Y].Color and $0F) + (Board.Tiles[newX][newY].Color and $70);
 
 			Board.Tiles[newX][newY].Element := Board.Tiles[X][Y].Element;
-			Board.Tiles[X][Y] := iUnder;
+			{ Don't remove the player if he's at the old position. This can
+			  happen with multiple stats with the same coordinate. }
+			if (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
+				Board.Tiles[X][Y] := iUnder;
 
 			oldX := X;
 			oldY := Y;
