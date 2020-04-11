@@ -987,7 +987,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 		ptr: pointer;
 		boardId: integer;
 		loadProgress: integer;
-		actuallyRead: integer;
+		actuallyRead: word;
 		firstZero: integer;
 		i: integer;
 	procedure SidebarAnimateLoading;
@@ -1085,10 +1085,6 @@ function WorldLoad(filename, extension: TString50): boolean;
 						  This recovers the last Super Lock-corrupted board.
 						  actuallyRead below will adjust the board length back
 						  if we're dealing with an ordinary world. }
-						{ TODO: If we have a board with >20k followed by ordinary
-						  boards, then this will destroy the ordinary boards.
-						  So fast-forward the distance if that happens, so the
-						  remaining boards can be read. }
 						if boardId = World.BoardCount then
 							World.BoardLen[boardId] := MAX_BOARD_LEN;
 
@@ -1103,7 +1099,13 @@ function WorldLoad(filename, extension: TString50): boolean;
 					  	actuallyRead := Min(actuallyRead, MAX_BOARD_LEN);
 						{ SANITY: reallocate and update board len if
 						  there's a mismatch between how much we were told
-						  we could read, and how much we actually read. }
+						  we could read, and how much we actually read.
+						  This also cuts down very large boards that we can't
+						  represent in memory anyway (size > 20k). }
+						{ If you want to be extra stingy with memory, just
+						  move this logic up to BlockRead and only read up to
+						  MAX_BOARD_LEN, then seek the rest of the way. But
+						  I can't be bothered. }
 						if actuallyRead <> World.BoardLen[boardId] then begin
 							World.BoardData[boardId] := ReAllocMem(World.BoardData[boardId],
 								actuallyRead);

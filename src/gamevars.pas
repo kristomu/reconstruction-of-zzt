@@ -152,7 +152,9 @@ interface
 		TWorld = packed record
 			BoardCount: integer;
 			BoardData: array[0 .. MAX_BOARD] of pointer;
-			BoardLen: array[0 .. MAX_BOARD] of integer;
+			{ KevEdit treats board length as unsigned, so to handle >32k
+			  boards without corrupting subsequent ones... }
+			BoardLen: array[0 .. MAX_BOARD] of word;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;

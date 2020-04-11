@@ -28,5 +28,9 @@ LEAK.ZZT	Demonstrates a memory leak in unpatched ZZT: AddStat checks
 		whether a stat has data by using Data <> 0, but DataLen can
 		still be zero with Data <> 0.
 
+BRDSKIP.ZZT	ZZT world containing a board of size greater than 32k, showing
+		the need to consider BoardLen unsigned. (DOS ZZT does the right
+		thing here.)
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
