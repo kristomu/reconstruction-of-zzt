@@ -37,3 +37,8 @@ EDGECAS2.ZZT	As EDGECASE, except the destination board has no player.
 		Causes an invariant violation because moving to a board
 		edge with a player at the other end but player's stats
 		somewhere else doesn't create a player at those stats.
+
+OOPFLOW.ZZT	Tests ZZT's #give and #take behavior with very large values.
+		Such large values can cause a crash (in this case, upon
+		touching the object) if range checking is turned on, which
+		it is by default in the debug Linux ZZT build.

@@ -82,26 +82,71 @@ procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
 		code: integer;
+		preliminaryVal: Longword;
+		hasNoDigits: boolean;
 	begin
+		hasNoDigits := true;
 		s := '';
 		repeat
 			OopReadChar(statId, position)
 		until OopChar <> ' ';
 
 		OopChar := UpCase(OopChar);
+
+		{ Handle leading zeroes. }
+		while (OopChar = '0') do begin
+			hasNoDigits := false;
+			OopReadChar(statId, position);
+		end;
+
+		{ Read off remaining numbers }
 		while (OopChar >= '0') and (OopChar <= '9') do begin
+			hasNoDigits := false;
 			s := s + OopChar;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
 
-		if position > 0 then
-			position := position - 1;
+		if position > 0 then Dec(position);
 
-		if Length(s) <> 0 then
-			Val(s, OopValue, code)
-		else
+		if hasNoDigits then begin
 			OopValue := -1;
+			Exit;
+		end;
+
+		{ Now we need a somewhat complex set of rules to turn the value
+		  into an integer the way DOS ZZT does. The rules are:
+
+		  - If it doesn't fit into 31 bits, then it's zero.
+		  - Otherwise, if it's greater than 32768 mod 65536, it's zero.
+		  - Otherwise, it's the value mod 65536.
+		}
+
+		if Length(s) > 10 then begin		{ Doesn't even fit into 32 }
+			OopValue := 0;
+			Exit;
+		end;
+
+		{ Definitely doesn't fit into 31. }
+		if (Length(s) = 10) and (Ord(s[1]) >= Ord('3')) then begin
+			OopValue := 0;
+			Exit;
+		end;
+
+		{ We now know it fits in 32 bits, so transform it into a longword. }
+		Val(s, preliminaryVal, code);
+
+		{ Doesn't fit in 31 bits. }
+		if preliminaryVal >= $80000000 then begin
+			OopValue := 0;
+			Exit;
+		end;
+
+		preliminaryVal := preliminaryVal and $FFFF; { mod 65536 }
+		if preliminaryVal >= $8000 then
+			OopValue := 0
+		else
+			OopValue := preliminaryVal;
 	end;
 
 procedure OopSkipLine(statId: integer; var position: integer);
