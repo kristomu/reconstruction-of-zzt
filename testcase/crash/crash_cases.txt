@@ -45,3 +45,7 @@ CR19: Moving a stat that's placed upon the player (stacked stats) off the player
 could remove him and thus violate the invariant. This is highly technical to
 pull off, involving follower indices pointing at a stat whose coordinates are
 the same as the player.
+CR20: Placing a star at (0,15) (e.g. by removing the board edge) with the
+player being energized causes the star to try to go outside of bounds due to
+SEEK being reversed when the player is energized. (The same can happen with
+beasts too.)

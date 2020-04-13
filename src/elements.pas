@@ -117,6 +117,8 @@ procedure ElementLionTick(statId: integer);
 			else
 				CalcDirectionSeek(X, Y, deltaX, deltaY);
 
+			if not ValidCoord(X + deltaX, Y + deltaY) then Exit;
+
 			if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
 				MoveStat(statId, X + deltaX, Y + deltaY);
 			end else if Board.Tiles[X + deltaX][Y + deltaY].Element = E_PLAYER then begin
@@ -261,7 +263,7 @@ procedure ElementCentipedeHeadTick(statId: integer);
 					if ValidCoord(X+StepX, Y+StepY) and (not ElementDefs[Board.Tiles[X + StepX][Y + StepY].Element].Walkable
 						and (Board.Tiles[X + StepX][Y + StepY].Element <> E_PLAYER)) then
 					begin
-						if ValidCoord(X-iy, Y-iy) and (ElementDefs[Board.Tiles[X - ix][Y - iy].Element].Walkable
+						if ValidCoord(X-ix, Y-iy) and (ElementDefs[Board.Tiles[X - ix][Y - iy].Element].Walkable
 							or (Board.Tiles[X - ix][Y - iy].Element = E_PLAYER)) then
 						begin
 							StepX := -ix;
@@ -768,6 +770,7 @@ procedure ElementStarTick(statId: integer);
 				RemoveStat(statId);
 			end else if (P2 mod 2) = 0 then begin
 				CalcDirectionSeek(X, Y, StepX, StepY);
+				if not ValidCoord(X + StepX, Y + StepY) then Exit;
 				with Board.Tiles[X + StepX][Y + StepY] do begin
 					if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
 						BoardAttack(statId, X + StepX, Y + StepY);
@@ -873,6 +876,8 @@ procedure ElementSharkTick(statId: integer);
 				CalcDirectionRnd(deltaX, deltaY)
 			else
 				CalcDirectionSeek(X, Y, deltaX, deltaY);
+
+			if not ValidCoord(X + deltaX, Y + deltaY) then Exit;
 
 			if Board.Tiles[X + deltaX][Y + deltaY].Element = E_WATER then
 				MoveStat(statId, X + deltaX, Y + deltaY)

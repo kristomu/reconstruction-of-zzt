@@ -272,6 +272,77 @@ procedure BoardClose(showTruncationNote: boolean);
 		end;
 	end;
 
+{ Clean up stats by processing DataLen reference chains, clamping out-of-
+  bounds stat values, and placing a player on the board if there is none
+  already. }
+procedure AdjustBoardStats;
+	var
+		ix, iy: integer;
+
+	begin
+		{ SANITY: Process referential DataLen variables. This must be
+		  done after the former loop because otherwise it could be
+		  using incorrect data. }
+
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if DataLen < 0 then begin
+					{ Well-behaved reference chains do nothing in
+					  DOS ZZT, so cycles should do nothing too. If
+					  we're pointing at another reference or out of
+					  bounds, do nothing. }
+					{ Furthermore, if we're the player, do nothing.
+					  Due to the way that BoardClose works, letting the
+					  player refer to a later object's data can't be
+					  allowed. Strictly speaking, referring to a later
+					  object is not allowed in general, but as long as
+					  the object doing the referring is not the player,
+					  we can pretend (in BoardClose) that the later object
+					  refers to the earlier's data instead. This is not
+					  possible with the player, because the reference
+					  DataLen would then be -0, which is just 0.}
+					if (ix = 0) or (-DataLen > Board.StatCount) or
+					   (Board.Stats[-DataLen].DataLen < 0) then
+						DataLen := 0;
+
+					if DataLen < 0 then begin
+						Data := Board.Stats[-DataLen].Data;
+						DataLen := Board.Stats[-DataLen].DataLen;
+					end;
+				end;
+			end;
+		end;
+
+		{ SANITY: Positive Leader and Follower values must be indices
+		  to stats. If they're too large, they're corrupt: set them to
+		  zero.
+		  Furthermore, there's no need for StepX and StepY to be out of
+		  range of the board area, and clamping these values helps
+		  avoid a ton of over/underflow problems whose fixes would
+		  otherwise clutter up the code... }
+		for ix := 0 to Board.StatCount do begin
+			with Board.Stats[ix] do begin
+				if Follower > Board.StatCount then Follower := 0;
+				if Leader > Board.StatCount then Leader := 0;
+
+				if StepX < -BOARD_WIDTH then StepX := -BOARD_WIDTH;
+				if StepX > BOARD_WIDTH then StepX := BOARD_WIDTH;
+
+				if StepY < -BOARD_HEIGHT then StepY := -BOARD_HEIGHT;
+				if StepY > BOARD_HEIGHT then StepY := BOARD_HEIGHT;
+			end;
+		end;
+
+		{ SANITY: If there's neither a player nor a monitor at the position
+		  indicated by stats 0, place a player there to keep the invariant
+		  that one should always exist on every board. }
+		with Board.Stats[0] do begin
+			if (Board.Tiles[X][Y].Element <> E_PLAYER) and
+			   (Board.Tiles[X][Y].Element <> E_MONITOR) then
+			   Board.Tiles[X][Y].Element := E_PLAYER;
+		end;
+	end;
+
 procedure BoardOpen(boardId: integer);
 	var
 		ptr: ^byte;
@@ -360,6 +431,7 @@ procedure BoardOpen(boardId: integer);
 
 		if (SizeOf(Board.Info) + SizeOf(Board.StatCount) + bytesRead) >= World.BoardLen[boardId] then begin
 			World.Info.CurrentBoard := boardId;
+			AdjustBoardStats;
 			Exit;
 		end;
 
@@ -376,13 +448,7 @@ procedure BoardOpen(boardId: integer);
 		AdvancePointer(ptr, SizeOf(Board.StatCount));
 		bytesRead := bytesRead + SizeOf(Board.StatCount);
 
-		if Board.StatCount < 0 then begin
-			Board.StatCount := 0;
-			World.Info.CurrentBoard := boardId;
-			Exit;
-		end;
-
-		Board.StatCount := Min(Board.StatCount, MAX_STAT);
+		Board.StatCount := Max(0, Min(Board.StatCount, MAX_STAT));
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
@@ -445,68 +511,7 @@ procedure BoardOpen(boardId: integer);
 				if DataLen = 0 then Data := nil;
 			end;
 
-		{ SANITY: Process referential DataLen variables. This must be
-		  done after the former loop because otherwise it could be
-		  using incorrect data. }
-
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-				if DataLen < 0 then begin
-					{ Well-behaved reference chains do nothing in
-					  DOS ZZT, so cycles should do nothing too. If
-					  we're pointing at another reference or out of
-					  bounds, do nothing. }
-					{ Furthermore, if we're the player, do nothing.
-					  Due to the way that BoardClose works, letting the
-					  player refer to a later object's data can't be
-					  allowed. Strictly speaking, referring to a later
-					  object is not allowed in general, but as long as
-					  the object doing the referring is not the player,
-					  we can pretend (in BoardClose) that the later object
-					  refers to the earlier's data instead. This is not
-					  possible with the player, because the reference
-					  DataLen would then be -0, which is just 0.}
-					if (ix = 0) or (-DataLen > Board.StatCount) or
-					   (Board.Stats[-DataLen].DataLen < 0) then
-						DataLen := 0;
-
-					if DataLen < 0 then begin
-						Data := Board.Stats[-DataLen].Data;
-						DataLen := Board.Stats[-DataLen].DataLen;
-					end;
-				end;
-			end;
-		end;
-
-		{ SANITY: Positive Leader and Follower values must be indices
-		  to stats. If they're too large, they're corrupt: set them to
-		  zero.
-		  Furthermore, there's no need for StepX and StepY to be out of
-		  range of the board area, and clamping these values helps
-		  avoid a ton of over/underflow problems whose fixes would
-		  otherwise clutter up the code... }
-		for ix := 0 to Board.StatCount do begin
-			with Board.Stats[ix] do begin
-				if Follower > Board.StatCount then Follower := 0;
-				if Leader > Board.StatCount then Leader := 0;
-
-				if StepX < -BOARD_WIDTH then StepX := -BOARD_WIDTH;
-				if StepX > BOARD_WIDTH then StepX := BOARD_WIDTH;
-
-				if StepY < -BOARD_HEIGHT then StepY := -BOARD_HEIGHT;
-				if StepY > BOARD_HEIGHT then StepY := BOARD_HEIGHT;
-			end;
-		end;
-
-		{ SANITY: If there's neither a player nor a monitor at the position
-		  indicated by stats 0, place a player there to keep the invariant
-		  that one should always exist on every board. }
-		with Board.Stats[0] do begin
-			if (Board.Tiles[X][Y].Element <> E_PLAYER) and
-			   (Board.Tiles[X][Y].Element <> E_MONITOR) then
-			   Board.Tiles[X][Y].Element := E_PLAYER;
-		end;
-
+		AdjustBoardStats;
 		World.Info.CurrentBoard := boardId;
 	end;
 
@@ -1946,9 +1951,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
-		if not FuzzMode then
+		if not FuzzMode then begin
+			CurrentTick := Random(100);
 			CurrentStatTicked := Board.StatCount + 1;
+		end;
 
 		pauseBlink := true;
 
@@ -2026,7 +2032,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
 					CurrentTick := CurrentTick + 1;
-					if CurrentTick > 420 then
+					if CurrentTick > MAX_CYCLE then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
 
@@ -2159,6 +2165,8 @@ procedure GameRunFewCycles(cycles:integer);
 		ReturnBoardId := World.Info.CurrentBoard;
 		BoardChange(0);
 		JustStarted := false;
+		CurrentStatTicked := 0;
+		CurrentTick := 0;
 
 		for i := 1 to cycles do begin
 			GameStateElement := E_MONITOR;
@@ -2166,12 +2174,10 @@ procedure GameRunFewCycles(cycles:integer);
 			GamePaused := false;
 			GamePlayLoop(boardChanged);
 			boardChanged := false;
-			CurrentStatTicked := CurrentStatTicked + 1;
 		end;
 
 		InputDeltaX := 1;
 		InputDeltaY := 0;
-		CurrentStatTicked := 0;
 
 		{ When the player enters a board, ZZT calls BoardEnter, so we have
 		  to, too. }
@@ -2183,7 +2189,6 @@ procedure GameRunFewCycles(cycles:integer);
 			GamePaused := false;
 			GamePlayLoop(boardChanged);
 			boardChanged := false;
-			CurrentStatTicked := CurrentStatTicked + 1;
 		end;
 	end;
 

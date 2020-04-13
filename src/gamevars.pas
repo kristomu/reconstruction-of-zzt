@@ -32,6 +32,7 @@ files incompatible as well.}
 interface
 	const
 		MAX_STAT = 150;
+		MAX_CYCLE = 420;		{ maximum cycle number before reset }
 		MAX_ELEMENT = 53;
 		MAX_BOARD = 100;
 		MAX_FLAG = 10;

@@ -42,3 +42,8 @@ OOPFLOW.ZZT	Tests ZZT's #give and #take behavior with very large values.
 		Such large values can cause a crash (in this case, upon
 		touching the object) if range checking is turned on, which
 		it is by default in the debug Linux ZZT build.
+
+SNPLAYER.ZZT	A clever combination of no player on the board and an early
+		Exit in BoardOpen makes the player never appear on the board
+		when transporting there (passage or board edge), which in turn
+		trips the invariant.
