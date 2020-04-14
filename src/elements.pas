@@ -39,6 +39,10 @@ interface
 	procedure InitElementsGame;
 	procedure InitEditorStatSettings;
 
+	{ Returns -1 on failure or the statId of the entity doing the
+	  pushing on success. }
+	function PushAndMove(X, Y: integer; deltaX, deltaY: integer): integer;
+
 implementation
 uses Crt, Video, Sounds, Input, TxtWind, Editor, Oop, Game, Minmax;
 
@@ -69,6 +73,36 @@ procedure ColorCycle(x, y: integer);
 		Board.Tiles[x][y].Color := (Board.Tiles[x][y].Color + 1) mod 255;
 		if Board.Tiles[x][y].Color > 15 then
 			Board.Tiles[x][y].Color := 9;
+	end;
+
+function PushAndMove(x, y: integer; deltaX, deltaY: integer): integer;
+	var
+		statId: integer;
+
+	begin
+		if not ValidCoord(X + deltaX, Y + deltaY) then begin
+			PushAndMove := -1;
+			Exit;
+		end;
+
+		if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+			ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+
+		{ Pushing something out of the way might have destroyed objects and
+		  invalidated the statId. In any case, we need to get the statId from
+		  scratch because it's not passed to the function. }
+
+		statId := GetStatIdAt(X, Y);
+
+		if statId < 0 then begin
+			PushAndMove := -1;
+			Exit;
+		end;
+
+		if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+			MoveStat(statId, X + deltaX, Y + deltaY);
+			PushAndMove := statId;
+		end else PushAndMove := -1;
 	end;
 
 procedure ElementDefaultTick(statId: integer);
@@ -534,6 +568,12 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
+				{ Everything outside the viewport is treated as unpushable
+				  to prevent anything from going to (0,0), which is the
+				  exclusive domain of the message tile. Redoing the logic
+				  (e.g. a MoveStat function that rejects moving anything
+				   to (0, 0)) would be better, but I can't be bothered. }
+				canMove := canMove and CoordInsideViewport(srcx, srcy);
 			end;
 			i := i + direction;
 		until i = iMax;
@@ -572,6 +612,7 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
+				canMove := canMove and CoordInsideViewport(srcx, srcy);
 			end;
 			i := i + direction;
 		until i = iMax;
@@ -761,6 +802,8 @@ procedure ElementStarDraw(x, y: integer; var ch: byte);
 	end;
 
 procedure ElementStarTick(statId: integer);
+	var
+		newStatId: integer;
 	begin
 		with Board.Stats[statId] do begin
 			if P2 = 0 then P2 := 255
@@ -775,11 +818,7 @@ procedure ElementStarTick(statId: integer);
 					if (Element = E_PLAYER) or (Element = E_BREAKABLE) then begin
 						BoardAttack(statId, X + StepX, Y + StepY);
 					end else begin
-						if not ElementDefs[Element].Walkable then
-							ElementPushablePush(X + StepX, Y + StepY, StepX, StepY);
-
-						if ElementDefs[Element].Walkable or (Element = E_WATER) then
-							MoveStat(statId, X + StepX, Y + StepY);
+						PushAndMove(X, Y, StepX, StepY);
 					end;
 				end;
 			end else begin

@@ -588,6 +588,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		argTile: TTile;
 		argTile2: TTile;
 		dataInUse: boolean;
+		newStatId: integer;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -626,11 +627,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 					OopReadWord(statId, position);
 					if OopParseDirection(statId, position, deltaX, deltaY) then begin
 						if (deltaX <> 0) or (deltaY <> 0) then begin
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							newStatId := PushAndMove(X, Y, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
+							if newStatId > 0 then begin
+								statId := newStatId;
 								repeatInsNextTick := false;
 							end;
 						end else begin
@@ -657,24 +657,21 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 						if OopWord = 'GO' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							newStatId := PushAndMove(X, Y, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
-							end else begin
+							if newStatId > 0 then
+								statId := newStatId
+							else
 								repeatInsNextTick := true;
-							end;
 
 							stopRunning := true;
 						end else if OopWord = 'TRY' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							newStatId := PushAndMove(X, Y, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
+							if newStatId > 0 then begin
+								statId := newStatId;
 								stopRunning := true;
 							end else begin
 								goto ReadCommand;
@@ -800,8 +797,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								and ((Y + deltaY) > 0)
 								and ((Y + deltaY) < BOARD_HEIGHT) then
 							begin
-								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
 									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+									statId := GetStatIdAt(X, Y);
+								end;
 
 								OopPlaceTile(X + deltaX, Y + deltaY, argTile);
 							end;

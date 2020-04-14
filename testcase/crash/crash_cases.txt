@@ -49,3 +49,5 @@ CR20: Placing a star at (0,15) (e.g. by removing the board edge) with the
 player being energized causes the star to try to go outside of bounds due to
 SEEK being reversed when the player is energized. (The same can happen with
 beasts too.)
+INVAR6: Conveyor (most likely) pushing the player to (0,0) makes the player
+disappear and breaks the invariant.
