@@ -561,6 +561,8 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 		canMove := true;
 		i := iMin;
 		repeat
+			if not ValidCoord(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]) then Exit;
+
 			tiles[i] := Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
 			statsIndices[i] := GetStatIdAt(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
 			with tiles[i] do begin
@@ -573,7 +575,8 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 				  exclusive domain of the message tile. Redoing the logic
 				  (e.g. a MoveStat function that rejects moving anything
 				   to (0, 0)) would be better, but I can't be bothered. }
-				canMove := canMove and CoordInsideViewport(srcx, srcy);
+				canMove := canMove and CoordInsideViewport(x + DiagonalDeltaX[i],
+					y + DiagonalDeltaY[i]);
 			end;
 			i := i + direction;
 		until i = iMax;
@@ -612,7 +615,8 @@ procedure ElementConveyorTick(x, y: integer; direction: integer);
 					canMove := true
 				else if not ElementDefs[Element].Pushable then
 					canMove := false;
-				canMove := canMove and CoordInsideViewport(srcx, srcy);
+				canMove := canMove and CoordInsideViewport(x + DiagonalDeltaX[i],
+					y + DiagonalDeltaY[i]);
 			end;
 			i := i + direction;
 		until i = iMax;

@@ -51,3 +51,7 @@ SEEK being reversed when the player is energized. (The same can happen with
 beasts too.)
 INVAR6: Conveyor (most likely) pushing the player to (0,0) makes the player
 disappear and breaks the invariant.
+PLAY1: Using enough triplet notes can get the note duration to overflow past
+an integer's capacity and thus cause a crash.
+PLAY2: Using enough triplet notes can get the note duration to overflow past
+a byte (256) and cause a crash wne it's later forced into a byte.

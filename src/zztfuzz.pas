@@ -133,8 +133,11 @@ procedure GameConfigure;
 		Window(1, 1, 80, bottomRow+1);
 	end;
 
+var
+	i: integer;
 begin
 	WorldFileDescCount := 0;
+
 
 	{ Disable Free Pascal's signal handlers so we can throw SEGV outside. }
 	DisableSignalHandlers();
@@ -175,6 +178,10 @@ begin
 	WorldCreate;
 
 	GameRunFewCycles(20);
+
+	{ Go through every board to check that they can be loaded. }
+	for i := 0 to World.BoardCount do
+		BoardChange(i);
 
 	{LEAKFIX: Remember to dispose of *everything* in use. }
 	WorldUnload;

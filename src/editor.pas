@@ -620,8 +620,8 @@ procedure EditorLoop;
 				tileAt := Board.Tiles[x][y];
 				EditorPlaceTile(x, y);
 				if (Board.Tiles[x][y].Element <> tileAt.Element)
-					or (Board.Tiles[x][y].Color <> tileAt.Color) then
-					for i := 0 to 3 do
+					or (Board.Tiles[x][y].Color <> tileAt.Color) then begin
+					for i := 0 to 3 do begin
 						if not CoordInsideViewport(x + NeighborDeltaX[i],
 							y + NeighborDeltaY[i]) then Continue;
 						with Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]] do begin
@@ -633,6 +633,8 @@ procedure EditorLoop;
 								toFill := toFill + 1;
 							end;
 						end;
+					end;
+				end;
 
 				filled := filled + 1;
 				x := xPosition[filled];

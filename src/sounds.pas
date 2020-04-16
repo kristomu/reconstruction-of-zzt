@@ -282,7 +282,8 @@ function SoundParse(input: string): string;
 					AdvanceInput;
 				end;
 				'.': begin
-					noteDuration := (noteDuration * 3) div 2;
+					if noteDuration < 170 then
+						noteDuration := (noteDuration * 3) div 2;
 					AdvanceInput;
 				end;
 				'3': begin
