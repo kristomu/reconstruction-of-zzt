@@ -1677,6 +1677,10 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 
 function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	begin
+		if not ValidCoord(tx + deltaX, ty + deltaY) then begin
+			BoardShoot := false;
+			Exit;
+		end;
 		if ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Walkable
 			or (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_WATER) then
 		begin

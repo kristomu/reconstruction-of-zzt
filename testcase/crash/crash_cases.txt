@@ -55,3 +55,4 @@ PLAY1: Using enough triplet notes can get the note duration to overflow past
 an integer's capacity and thus cause a crash.
 PLAY2: Using enough triplet notes can get the note duration to overflow past
 a byte (256) and cause a crash wne it's later forced into a byte.
+OOBSHOT: Shooting directly out of bounds causes a crash in BoardShoot.
