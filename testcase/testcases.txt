@@ -32,5 +32,10 @@ BRDSKIP.ZZT	ZZT world containing a board of size greater than 32k, showing
 		the need to consider BoardLen unsigned. (DOS ZZT does the right
 		thing here.)
 
+MISALLOC.ZZT	Shows that #walk then #die then THUD can lead to a read-after-
+		free if the object that dies is the last object in the list.
+		Run the fuzzer using your memory bug detector of choice (e.g.
+		Valgrind).
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups

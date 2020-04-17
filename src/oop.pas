@@ -554,6 +554,12 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 		OopSend := false;
 		iStat := 0;
 
+		{ Can't send to an ID that's out of bounds. This may happen if an
+		  object walks, then dies, then THUDs. OopFindLabel would then start
+		  going through a program that has been deallocated, which causes
+		  a read-after-free. }
+		if statId > Board.StatCount then Exit;
+
 		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
 			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 				if iStat = statId then
@@ -862,7 +868,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 										' when someone is bound to you!' );
 								end else begin
 									{ Binding when someone's bound to us
-									  would lead to a double free *here*. }
+									  would lead to a double free *here*.}
 									FreeMem(Data, DataLen);
 									Data := Board.Stats[bindStatId].Data;
 									DataLen := Board.Stats[bindStatId].DataLen;

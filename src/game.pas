@@ -1370,6 +1370,7 @@ procedure RemoveStat(statId: integer);
 				end;
 			end;
 
+			Board.Stats[statId] := StatTemplateDefault;
 			for i := (statId + 1) to Board.StatCount do begin
 				Board.Stats[i - 1] := Board.Stats[i];
 			end;
@@ -1426,6 +1427,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 	begin
 		if statId > MAX_STAT then RunError(ERR_STATID_TOO_HIGH);
 		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+
 		if (Board.Stats[statId].X = newX) and (Board.Stats[statId].Y = newY) then Exit;
 		if not CoordInsideViewport(newX, newY) then Exit;
 
