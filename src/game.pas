@@ -1324,10 +1324,11 @@ procedure RemoveStat(statId: integer);
 		i: integer;
 	label StatDataInUse;
 	begin
-		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
+		if statId > MAX_STAT then RunError(ERR_STATID_TOO_HIGH);
 		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
 
 		if statId = 0 then Exit;
+		if statId > Board.StatCount then Exit; { Already removed. }
 
 		with Board.Stats[statId] do begin
 			if DataLen <> 0 then begin
@@ -1423,7 +1424,7 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		oldX, oldY: integer;
 		oldBgColor: integer;
 	begin
-		if statId > Board.StatCount then RunError(ERR_STATID_TOO_HIGH);
+		if statId > MAX_STAT then RunError(ERR_STATID_TOO_HIGH);
 		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
 		if (Board.Stats[statId].X = newX) and (Board.Stats[statId].Y = newY) then Exit;
 		if not CoordInsideViewport(newX, newY) then Exit;
