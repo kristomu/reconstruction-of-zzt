@@ -453,7 +453,7 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
-		if Board.Tiles[x][y].Element <> 4 then begin
+		if (Board.Tiles[x][y].Element <> E_PLAYER) and (Board.Tiles[x][y].Element <> E_MONITOR) then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
 				color := ElementDefs[tile.Element].Color

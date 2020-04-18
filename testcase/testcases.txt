@@ -37,5 +37,8 @@ MISALLOC.ZZT	Shows that #walk then #die then THUD can lead to a read-after-
 		Run the fuzzer using your memory bug detector of choice (e.g.
 		Valgrind).
 
+MONIBOMB.ZZT	Causes a hang (in DOS ZZT) or an invariant violation by
+		overwriting the Monitor with a #put.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
