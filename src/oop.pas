@@ -869,7 +869,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								end else begin
 									{ Binding when someone's bound to us
 									  would lead to a double free *here*.}
-									FreeMem(Data, DataLen);
+
+									{ Don't free our memory if we're "binding"
+								      to ourselves, as that could cause a crash
+								      later. }
+									if bindStatId <> statId then
+										FreeMem(Data, DataLen);
 									Data := Board.Stats[bindStatId].Data;
 									DataLen := Board.Stats[bindStatId].DataLen;
 									position := 0;

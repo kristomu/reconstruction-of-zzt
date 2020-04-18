@@ -47,3 +47,9 @@ SNPLAYER.ZZT	A clever combination of no player on the board and an early
 		Exit in BoardOpen makes the player never appear on the board
 		when transporting there (passage or board edge), which in turn
 		trips the invariant.
+
+SELFBND.ZZT	#BINDing oneself causes repeated freeing of the same pointer
+		and thus a crash. Only doing it once in an object is safe as
+		long as the object doesn't #DIE or otherwise removes itself;
+		but a scroll dies on crash. An object caught up in an infinite
+		loop by its BINDing will also trigger this crash without delay.
