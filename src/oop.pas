@@ -507,8 +507,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 			end else if OopWord = 'CONTACT' then begin
 				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1;
 			end else if OopWord = 'BLOCKED' then begin
+				{ Out-of-bounds is always blocked.}
 				OopReadDirection(statId, position, deltaX, deltaY);
-				OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable;
+				OopCheckCondition := (not ValidCoord(X + deltaX, Y + deltaY)) or (not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable);
 			end else if OopWord = 'ENERGIZED' then begin
 				OopCheckCondition := World.Info.EnergizerTicks > 0;
 			end else if OopWord = 'ANY' then begin
@@ -737,7 +738,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 									if counterSubtract then
 										OopValue := -OopValue;
 
-									if (counterPtr^ + OopValue) >= 0 then begin
+									if ((32767 - counterPtr^) > OopValue) and ((counterPtr^ + OopValue) >= 0) then begin
 										counterPtr^ := counterPtr^ + OopValue;
 									end else begin
 										goto ReadCommand;

@@ -53,3 +53,6 @@ SELFBND.ZZT	#BINDing oneself causes repeated freeing of the same pointer
 		long as the object doesn't #DIE or otherwise removes itself;
 		but a scroll dies on crash. An object caught up in an infinite
 		loop by its BINDing will also trigger this crash without delay.
+
+DC1.ZZT		Fuzz-generated world that demonstrates BLOCKED with very large
+		xstep,ystep values causing an out-of-bounds read.
