@@ -44,5 +44,8 @@ EDREAD1.ZZT	Gets ZZT to read from unallocated memory when getting board
 		titles in the editor. Probably does nothing in DOS; causes
 		Valgrind to complain on Linux.
 
+ODDTEXT.ZZT	Board containing text with a bright/blink background. Touching
+		this should crash or hang DOS ZZT.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups

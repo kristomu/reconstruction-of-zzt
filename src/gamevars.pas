@@ -33,7 +33,7 @@ interface
 	const
 		MAX_STAT = 150;
 		MAX_CYCLE = 420;		{ maximum cycle number before reset }
-		MAX_ELEMENT = 53;
+		MAX_ELEMENT = 61; 		{E_TEXT_BLINK_WHITE;}
 		MAX_BOARD = 100;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
@@ -300,6 +300,14 @@ interface
 		E_TEXT_PURPLE = 51;
 		E_TEXT_YELLOW = 52;
 		E_TEXT_WHITE = 53;
+		E_TEXT_GREY = 54;
+		E_TEXT_BLINK_BLUE = 55;
+		E_TEXT_BLINK_GREEN = 56;
+		E_TEXT_BLINK_CYAN = 57;
+		E_TEXT_BLINK_RED = 58;
+		E_TEXT_BLINK_PURPLE = 59;
+		E_TEXT_BLINK_YELLOW = 60;
+		E_TEXT_BLINK_WHITE = 61;
 		{}
 		E_TEXT_MIN = E_TEXT_BLUE;
 		{}

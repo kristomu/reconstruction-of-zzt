@@ -417,6 +417,7 @@ procedure BoardOpen(boardId: integer);
 			end;
 
 			{ SANITY: If the element is unknown, replace it with a normal. }
+
 			if rle.Tile.Element > MAX_ELEMENT then
 				rle.Tile.Element := E_NORMAL;
 
@@ -649,7 +650,7 @@ procedure BoardDrawTile(x, y: integer);
 			begin
 				if Element = E_EMPTY then
 					VideoWriteText(x - 1, y - 1, $0F, ' ')
-				else if ElementDefs[Element].HasDrawProc then begin
+				else if (Element < E_TEXT_MIN) and ElementDefs[Element].HasDrawProc then begin
 					ElementDefs[Element].DrawProc(x, y, ch);
 					VideoWriteText(x - 1, y - 1, Color, Chr(ch));
 				end else if Element < E_TEXT_MIN then
@@ -755,7 +756,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 			if editable then begin
 				if (value > 8) then begin
 					Str(value, S);
-					VideoWriteText(x, y + 2, $1e, startChar + '--(' + S + ')--' + endChar);
+					VideoWriteText(x, y + 2, $1e, startChar + '  (' + S + ')  ' + endChar);
 				end else begin
 					VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
 					VideoWriteText(x + value + 1, y + 1, $9F, #31);
