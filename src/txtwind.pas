@@ -586,7 +586,7 @@ procedure TextWindowEdit(var state: TTextWindowState);
 				end else begin
 					TextWindowDrawLine(state, LinePos, true, false);
 				end;
-			until InputKeyPressed = KEY_ESCAPE;
+			until (InputKeyPressed = KEY_ESCAPE) or FuzzMode;
 
 			if Length(Lines[LineCount]^) = 0 then begin
 				Dispose(Lines[LineCount]);

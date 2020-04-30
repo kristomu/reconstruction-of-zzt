@@ -346,7 +346,7 @@ procedure AdjustBoardStats;
 procedure BoardOpen(boardId: integer);
 	var
 		ptr: ^byte;
-		ix, iy: integer;
+		i, ix, iy: integer;
 		rle: TRleTile;
 		bytesRead: integer = 0;
 	begin
@@ -358,6 +358,8 @@ procedure BoardOpen(boardId: integer);
 		{ Create a default yellow border board, because we might need
 		  to abort before the board is fully specced. }
 		BoardCreate;
+
+		{ Check that the sanity check on board titles have been executed. }
 
 		{SANITY: Reconstruct the title. We need at least a size of
 		 two bytes for the title: a size designation and the first
@@ -438,6 +440,13 @@ procedure BoardOpen(boardId: integer);
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
 		AdvancePointer(ptr, SizeOf(Board.Info));
 		bytesRead := bytesRead + SizeOf(Board.Info);
+
+		{ Clamp out-of-bounds Board.Info variables. They'll cause problems
+		  in the editor otherwise. }
+		for i := 0 to 3 do
+			{ This behavior is from elements.pas, BoardEdgeTouch. }
+			if Board.Info.NeighborBoards[i] > World.BoardCount then
+				Board.Info.NeighborBoards[i] := boardId;
 
 		if not ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY) then begin
 			Board.Info.StartPlayerX := 1;
@@ -721,7 +730,9 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
 	var
 		newValue: integer;
+		newValInBounds, oldValInBounds: boolean;
 		startChar, endChar: char;
+		S: string;
 	begin
 		if prompt[Length(prompt) - 2] = ';' then begin
 			startChar := prompt[Length(prompt) - 1];
@@ -738,11 +749,22 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		SidebarClearLine(y + 2);
 		VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
 
+		{ TODO: Improve printing here. Fix bug when moving right and
+		  current value is 255. (or left with value = 0?) }
 		repeat
 			if editable then begin
+				if (value > 8) then begin
+					Str(value, S);
+					VideoWriteText(x, y + 2, $1e, startChar + '--(' + S + ')--' + endChar);
+				end else begin
+					VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
+					VideoWriteText(x + value + 1, y + 1, $9F, #31);
+				end;
+
 				if InputJoystickMoved then
-					Wait(45);
-				VideoWriteText(x + value + 1, y + 1, $9F, #31);
+					Delay(45)
+				else
+					Delay(10);
 
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
@@ -750,15 +772,18 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					SidebarClearLine(y + 1);
 				end else begin
 					newValue := value + InputDeltaX;
-					if (value <> newValue) and (newValue >= 0) and (newValue <= 8) then begin
-						value := newValue;
+					newValInBounds := (newValue >= 0) and (newValue <= 8);
+					oldValInBounds := (Value >= 0) and (value <= 8);
+					if (value <> newValue) and ((not oldValInBounds) or (newValInBounds and OldValInBounds)) then begin
+						value := newValue mod 256;
 						SidebarClearLine(y + 1);
 					end;
 				end;
 			end;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
 
-		VideoWriteText(x + value + 1, y + 1, $1F, #31);
+		if value <= 8 then
+			VideoWriteText(x + value + 1, y + 1, $1F, #31);
 	end;
 
 procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
@@ -2057,6 +2082,9 @@ procedure GamePlayLoop(boardChanged: boolean);
 			playerTileElem := Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
 			if (playerTileElem <> E_PLAYER) and (playerTileElem <> E_MONITOR) then
 				RunError(ERR_NO_PLAYER);
+
+			if GetHeapStatus.TotalAllocated > 655360 then
+				RunError(ERR_MEMORY_EXCEEDED);
 
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 

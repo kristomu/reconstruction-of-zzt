@@ -49,6 +49,10 @@ interface
 		ERR_STATID_DOESNT_EXIST = 401;
 
 		ERR_NO_PLAYER = 500;	{ Invariant violation. }
+
+		{ Fired if ZZT uses more memory than was available on DOS.
+		  For debugging purposes. }
+		ERR_MEMORY_EXCEEDED = 600;
 	type
 		TString50 = string[50];
 		TCoord = packed record

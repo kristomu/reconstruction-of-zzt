@@ -180,8 +180,10 @@ begin
 	GameRunFewCycles(20);
 
 	{ Go through every board to check that they can be loaded. }
-	for i := 0 to World.BoardCount do
+	for i := 0 to World.BoardCount do begin
+		EditorLoop;
 		BoardChange(i);
+	end;
 
 	{LEAKFIX: Remember to dispose of *everything* in use. }
 	WorldUnload;

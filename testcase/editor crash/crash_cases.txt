@@ -1,0 +1,3 @@
+EDCRASH2.ZZT	Crashes the editor upon invoking board info, due to a reference
+		to a neighboring board that doesn't exist.
+

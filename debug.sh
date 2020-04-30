@@ -2,6 +2,7 @@
 # Compile with debug parameters
 cd src
 rm *.o *.ppu
-fpc -Cr -Ct -Co -Ci -g -gv -gl zztfuzz.pas -ofuzzt
+# Stack size taken from the DOS $M spec
+fpc -Cs49152 -Cr -Ct -Co -Ci -g -gv -gl zztfuzz.pas -ofuzzt
 rm *.o *.ppu
-fpc -Cr -Ct -Co -Ci -g -gv -gl zzt.pas -ozzt
+fpc -Cs49152 -Cr -Ct -Co -Ci -g -gv -gl zzt.pas -ozzt

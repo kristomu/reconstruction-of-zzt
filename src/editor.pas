@@ -272,8 +272,6 @@ procedure EditorLoop;
 			state.LineCount := 9;
 			state.Selectable := true;
 			exitRequested := false;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
 			repeat
 				state.Selectable := true;
@@ -642,7 +640,44 @@ procedure EditorLoop;
 			end;
 		end;
 
+	procedure EditorFuzzTest;
+		var
+			i : integer;
+		begin
+			InitElementsEditor;
+			CurrentTick := 0;
+			wasModified := false;
+			cursorX := 30;
+			cursorY := 12;
+			drawMode := DrawingOff;
+			cursorPattern := 1;
+			cursorColor := $0E;
+			cursorBlinker := 0;
+			copiedHasStat := false;
+			copiedTile.Element := 0;
+			copiedDataLen := 0;
+			copiedTile.Color := $0F;
+
+			EditorDrawRefresh;
+
+			for i := Board.StatCount downto 1 do
+				EditorEditStat(i);
+
+			if World.Info.CurrentBoard = 0 then
+				EditorFloodFill(cursorX, cursorY, Board.Tiles[cursorX][cursorY]);
+
+			EditorSelectBoard('Switch boards', World.Info.CurrentBoard, false);
+
+			EditorEditBoardInfo;
+			TransitionDrawToBoard;
+		end;
+
 	begin
+		if FuzzMode then begin
+			EditorFuzzTest;
+			Exit;
+		end;
+
 		if World.Info.IsSave or (WorldGetFlagPosition('SECRET') >= 0) then begin
 			WorldUnload;
 			WorldCreate;
@@ -1105,21 +1140,26 @@ procedure HighScoresAdd(score: integer);
 function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TString50;
 	var
 		boardData: ^byte;
-		copiedName: string[50];
+		copiedName: TString50;
 	begin
 		if (boardId = 0) and titleScreenIsNone then
 			EditorGetBoardName := 'None'
 		else if (boardId = World.Info.CurrentBoard) then
 			EditorGetBoardName := Board.Name
-		else if (World.BoardLen[boardId] < 1) then
+		else if (boardId > World.BoardCount) or (World.BoardLen[boardId] < 2) then
 			EditorGetBoardName := ''
 		else begin
 			boardData := World.BoardData[boardId];
 
-			{ SANITY: Range check on board name length. }
-			boardData^ := Min(boardData^, SizeOf(copiedName));
+			{ SANITY: Range check on board name length.
+			  It might be better to just do BoardOpen/BoardClose on every
+			  board after the world is loaded, since BoardClose ensures
+			  that the title length is of the proper size; but then again,
+			  that might be too slow. }
+			boardData^ := Min(boardData^, SizeOf(copiedName)-1);
+			boardData^ := Min(boardData^, World.BoardLen[boardId]-1);
 
-			Move(boardData^, copiedName, SizeOf(copiedName));
+			Move(boardData^, copiedName, 1+(boardData^));
 			EditorGetBoardName := copiedName;
 		end;
 	end;
