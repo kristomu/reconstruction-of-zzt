@@ -357,10 +357,12 @@ procedure EditorLoop;
 		var
 			state: TTextWindowState;
 			iLine, iChar: integer;
-			unk1: array[0 .. 51] of byte;
+			unk1: TString50;
 			dataChar: char;
 			dataPtr: pointer;
 		begin
+			{ TODO? Don't allow the editing to push the board size above
+			  20k. Going to be hard, though... }
 			with Board.Stats[statId] do begin
 				state.Title := prompt;
 				TextWindowDrawOpen(state);
@@ -414,7 +416,7 @@ procedure EditorLoop;
 
 					if Length(ElementDefs[element].Param1Name) <> 0 then begin
 						if Length(ElementDefs[element].ParamTextName) = 0 then begin
-							SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param1Name, P1);
+							SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param1Name, P1, 256);
 						end else begin
 							if P1 = 0 then
 								P1 := World.EditorStatSettings[element].P1;
@@ -438,7 +440,7 @@ procedure EditorLoop;
 						(Length(ElementDefs[element].Param2Name) <> 0) then
 					begin
 						promptByte := (P2 mod $80);
-						SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name, promptByte);
+						SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name, promptByte, 127);
 						if selected then begin
 							P2 := (P2 and $80) + promptByte;
 							World.EditorStatSettings[element].P2 := P2;

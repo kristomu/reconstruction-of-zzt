@@ -52,7 +52,7 @@ interface
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
 	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
-	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte; maximum: integer);
 	procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
 	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
@@ -728,7 +728,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 		VideoWriteText(x + 5, y + 1, $1F, #31);
 	end;
 
-procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte; maximum: integer);
 	var
 		newValue: integer;
 		newValInBounds, oldValInBounds: boolean;
@@ -750,8 +750,6 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		SidebarClearLine(y + 2);
 		VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
 
-		{ TODO: Improve printing here. Fix bug when moving right and
-		  current value is 255. (or left with value = 0?) }
 		repeat
 			if editable then begin
 				if (value > 8) then begin
@@ -775,7 +773,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					newValue := value + InputDeltaX;
 					newValInBounds := (newValue >= 0) and (newValue <= 8);
 					oldValInBounds := (Value >= 0) and (value <= 8);
-					if (value <> newValue) and ((not oldValInBounds) or (newValInBounds and OldValInBounds)) then begin
+					if (value <> newValue) and (newValue <= maximum) and ((not oldValInBounds) or (newValInBounds and OldValInBounds)) then begin
 						value := newValue mod 256;
 						SidebarClearLine(y + 1);
 					end;
@@ -1926,7 +1924,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 23, $70, ' Q ');
 				VideoWriteText(65, 23, $1F, ' Quit');
 			end else if GameStateElement = E_MONITOR then begin
-				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
+				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed, 256);
 				VideoWriteText(62, 21, $70, ' S ');
 				VideoWriteText(62, 7, $30, ' W ');
 				VideoWriteText(65, 7, $1E, ' World:');
@@ -2151,7 +2149,7 @@ procedure GameTitleLoop;
 						boardChanged := true;
 					end;
 					'S': begin
-						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
+						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed, 256);
 						InputKeyPressed := #0;
 					end;
 					'R': begin
