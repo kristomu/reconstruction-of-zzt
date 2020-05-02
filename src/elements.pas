@@ -693,6 +693,8 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 		isValidDest: boolean;
 	begin
 		if GetStatIdAt(x + deltaX, y + deltaY) < 0 then Exit;
+		if (deltaX = 0) and (deltaY = 0) then Exit;
+
 		with Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)] do begin
 			if (deltaX = StepX) and (deltaY = StepY) then begin
 				ix := X;
@@ -726,7 +728,7 @@ procedure ElementTransporterMove(x, y, deltaX, deltaY: integer);
 								isValidDest := true;
 						end;
 					end;
-				until finishSearch;
+				until finishSearch or (not ValidCoord(ix + deltaX, iy + deltaY));
 				if newX <> -1 then begin
 					ElementMove(X - deltaX, Y - deltaY, newX, newY);
 					SoundQueue(3, #48#1#66#1#52#1#70#1#56#1#74#1#64#1#82#1);
@@ -943,22 +945,26 @@ procedure ElementBlinkWallTick(statId: integer);
 
 						if Board.Tiles[ix][iy].Element = E_PLAYER then begin
 							playerStatId := GetStatIdAt(ix, iy);
-							if StepX <> 0 then begin
-								if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy - 1)
-								else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
-									MoveStat(playerStatId, ix, iy + 1);
-							end else begin
-								if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy)
-								else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
-									MoveStat(playerStatId, ix + 1, iy);
-							end;
+							if playerStatId = -1 then
+								BoardDamageTile(ix, iy)
+							else begin
+								if StepX <> 0 then begin
+									if Board.Tiles[ix][iy - 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy - 1)
+									else if Board.Tiles[ix][iy + 1].Element = E_EMPTY then
+										MoveStat(playerStatId, ix, iy + 1);
+								end else begin
+									if Board.Tiles[ix + 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy)
+									else if Board.Tiles[ix - 1][iy].Element = E_EMPTY then
+										MoveStat(playerStatId, ix + 1, iy);
+								end;
 
-							if Board.Tiles[ix][iy].Element = E_PLAYER then begin
-								while World.Info.Health > 0 do
-									DamageStat(playerStatId);
-								hitBoundary := true;
+								if Board.Tiles[ix][iy].Element = E_PLAYER then begin
+									while World.Info.Health > 0 do
+										DamageStat(playerStatId);
+									hitBoundary := true;
+								end;
 							end;
 						end;
 

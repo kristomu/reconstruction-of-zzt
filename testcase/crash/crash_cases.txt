@@ -58,3 +58,5 @@ a byte (256) and cause a crash wne it's later forced into a byte.
 OOBSHOT: Shooting directly out of bounds causes a crash in BoardShoot.
 GIVEOF: Giving (gems, ammo, etc) in multiple steps in a way that overflows the
 counter causes a range check error and crash.
+DEADSMIL: Zapping an item with stats with a player beneath leads to boom 
+attempting to move a -1 stat.
