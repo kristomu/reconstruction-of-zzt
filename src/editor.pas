@@ -356,10 +356,10 @@ procedure EditorLoop;
 	procedure EditorEditStatText(statId: integer; prompt: string);
 		var
 			state: TTextWindowState;
-			iLine, iChar: integer;
+			iLine, iChar, iStat: integer;
 			unk1: TString50;
 			dataChar: char;
-			dataPtr: pointer;
+			oldDataPtr, dataPtr: pointer;
 		begin
 			{ TODO? Don't allow the editing to push the board size above
 			  20k. Going to be hard, though... }
@@ -370,6 +370,12 @@ procedure EditorLoop;
 				CopyStatDataToTextWindow(statId, state);
 
 				if DataLen > 0 then begin
+					{ Mark every other object that uses our data so that
+					  we can update its DataLen afterwards. }
+					for iStat := 0 to Board.StatCount do
+						if (Board.Stats[iStat].Data = Data) and (iStat <> statId) then
+							Board.Stats[iStat].DataLen := -1;
+
 					FreeMem(Data, DataLen);
 					DataLen := 0;
 				end;
@@ -379,6 +385,14 @@ procedure EditorLoop;
 				for iLine := 1 to state.LineCount do
 					DataLen := DataLen + Length(state.Lines[iLine]^) + 1;
 				GetMem(Data, DataLen);
+
+				{ Update every bound object to have our possibly new pointer
+					and new DataLen. }
+				for iStat := 0 to Board.StatCount do
+					if Board.Stats[iStat].DataLen = -1 then begin
+						Board.Stats[iStat].Data := Data;
+						Board.Stats[iStat].DataLen := DataLen;
+					end;
 
 				dataPtr := Data;
 				for iLine := 1 to state.LineCount do begin
@@ -526,8 +540,8 @@ procedure EditorLoop;
 					copiedStat := Board.Stats[statId];
 					copiedTile := Board.Tiles[X][Y];
 
-					{ Copy data into temporary store if the tile has any,
-					  so the object can be moved between boards. }
+					{Copy data into temporary store if the tile has any,
+					  so the object can be moved between boards.}
 
 					if copiedDataLen > 0 then begin
 						FreeMem(copiedData, copiedDataLen);
@@ -672,6 +686,11 @@ procedure EditorLoop;
 
 			EditorEditBoardInfo;
 			TransitionDrawToBoard;
+
+			if copiedDataLen > 0 then begin
+				FreeMem(copiedData, copiedDataLen);
+				copiedDataLen := 0;
+			end;
 		end;
 
 	begin

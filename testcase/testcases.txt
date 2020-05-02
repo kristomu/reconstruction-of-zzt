@@ -47,5 +47,12 @@ EDREAD1.ZZT	Gets ZZT to read from unallocated memory when getting board
 ODDTEXT.ZZT	Board containing text with a bright/blink background. Touching
 		this should crash or hang DOS ZZT.
 
+EDLEAK1.ZZT	Shows that altering a bound object's data can cause out-of-bound
+		reads. Needs to be manually invoked - see the world itself for
+		more info.
+
+EDLEAK2.ZZT	Automated version of the previous test case: triggers valgrind
+		errors with fuzzt.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
