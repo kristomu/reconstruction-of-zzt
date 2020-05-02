@@ -1,0 +1,5 @@
+BINDEM.ZZT	Shows that a very long program with nothing happening can slow
+		ZZT to a crawl/halt if enough objects are bound to it.
+
+TSLOW.ZZT	A combination of slow #label lookup combined with bound objects
+		cause an even more severe slowdown.

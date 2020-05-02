@@ -230,8 +230,12 @@ procedure BoardClose(showTruncationNote: boolean);
 			with Board.Stats[ix] do begin
 				if DataLen > 0 then begin
 					for iy := 1 to (ix - 1) do begin
-						if Board.Stats[iy].Data = Data then
+						{ IMP: Make all bound objects link to the same one. }
+						if Board.Stats[iy].Data = Data then begin
 							DataLen := -iy;
+							Data := nil;
+							Break;
+						end;
 					end;
 				end;
 				Move(Board.Stats[ix], ptr^, SizeOf(TStat));
@@ -309,6 +313,11 @@ procedure AdjustBoardStats;
 						Data := Board.Stats[-DataLen].Data;
 						DataLen := Board.Stats[-DataLen].DataLen;
 					end;
+
+					{ If it's part of a chain, break the chain. }
+					{ Can we do this?? }
+					if DataLen < 0 then
+						DataLen := 0;
 				end;
 			end;
 		end;
@@ -851,6 +860,11 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 	begin
 		oldBuffer := buffer;
 		firstKeyPress := true;
+
+		if FuzzMode then begin
+			buffer := 'Fuzz mode';
+			Exit;
+		end;
 
 		repeat
 			for i := 0 to (width - 1) do begin
