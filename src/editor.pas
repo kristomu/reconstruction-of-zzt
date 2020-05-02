@@ -421,9 +421,36 @@ procedure EditorLoop;
 			selectedBoard: byte;
 			iy: integer;
 			promptByte: byte;
+			hasCopiedTile: boolean;
+
+		procedure SaveStat(statId: integer);
+			begin
+				with Board.Stats[statId] do begin
+					copiedHasStat := true;
+					copiedStat := Board.Stats[statId];
+					copiedTile := Board.Tiles[X][Y];
+
+					{Copy data into temporary store if the tile has any,
+					  so the object can be moved between boards.}
+
+					if copiedDataLen > 0 then begin
+						FreeMem(copiedData, copiedDataLen);
+						copiedDataLen := 0;
+					end;
+					if dataLen > 0 then begin
+						GetMem(copiedData, DataLen);
+						copiedDataLen := DataLen;
+						Move(Data^, copiedData^, copiedDataLen);
+					end;
+					copiedX := X;
+					copiedY := Y;
+					hasCopiedTile := true;
+				end;
+			end;
 
 		procedure EditorEditStatSettings(selected: boolean);
 			begin
+
 				with Board.Stats[statId] do begin
 					InputKeyPressed := #0;
 					iy := 9;
@@ -496,10 +523,8 @@ procedure EditorLoop;
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
 								if P3 > World.BoardCount then begin
+									SaveStat(statId);
 									EditorAppendBoard;
-									copiedHasStat := false;
-									copiedTile.Element := 0;
-									copiedTile.Color := $0F;
 								end;
 								World.EditorStatSettings[element].P3 := P3;
 							end else begin
@@ -514,6 +539,7 @@ procedure EditorLoop;
 			end;
 
 		begin
+			hasCopiedTile := false;
 			with Board.Stats[statId] do begin
 				SidebarClear;
 
@@ -535,26 +561,10 @@ procedure EditorLoop;
 				EditorEditStatSettings(false);
 				EditorEditStatSettings(true);
 
-				if InputKeyPressed <> KEY_ESCAPE then begin
-					copiedHasStat := true;
-					copiedStat := Board.Stats[statId];
-					copiedTile := Board.Tiles[X][Y];
-
-					{Copy data into temporary store if the tile has any,
-					  so the object can be moved between boards.}
-
-					if copiedDataLen > 0 then begin
-						FreeMem(copiedData, copiedDataLen);
-						copiedDataLen := 0;
-					end;
-					if dataLen > 0 then begin
-						GetMem(copiedData, DataLen);
-						copiedDataLen := DataLen;
-						Move(Data^, copiedData^, copiedDataLen);
-					end;
-					copiedX := X;
-					copiedY := Y;
-				end;
+				{ hasCopiedTile is true if editing a passage changed the
+				  board so that statId is no longer valid. }
+				if (InputKeyPressed <> KEY_ESCAPE) and (not hasCopiedTile) then
+					SaveStat(statId);
 			end;
 		end;
 
@@ -677,7 +687,10 @@ procedure EditorLoop;
 			EditorDrawRefresh;
 
 			for i := Board.StatCount downto 1 do
-				EditorEditStat(i);
+				{ We need this if because editing passages can add boards,
+				  which would then change the StatCount of the board. }
+				if i <= Board.StatCount then
+					EditorEditStat(i);
 
 			if World.Info.CurrentBoard = 0 then
 				EditorFloodFill(cursorX, cursorY, Board.Tiles[cursorX][cursorY]);

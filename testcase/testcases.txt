@@ -56,3 +56,9 @@ EDLEAK2.ZZT	Automated version of the previous test case: triggers valgrind
 
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
+
+delayed crash/	Worlds that produce crashes after doing something (usually going
+		to the right)
+editor crash/	Worlds that induce crashes in the editor
+editor read/	Worlds that induce reads from or writes to unallocated memory,
+		in the editor.
