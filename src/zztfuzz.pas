@@ -138,7 +138,6 @@ var
 begin
 	WorldFileDescCount := 0;
 
-
 	{ Disable Free Pascal's signal handlers so we can throw SEGV outside. }
 	DisableSignalHandlers();
 	{ And turn every runtime error into a segmentation violation, which
@@ -154,8 +153,10 @@ begin
 	SFuzzMode := true;
 	FuzzMode := true;
 
-	SetCBreak(false);
-	InitialTextAttr := TextAttr;
+	if not VFuzzMode then begin
+		SetCBreak(false);
+		InitialTextAttr := TextAttr;
+	end;
 
 	StartupWorldFileName := 'TOWN';
 	ResourceDataFileName := 'ZZT.DAT';
@@ -163,12 +164,15 @@ begin
 	GameTitleExitRequested := false;
 	ParseArguments;
 
-	VideoInstall(80, Blue);
-	TextWindowInit(5, 3, 50, 18);
-	New(IoTmpBuf);
+	if not VFuzzMode then begin
+		VideoInstall(80, Blue);
+		VideoHideCursor;
+		ClrScr;
+	end;
 
-	VideoHideCursor;
-	ClrScr;
+	TextWindowInit(5, 3, 50, 18);
+
+	New(IoTmpBuf);
 
 	TickSpeed := 4;
 	DebugEnabled := false;
@@ -189,12 +193,15 @@ begin
 	WorldUnload;
 	Dispose(IoTmpBuf);
 
-	SoundUninstall;
-	SoundClearQueue;
+	if not SFuzzMode then begin
+		SoundUninstall;
+		SoundClearQueue;
+	end;
 
-	VideoUninstall;
-	TextAttr := InitialTextAttr;
-	ClrScr;
-
-	VideoShowCursor;
+	if not VFuzzMode then begin
+		VideoUninstall;
+		TextAttr := InitialTextAttr;
+		ClrScr;
+		VideoShowCursor;
+	end;
 end.
