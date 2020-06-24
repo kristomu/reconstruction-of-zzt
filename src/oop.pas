@@ -214,6 +214,12 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				dy := 0;
 				OopParseDirection := false;
 			end;
+
+			if not ValidCoord(Board.Stats[statId].X + dx, Board.Stats[statId].Y + dy) then begin
+				OopError(statId, 'Direction out of bounds');
+				dx := 0;
+				dy := 0;
+			end;
 		end;
 	end;
 

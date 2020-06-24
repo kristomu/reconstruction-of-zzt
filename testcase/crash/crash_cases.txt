@@ -60,3 +60,6 @@ GIVEOF: Giving (gems, ammo, etc) in multiple steps in a way that overflows the
 counter causes a range check error and crash.
 DEADSMIL: Zapping an item with stats with a player beneath leads to boom 
 attempting to move a -1 stat.
+OBJ_OOB: Out-of-bounds object commands (FLOW and stepx, stepy out of bounds)
+causes a range error reading from outside of the board. (Can be triggered in
+many different ways; the file does a reasonably comprehensive test of them all.)
