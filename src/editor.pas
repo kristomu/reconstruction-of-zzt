@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops, Minmax;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -51,7 +51,7 @@ const
 procedure EditorAppendBoard;
 	begin
 		if World.BoardCount < MAX_BOARD then begin
-			BoardClose;
+			BoardClose(true);
 
 			World.BoardCount := World.BoardCount + 1;
 			World.Info.CurrentBoard := World.BoardCount;
@@ -560,7 +560,9 @@ procedure EditorLoop;
 						OpenForRead(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
-						BoardClose;
+						{ The old board is toast; no need to warn about
+						  data loss. }
+						BoardClose(false);
 						FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 						BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
 						if not DisplayIOError then begin
@@ -574,7 +576,7 @@ procedure EditorLoop;
 							BoardCreate;
 							EditorDrawRefresh;
 						end else begin
-							BoardOpen(World.Info.CurrentBoard);
+							BoardOpen(World.Info.CurrentBoard, false);
 							EditorDrawRefresh;
 							for i := 0 to 3 do
 								Board.Info.NeighborBoards[i] := 0;
@@ -587,11 +589,11 @@ procedure EditorLoop;
 						OpenForWrite(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
-						BoardClose;
+						BoardClose(true);
 						BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
 						BlockWrite(f, World.BoardData[World.Info.CurrentBoard]^,
 							World.BoardLen[World.Info.CurrentBoard]);
-						BoardOpen(World.Info.CurrentBoard);
+						BoardOpen(World.Info.CurrentBoard, false);
 
 						if DisplayIOError then begin
 						end else begin
@@ -1097,8 +1099,8 @@ procedure HighScoresAdd(score: integer);
 
 function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TString50;
 	var
-		boardData: pointer;
-		copiedName: string[50];
+		boardData: ^byte;
+		copiedName: TString50;
 	begin
 		if (boardId = 0) and titleScreenIsNone then
 			EditorGetBoardName := 'None'
@@ -1106,7 +1108,11 @@ function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TStri
 			EditorGetBoardName := Board.Name
 		else begin
 			boardData := World.BoardData[boardId];
-			Move(boardData^, copiedName, SizeOf(copiedName));
+			{ SANITY: Range check on board name length.}
+			boardData^ := Min(boardData^, SizeOf(copiedName)-1);
+			boardData^ := Min(boardData^, World.BoardLen[boardId]-1);
+
+			Move(boardData^, copiedName, 1+(boardData^));
 			EditorGetBoardName := copiedName;
 		end;
 	end;
