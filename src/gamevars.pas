@@ -32,7 +32,7 @@ files incompatible as well.}
 interface
 	const
 		MAX_STAT = 150;
-		MAX_ELEMENT = 53;
+		MAX_ELEMENT = 61;               {E_TEXT_BLINK_WHITE;}
 		MAX_BOARD = 100;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
@@ -42,6 +42,7 @@ interface
 		TORCH_DX = 8;
 		TORCH_DY = 5;
 		TORCH_DIST_SQR = 50;
+		MAX_BOARD_LEN = 20000;
 	type
 		TString50 = string[50];
 		TCoord = packed record
@@ -141,12 +142,14 @@ interface
 			Tiles: array[0 .. BOARD_WIDTH + 1] of array[0 .. BOARD_HEIGHT + 1] of TTile;
 			StatCount: integer;
 			Stats: array[0 .. MAX_STAT + 1] of TStat;
-			Info: TBoardInfo;      
+			Info: TBoardInfo;
 		end;
 		TWorld = packed record
 			BoardCount: integer;
 			BoardData: array[0 .. MAX_BOARD] of pointer;
-			BoardLen: array[0 .. MAX_BOARD] of integer;
+			{ KevEdit treats board length as unsigned, so to handle >32k
+			  boards without corrupting subsequent ones... }
+			BoardLen: array[0 .. MAX_BOARD] of word;
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
@@ -155,7 +158,17 @@ interface
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
-		TIoTmpBuf = array[0 .. 19999] of byte;
+	const
+		{ This is used to make sure IoTmpBuf is always large enough to hold
+		  what changes may happen to the board. In the worst case, the board
+		  is completely empty when loaded but takes max space due to stats,
+		  then during play, the board gets filled with random tiles. That
+		  will require MAX_RLE_OVERFLOW additional bytes to hold. So by
+		  dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
+		  that it can never run out of space from RLE shenanigans. }
+		MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * SizeOf(TRleTile);
+	type
+		TIoTmpBuf = array[0 .. (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)] of byte;
 	var
 		PlayerDirX: integer;
 		PlayerDirY: integer;
@@ -277,6 +290,14 @@ interface
 		E_TEXT_PURPLE = 51;
 		E_TEXT_YELLOW = 52;
 		E_TEXT_WHITE = 53;
+		E_TEXT_GREY = 54;
+		E_TEXT_BLINK_BLUE = 55;
+		E_TEXT_BLINK_GREEN = 56;
+		E_TEXT_BLINK_CYAN = 57;
+		E_TEXT_BLINK_RED = 58;
+		E_TEXT_BLINK_PURPLE = 59;
+		E_TEXT_BLINK_YELLOW = 60;
+		E_TEXT_BLINK_WHITE = 61;
 		{}
 		E_TEXT_MIN = E_TEXT_BLUE;
 		{}
