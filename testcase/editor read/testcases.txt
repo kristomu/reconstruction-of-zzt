@@ -1,0 +1,8 @@
+PASSREAD.ZZT	Human-understandable instance of a bug where going to a new
+		board as part of the stat-editing process (usually when editing
+		a passage) causes reads from unallocated memory if the item
+		with stats happens to have data. fuzzt doesn't trigger this
+		one though.
+
+R1.ZZT		fuzzt-triggerable version of the above. Valgrind will complain
+		about reads from unallocated memory.

@@ -1,0 +1,6 @@
+EDCRASH2.ZZT	Crashes the editor upon invoking board info, due to a reference
+		to a neighboring board that doesn't exist.
+
+EDITOGGL.ZZT	Crashes the editor if it's patched to make editing P1 and P2
+		above 10 possible but it doesn't check that the output is
+		below 128 in certain cases (e.g. Duplicator P1 setting).
