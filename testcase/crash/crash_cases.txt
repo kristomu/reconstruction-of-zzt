@@ -1,0 +1,65 @@
+The files starting in CR may be dirty - i.e. they can crash the game for other
+reasons than the bug listed and are much larger than required to demonstrate
+the error. This because they're raw output from the fuzzer.
+
+CR1-CR4: Garbled metadata or too small board size.
+CR5: Duplicator without stats causes getStatIdx to return -1 and thus access
+memory outside of bounds.
+CR6: DataLen a very high positive number, leading to an out of bounds read.
+CR7: DataLen zero leading to a free-without-alloc in RemoveStat (play to 
+exercise the bug).
+CYCLE0: Transporters and players with cycle 0 crash and hang the game respectively.
+TRANSTEP: Transporters with very large xstep,ystep crash the game.
+CR8: Too large BoardLen (exceeding the size of the game file).
+CR9: Use of a board tile with RLE count 0 causes desynchronization and subsequent crash on cleanup.
+CR10: Multi-stage reference DataLen < 0 (i.e. object 1 points at object 2 which points at...)
+CR11: The player stats has a data reference (DataLen < 0) to a later object with data. This causes a double free and a crash.
+CR12: Number of boards < 0 causes read from unallocated memory. Also very long board title causes crash when trying to get board info in editor.
+COLORS: Range error check as a white on white star color overflows its color, and when a star with P2 stat 0 underflows. Also delayed crashes picking up black keys or touching black doors.
+STRANGE: Exercises a lot of centipede out-of-bounds bugs related to stepX and stepY.
+LONG: Crash due to printing a very large number of short lines. (Omega Lock)
+MULTI: Many crashes:
+	- BoardData length zero causes game to read outside of allocated memory
+	- Very long board title causes problems in the editor
+	- Board edge with corrupt neighbor board data causes out-of-bounds
+		access to BoardEdgeSeen
+	- Player object is at the boundary (where the board edges are); causes
+		crash when playing and the game is paused.
+	- Out-of-bounds stats X,Y leads to trouble.
+CR14_DUP: Duplicator with out-of-bounds XStep and YStep.
+CNOSTAT: Conveyor trying to convey tiles that usually have stats, but don't
+	here.
+RLEFLOW: An almost full board becomes less compressible after some tiles change.
+This can cause a crash in BoardClose as the serialized representation overflows
+the buffer.
+UNKUND: Having a tile with stats move and expose an out-of-bounds element
+underneath causes a crash.
+CR15: Wrong StepX, StepY values makes blinkwall crash.
+CR16: StepX, StepY values with absolute value near 32767 cause crash when adding
+or subtracting them from other values. Fixed by truncating these values on load.
+CR17: StepX = 0, StepY = 0 and cycle of Follower values causes infinite loop in centipede head.
+CR18: Very large World.Info.CurrentBoard causes crash in BoardClose.
+DATAPOS: Double-free/use-after-free bug involving BIND when already bound. See
+the world for more info.
+CR19: Moving a stat that's placed upon the player (stacked stats) off the player
+could remove him and thus violate the invariant. This is highly technical to
+pull off, involving follower indices pointing at a stat whose coordinates are
+the same as the player.
+CR20: Placing a star at (0,15) (e.g. by removing the board edge) with the
+player being energized causes the star to try to go outside of bounds due to
+SEEK being reversed when the player is energized. (The same can happen with
+beasts too.)
+INVAR6: Conveyor (most likely) pushing the player to (0,0) makes the player
+disappear and breaks the invariant.
+PLAY1: Using enough triplet notes can get the note duration to overflow past
+an integer's capacity and thus cause a crash.
+PLAY2: Using enough triplet notes can get the note duration to overflow past
+a byte (256) and cause a crash wne it's later forced into a byte.
+OOBSHOT: Shooting directly out of bounds causes a crash in BoardShoot.
+GIVEOF: Giving (gems, ammo, etc) in multiple steps in a way that overflows the
+counter causes a range check error and crash.
+DEADSMIL: Zapping an item with stats with a player beneath leads to boom 
+attempting to move a -1 stat.
+OBJ_OOB: Out-of-bounds object commands (FLOW and stepx, stepy out of bounds)
+causes a range error reading from outside of the board. (Can be triggered in
+many different ways; the file does a reasonably comprehensive test of them all.)

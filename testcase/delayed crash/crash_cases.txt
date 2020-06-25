@@ -1,0 +1,58 @@
+This directory is for test cases that lead to a crash if you do a particular
+set of actions. If a file both has an "instant" crash (crash either on load
+or on play) and a delayed crash, I'll place it in the other crash directory
+with a note to that effect.
+
+LOCKED.ZZT	Super Lock locked ZZT file. Will crash the editor if you try to
+		enter the locked board. Also useful as a test of whether the
+		board select screen will honor label jumps (KevEdit doesn't)
+		and if the loader can recover last boards with wrong board size
+		based on file size.
+
+LOCKED2.ZZT	Like LOCKED.ZZT, but there's a valid board at the end, after the
+		corrupted board, so recovering last boards will no longer work.
+
+BORDER.ZZT	ZAPing in a corner causes range check errors. Going out of
+		bounds after having ZAPed causes writes to unallocated memory
+		on DOS, or crash on Linux.
+
+EDGELOOP.ZZT	Infinite loop (and stack overflow) when touching a board edge
+		that touches a board edge that...
+
+SCROLL.ZZT	A few scroll crash bugs.
+
+INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
+		board. Allowing the stats to be added can cause a crash in
+		BoardClose as the serialized representation overflows the
+		buffer.
+
+MBOARD.ZZT	Too many boards. Trying to load and then quit creates an
+		overflow in WorldUnload.
+
+EDGECASE.ZZT	Placing a player on (1,0) and then going right violates the
+		player invariant if BoardOpen calls BoardCreate. (It would
+		probably freeze the game if there weren't an invariant.)
+
+EDGECAS2.ZZT	As EDGECASE, except the destination board has no player.
+		Causes an invariant violation because moving to a board
+		edge with a player at the other end but player's stats
+		somewhere else doesn't create a player at those stats.
+
+OOPFLOW.ZZT	Tests ZZT's #give and #take behavior with very large values.
+		Such large values can cause a crash (in this case, upon
+		touching the object) if range checking is turned on, which
+		it is by default in the debug Linux ZZT build.
+
+SNPLAYER.ZZT	A clever combination of no player on the board and an early
+		Exit in BoardOpen makes the player never appear on the board
+		when transporting there (passage or board edge), which in turn
+		trips the invariant.
+
+SELFBND.ZZT	#BINDing oneself causes repeated freeing of the same pointer
+		and thus a crash. Only doing it once in an object is safe as
+		long as the object doesn't #DIE or otherwise removes itself;
+		but a scroll dies on crash. An object caught up in an infinite
+		loop by its BINDing will also trigger this crash without delay.
+
+DC1.ZZT		Fuzz-generated world that demonstrates BLOCKED with very large
+		xstep,ystep values causing an out-of-bounds read.

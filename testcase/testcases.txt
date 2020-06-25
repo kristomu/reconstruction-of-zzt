@@ -1,0 +1,64 @@
+CONVEYOR.BRD	Example of conveyor stat overwriting bug
+
+NOSTAT.ZZT	A bunch of items without stats, to test behavior when GetStatId
+		fails. Also, a transport next to the transport without stats
+		(exercises another bug if you enter it from below), and a
+		centipede (for fuzz testing purposes).
+
+OVERFLOW.ZZT	A world with a title board that exceeds the 20k hard limit. May
+		cause a crash or arbitrary behavior.
+
+LTITLE.ZZT	A very long title makes editing annoying. Can possibly be used
+		to read outside of allocated memory in certain cases (not shown
+		here.)
+
+LOCKED.ZZT	A Super Lock locked world with the last board corrupted by Super
+		Lock. Use it to test if the last board can be recovered.
+
+CHURN.ZZT	Allocates and deallocates lots of memory (2 MB) from repeatedly
+		entering the board it exited. Crashes DOS ZZT with a heap 
+		overflow.
+
+INFLATE.ZZT	Tests the adding of stats to an almost-full (almost 20K)
+		board. Allowing the stats to be added can cause a crash in
+		BoardClose as the serialized representation overflows the
+		buffer.
+
+LEAK.ZZT	Demonstrates a memory leak in unpatched ZZT: AddStat checks
+		whether a stat has data by using Data <> 0, but DataLen can
+		still be zero with Data <> 0.
+
+BRDSKIP.ZZT	ZZT world containing a board of size greater than 32k, showing
+		the need to consider BoardLen unsigned. (DOS ZZT does the right
+		thing here.)
+
+MISALLOC.ZZT	Shows that #walk then #die then THUD can lead to a read-after-
+		free if the object that dies is the last object in the list.
+		Run the fuzzer using your memory bug detector of choice (e.g.
+		Valgrind).
+
+MONIBOMB.ZZT	Causes a hang (in DOS ZZT) or an invariant violation by
+		overwriting the Monitor with a #put.
+
+EDREAD1.ZZT	Gets ZZT to read from unallocated memory when getting board
+		titles in the editor. Probably does nothing in DOS; causes
+		Valgrind to complain on Linux.
+
+ODDTEXT.ZZT	Board containing text with a bright/blink background. Touching
+		this should crash or hang DOS ZZT.
+
+EDLEAK1.ZZT	Shows that altering a bound object's data can cause out-of-bound
+		reads. Needs to be manually invoked - see the world itself for
+		more info.
+
+EDLEAK2.ZZT	Automated version of the previous test case: triggers valgrind
+		errors with fuzzt.
+
+crash/		Worlds and boards that produce crashes
+hang/		Worlds and boards that produce hangs/hard lockups
+
+delayed crash/	Worlds that produce crashes after doing something (usually going
+		to the right)
+editor crash/	Worlds that induce crashes in the editor
+editor read/	Worlds that induce reads from or writes to unallocated memory,
+		in the editor.
