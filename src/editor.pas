@@ -600,7 +600,7 @@ procedure EditorLoop;
 							BoardCreate;
 							EditorDrawRefresh;
 						end else begin
-							BoardOpen(World.Info.CurrentBoard);
+							BoardOpen(World.Info.CurrentBoard, false);
 							EditorDrawRefresh;
 							for i := 0 to 3 do
 								Board.Info.NeighborBoards[i] := 0;
@@ -617,7 +617,7 @@ procedure EditorLoop;
 						BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
 						BlockWrite(f, World.BoardData[World.Info.CurrentBoard]^,
 							World.BoardLen[World.Info.CurrentBoard]);
-						BoardOpen(World.Info.CurrentBoard);
+						BoardOpen(World.Info.CurrentBoard, false);
 
 						if DisplayIOError then begin
 						end else begin

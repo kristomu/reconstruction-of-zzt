@@ -43,7 +43,7 @@ interface
 	procedure GenerateTransitionTable;
 	procedure AdvancePointer(var address: pointer; count: integer);
 	procedure BoardClose(showTruncationNote: boolean);
-	procedure BoardOpen(boardId: integer);
+	procedure BoardOpen(boardId: integer; worldIsDamaged: boolean);
 	procedure BoardChange(boardId: integer);
 	procedure BoardCreate;
 	procedure WorldCreate;
@@ -61,6 +61,7 @@ interface
 	procedure PauseOnError;
 	function DisplayIOError: boolean;
 	procedure DisplayTruncationNote;
+	procedure DisplayCorruptionNote;
 	procedure WorldUnload;
 	function WorldLoad(filename, extension: TString50): boolean;
 	procedure WorldSave(filename, extension: TString50);
@@ -270,7 +271,7 @@ procedure BoardClose(showTruncationNote: boolean);
 		Move(IoTmpBuf^, World.BoardData[World.Info.CurrentBoard]^, World.BoardLen[World.Info.CurrentBoard]);
 
 		if cleanupNeeded then begin
-			BoardOpen(World.Info.CurrentBoard);
+			BoardOpen(World.Info.CurrentBoard, false);
 			BoardClose(false);
 			if showTruncationNote then DisplayTruncationNote;
 		end;
@@ -352,12 +353,16 @@ procedure AdjustBoardStats;
 		end;
 	end;
 
-procedure BoardOpen(boardId: integer);
+{ Set worldIsDamaged to true if the BoardOpen is from a world load and
+the world metadata is wrong; this will make the corruption notification
+show up regardless of whether the board itself is damaged. }
+procedure BoardOpen(boardId: integer; worldIsDamaged: boolean);
 	var
 		ptr: ^byte;
 		i, ix, iy: integer;
 		rle: TRleTile;
 		bytesRead: integer = 0;
+		boardIsDamaged : boolean;
 	begin
 		if boardId > World.BoardCount then
 			boardId := World.Info.CurrentBoard;
@@ -367,6 +372,7 @@ procedure BoardOpen(boardId: integer);
 		{ Create a default yellow border board, because we might need
 		  to abort before the board is fully specced. }
 		BoardCreate;
+		boardIsDamaged := worldIsDamaged;
 
 		{ Check that the sanity check on board titles have been executed. }
 
@@ -384,6 +390,8 @@ procedure BoardOpen(boardId: integer);
 				Board.Name := '';
 			end;
 
+			{ This board is damaged. }
+			DisplayCorruptionNote;
 			Exit;
 		end;
 
@@ -422,13 +430,18 @@ procedure BoardOpen(boardId: integer);
 				Move(ptr^, rle, SizeOf(rle));
 				AdvancePointer(ptr, SizeOf(rle));
 				bytesRead := bytesRead + SizeOf(rle);
-				if rle.Count = 0 then Continue;
+				if rle.Count = 0 then begin
+					boardIsDamaged := true;
+					Continue;
+				end;
 			end;
 
 			{ SANITY: If the element is unknown, replace it with a normal. }
 
-			if rle.Tile.Element > MAX_ELEMENT then
+			if rle.Tile.Element > MAX_ELEMENT then begin
 				rle.Tile.Element := E_NORMAL;
+				boardIsDamaged := true;
+			end;
 
 			Board.Tiles[ix][iy] := rle.Tile;
 			ix := ix + 1;
@@ -441,9 +454,13 @@ procedure BoardOpen(boardId: integer);
 
 		until (iy > BOARD_HEIGHT) or (bytesRead >= World.BoardLen[boardId]);
 
+		{ SANITY: If reading board info and the stats count byte would
+		  get us out of bounds, we have a board that's truncated too early.
+		  Do the best we can, then show the damaged board note and exit. }
 		if (SizeOf(Board.Info) + SizeOf(Board.StatCount) + bytesRead) >= World.BoardLen[boardId] then begin
 			World.Info.CurrentBoard := boardId;
 			AdjustBoardStats;
+			DisplayCorruptionNote;
 			Exit;
 		end;
 
@@ -461,6 +478,7 @@ procedure BoardOpen(boardId: integer);
 		if not ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY) then begin
 			Board.Info.StartPlayerX := 1;
 			Board.Info.StartPlayerY := 1;
+			boardIsDamaged := true;
 		end;
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
@@ -471,9 +489,11 @@ procedure BoardOpen(boardId: integer);
 
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
+				{ SANITY: Handle too few stats items for the stats count. }
 				if (bytesRead + SizeOf(TStat)) > World.BoardLen[boardId] then begin
 					Board.StatCount := Max(ix - 1, 0);
 					World.Info.CurrentBoard := boardId;
+					boardIsDamaged := true;
 					Break;
 				end;
 
@@ -483,8 +503,17 @@ procedure BoardOpen(boardId: integer);
 
 				{ SANITY: If the element underneath is unknown, replace it
 				  with a normal. }
-				if Under.Element > MAX_ELEMENT then
+				if Under.Element > MAX_ELEMENT then begin
 					Under.Element := E_NORMAL;
+					boardIsDamaged := true;
+				end;
+
+				{ SANITY: Handle objects that are out of bounds. }
+				if not ValidCoord(X, Y) then begin
+					X := Min(Max(X, 0), BOARD_WIDTH+1);
+					Y := Min(Max(Y, 0), BOARD_HEIGHT+1);
+					boardIsDamaged := true;
+				end;
 
 				{ SANITY: (0,0) is not available: it's used by one-line
 				  messages. So if the stat is at (0,0) or another
@@ -493,30 +522,27 @@ procedure BoardOpen(boardId: integer);
 				  empty spots on the board instead if possible... }
 				{ The compromise to the Postelic position is probably to
 				  be generous, but show a warning message that the board
-				  was corrupted and attempted fixed. Do that later? }
-				if (not ValidCoord(X, Y)) or ((X = 0) and (Y = 0)) then begin
+				  was corrupted and attempted fixed. }
+				if (X = 0) and (Y = 0) then begin
 					X := 1;
 					Y := 1;
+					boardIsDamaged := true;
 				end;
-
-				{ SANITY: Also handle more general out-of-bounds. Nothing
-				  with stats can be outside the (visible plus edge) area;
-				  the ElementTick call will fail -- or read undefined data
-				  in DOS. }
-				X := Min(Max(X, 0), BOARD_WIDTH+1);
-				Y := Min(Max(Y, 0), BOARD_HEIGHT+1);
 
 				{ SANITY: If DataLen is much too large, truncate. We'll
 			      then stop processing more objects next round around
 			      the loop. }
 				if bytesRead + DataLen > World.BoardLen[boardId] then begin
 					DataLen := World.BoardLen[boardId] - bytesRead;
+					boardIsDamaged := true;
 				end;
 
 				if DataLen > 0 then
 					{ SANITY: If DataLen is too long, truncate it. }
-					DataLen := Min(DataLen,
-						World.BoardLen[boardId]-bytesRead);
+					if DataLen > World.BoardLen[boardId]-bytesRead then begin
+						DataLen := World.BoardLen[boardId]-bytesRead;
+						boardIsDamaged := true;
+					end;
 
 				{ Only allocate if data length is still positive... }
 				if DataLen > 0 then begin
@@ -532,6 +558,9 @@ procedure BoardOpen(boardId: integer);
 
 		AdjustBoardStats;
 		World.Info.CurrentBoard := boardId;
+
+		if boardIsDamaged then
+			DisplayCorruptionNote;
 	end;
 
 procedure BoardChange(boardId: integer);
@@ -540,7 +569,7 @@ procedure BoardChange(boardId: integer);
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
 		if boardId <> World.Info.CurrentBoard then begin
 			BoardClose(true);
-			BoardOpen(boardId);
+			BoardOpen(boardId, false);
 		end;
 	end;
 
@@ -1000,7 +1029,28 @@ procedure DisplayTruncationNote;
 		TextWindowAppend(textWindow, 'the board smaller!');
 		TextWindowAppend(textWindow, '');
 		TextWindowAppend(textWindow, 'If you''re just playing, tell the author');
-		TextWindowAppend(textWindow, 'of the world you''re playing.');
+		TextWindowAppend(textWindow, 'of the world that you''re playing.');
+
+		TextWindowDrawOpen(textWindow);
+		TextWindowSelect(textWindow, false, false);
+		TextWindowDrawClose(textWindow);
+		TextWindowFree(textWindow);
+	end;
+
+procedure DisplayCorruptionNote;
+	var
+		textWindow: TTextWindowState;
+	begin
+		textWindow.Title := 'Warning: Corruption detected';
+		TextWindowInitState(textWindow);
+		TextWindowAppend(textWindow, '$Warning:');
+		TextWindowAppend(textWindow, '');
+		TextWindowAppend(textWindow, 'The file or board that was just loaded');
+		TextWindowAppend(textWindow, 'contained some damaged information.');
+		TextWindowAppend(textWindow, 'This might be caused by a bad file');
+		TextWindowAppend(textWindow, 'or disk corruption. ZZT has tried');
+		TextWindowAppend(textWindow, 'to undo the damage, but some data');
+		TextWindowAppend(textWindow, 'might be lost.');
 
 		TextWindowDrawOpen(textWindow);
 		TextWindowSelect(textWindow, false, false);
@@ -1033,6 +1083,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 		actuallyRead: word;
 		firstZero: integer;
 		i: integer;
+		worldIsDamaged: boolean;
 	procedure SidebarAnimateLoading;
 		begin
 			VideoWriteText(69, 5, ProgressAnimColors[loadProgress], ProgressAnimStrings[loadProgress]);
@@ -1040,6 +1091,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 		end;
 	begin
 		WorldLoad := false;
+		worldIsDamaged := false;
 		loadProgress := 0;
 
 		SidebarClearLine(4);
@@ -1092,16 +1144,25 @@ function WorldLoad(filename, extension: TString50): boolean;
 				  would be to make all the fields unsigned, but who needs
 				  worlds with >32k boards anyway? Besides, they'd crash
 				  DOS ZZT. }
-				if World.BoardCount < 0 then World.BoardCount := 0;
+				if World.BoardCount < 0 then begin
+					World.BoardCount := 0;
+					worldIsDamaged := true;
+				end;
 
 				{ If there are too many boards, ditto. (That's a more serious
 				  problem, as it may cut off boards outright.) }
-				World.BoardCount := Min(MAX_BOARD, World.BoardCount);
+				if World.BoardCount > MAX_BOARD then begin
+					World.BoardCount := MAX_BOARD;
+					worldIsDamaged := true;
+				end;
 
 				{ Don't accept CurrentBoard values that are too large or
 				  small. }
-				World.Info.CurrentBoard := Max(0, Min(World.BoardCount,
-					World.Info.CurrentBoard));
+				if (World.Info.CurrentBoard < 0) or (World.Info.CurrentBoard > World.BoardCount) then begin
+					World.Info.CurrentBoard := Max(0, Min(World.BoardCount,
+						World.Info.CurrentBoard));
+					worldIsDamaged := true;
+				end;
 
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
@@ -1112,10 +1173,10 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 					{ Sanity check. Abort at this position so that any
 					  boards before the corrupted one can still be
-					  recovered. TODO: Also provide a text window popup
-					  explaining why the loading was interrupted. }
-					if (IOResult <> 0) or (World.BoardLen[boardId] < 0) then begin
+					  recovered.}
+					if (DisplayIOError) or (World.BoardLen[boardId] < 0) then begin
 						World.BoardLen[boardId] := 0;
+						worldIsDamaged := true;
 						if boardId = 0 then begin
 							WorldUnload;
 							Exit;
@@ -1135,11 +1196,13 @@ function WorldLoad(filename, extension: TString50): boolean;
 						BlockRead(f, World.BoardData[boardId]^, World.BoardLen[boardId],
 							actuallyRead);
 						{ SANITY: If reading the whole board would lead to an
-					  	  overflow down the line, pretend we only read the
-					  	  MAX_BOARD_LEN first. }
-					  	{ Note: This should pop up a message to prevent
-					      data loss on later saving. Do that later, TODO. }
-					  	actuallyRead := Min(actuallyRead, MAX_BOARD_LEN);
+  	  					  overflow down the line, pretend we only read the
+						  MAX_BOARD_LEN first. }
+						if actuallyRead > MAX_BOARD_LEN then begin
+							actuallyRead := Min(actuallyRead, MAX_BOARD_LEN);
+							worldIsDamaged := true;
+					    end;
+
 						{ SANITY: reallocate and update board len if
 						  there's a mismatch between how much we were told
 						  we could read, and how much we actually read.
@@ -1165,7 +1228,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 					(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)) then
 					World.Info.CurrentBoard := 0;
 
-				BoardOpen(World.Info.CurrentBoard);
+				BoardOpen(World.Info.CurrentBoard, worldIsDamaged);
 				LoadedGameFileName := filename;
 				WorldLoad := true;
 
@@ -1218,14 +1281,14 @@ procedure WorldSave(filename, extension: TString50);
 			Close(f);
 		end;
 
-		BoardOpen(World.Info.CurrentBoard);
+		BoardOpen(World.Info.CurrentBoard, false);
 		SidebarClearLine(5);
 		exit;
 
 	OnError:
 		Close(f);
 		Erase(f);
-		BoardOpen(World.Info.CurrentBoard);
+		BoardOpen(World.Info.CurrentBoard, false);
 		SidebarClearLine(5);
 	end;
 
