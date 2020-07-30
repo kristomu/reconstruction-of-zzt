@@ -459,6 +459,8 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
+		if not ValidCoord(x, y) then Exit;
+
 		if (Board.Tiles[x][y].Element <> E_PLAYER) and (Board.Tiles[x][y].Element <> E_MONITOR) then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
@@ -642,7 +644,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								repeatInsNextTick := false;
 							end;
@@ -673,7 +675,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 							end else begin
 								repeatInsNextTick := true;
@@ -686,7 +688,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								stopRunning := true;
 							end else begin

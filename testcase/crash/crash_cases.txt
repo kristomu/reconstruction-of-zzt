@@ -63,3 +63,7 @@ attempting to move a -1 stat.
 OBJ_OOB: Out-of-bounds object commands (FLOW and stepx, stepy out of bounds)
 causes a range error reading from outside of the board. (Can be triggered in
 many different ways; the file does a reasonably comprehensive test of them all.)
+STATFLIP: Destroying an object can invalidate statIds. If the destruction is
+done by a push and the object that now has the statId the destroyer used to
+have is nearly out of bounds, it can skip out-of-bounds checks and cause a
+crash.
