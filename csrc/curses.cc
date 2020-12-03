@@ -1,4 +1,5 @@
 #include "curses.h"
+#include <stdexcept>
 
 // Put the stuff below into a class? Singleton for window? Eh...
 
@@ -195,7 +196,7 @@ std::string dos_emulation::unicode(unsigned char dos_char) const {
 	return(defstr);
 }
 
-short curses::dos_color_to_curses(int color) const {
+short curses::dos_color_to_curses(dos_color color) const {
 	switch(color) {
 		case 0: return (COLOR_BLACK);
 		case 1: return (COLOR_BLUE);
@@ -225,13 +226,13 @@ bool curses::prepare_colors() {
 	for (int fg = 0; fg < 8; ++fg)
 		for (int bg = 0; bg < 8; ++bg)
 			init_pair(linear(fg, bg, 8) + 1,
-					dos_color_to_curses(fg),
-					dos_color_to_curses(bg));
+					dos_color_to_curses((dos_color)fg),
+					dos_color_to_curses((dos_color)bg));
 
 	return(true);
 }
 
-void curses::use_color(int fg, int bg) const {
+void curses::use_color(dos_color fg, dos_color bg) const {
 
 	attroff(A_BOLD | A_BLINK);
 
@@ -241,6 +242,20 @@ void curses::use_color(int fg, int bg) const {
 		fg_high = A_BOLD;
 	if (bg > 7)
 		bg_high = A_BLINK;
+
+	if (black_and_white) {
+		if (fg > 7) {
+			fg = White;
+			bg = bg == Black ? Black : LightGray;
+		} else {
+			if (fg == Black) {
+				bg = LightGray;
+			} else {
+				fg = LightGray;
+				bg = Black;
+			}
+		}
+	}
 
 	attron(COLOR_PAIR(linear(fg % 8, bg % 8, 8) + 1) | fg_high | bg_high);
 
@@ -257,8 +272,11 @@ curses::curses() {
 		throw(NCURSES_INIT_FAILURE);
 	}
 
+	set_black_and_white(false);
 	start_color();
 	prepare_colors();
+
+	set_color(LightGray, Black); // set a first color
 }
 
 curses::~curses() {
@@ -271,15 +289,27 @@ curses::~curses() {
 	}
 }
 
-void curses::set_dos_color(int fg, int bg) const {
+void curses::show_cursor() const {
+	if (curs_set(1) == ERR) {
+		throw std::runtime_error("Curses: Error making cursor visible.");
+	}
+}
+
+void curses::hide_cursor() const {
+	if (curs_set(0) == ERR) {
+		throw std::runtime_error("Curses: Error making cursor hidden.");
+	}
+}
+
+void curses::set_color(dos_color fg, dos_color bg) const {
 	use_color(fg, bg);
 }
 
-void curses::set_dos_text_color(int fg) const {
+void curses::set_text_color(dos_color fg) const {
 	use_color(fg, current_bg);
 }
 
-void curses::set_dos_background_color(int bg) const {
+void curses::set_background_color(dos_color bg) const {
 	use_color(current_fg, bg);
 }
 
@@ -315,7 +345,7 @@ bool curses::print_ch(int x, int y, char to_print) const {
 	return (errval != ERR);
 }
 
-bool curses::print_ch(int x, int y, int fg, int bg,
+bool curses::print_ch(int x, int y, dos_color fg, dos_color bg,
 		char to_print) const {
 
 	// Set our color pair to the desired color (might want to use preset
@@ -328,13 +358,14 @@ bool curses::print_ch(int x, int y, int fg, int bg,
 	return(worked);
 }
 
-bool curses::print_col(int x, int y, int fg, int bg, std::string str) const {
+bool curses::print_col(int x, int y, dos_color fg, dos_color bg,
+	std::string str) const {
 
 	use_color(fg, bg);
 	return (print(x, y, str));
 }
 
-bool curses::print_ext(int x, int y, int fg, int bg,
+bool curses::print_ext(int x, int y, dos_color fg, dos_color bg,
 		const std::vector<short> & ext) const {
 
 	use_color(fg, bg);

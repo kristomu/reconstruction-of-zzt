@@ -6,6 +6,9 @@
 #include <string>
 #include <string.h>
 
+// Everything works in terms of DOS colors and characters. The ZZT conversion
+// doesn't know about any others.
+
 // This thing emulates DOS characters by using Unicode.
 class dos_emulation {
 	private:
@@ -16,6 +19,23 @@ class dos_emulation {
 		std::string unicode(unsigned char dos_char) const;
 };
 
+enum dos_color{ Black = 0,
+				Blue = 1,
+				Green = 2,
+             	Cyan = 3,
+             	Red = 4,
+             	Magenta = 5,
+             	Brown = 6,
+             	LightGray = 7,
+             	DarkGray = 8,
+             	LightBlue = 9,
+             	LightGreen = 10,
+             	LightCyan = 11,
+             	LightRed = 12,
+             	LightMagenta = 13,
+             	Yellow = 14,
+             	White = 15
+};
 
 class curses {
 
@@ -24,10 +44,11 @@ class curses {
 	private:
 		dos_emulation interpreter;
 
-		mutable int current_fg = 7, current_bg = 0;
+		mutable dos_color current_fg, current_bg;
+		bool black_and_white;
 
-		void use_color(int fg, int bg) const;
-		short dos_color_to_curses(int color) const;
+		void use_color(dos_color fg, dos_color bg) const;
+		short dos_color_to_curses(dos_color color) const;
 		int linear(int x, int y, int xsize) const;
 		bool prepare_colors();
 
@@ -39,9 +60,14 @@ class curses {
 			wmove(window, y, x);
 		}
 
-		void set_dos_color(int fg, int bg) const;
-		void set_dos_text_color(int fg) const;
-		void set_dos_background_color(int bg) const;
+		void set_black_and_white(bool BW) { black_and_white = BW; }
+
+		void show_cursor() const;
+		void hide_cursor() const;
+
+		void set_color(dos_color fg, dos_color bg) const;
+		void set_text_color(dos_color fg) const;
+		void set_background_color(dos_color bg) const;
 
 		//bool print(const char * str) const;
 		bool print(const std::string str) const;
@@ -50,11 +76,13 @@ class curses {
 		bool print(int x, int y, const std::string str) const;
 
 		bool print_ch(int x, int y, char to_print) const;
-		bool print_ch(int x, int y, int fg, int bg, char
-				to_print) const;
-		bool print_col(int x, int y, int fg, int bg, const std::string str) const;
+		bool print_ch(int x, int y, dos_color fg, dos_color bg,
+			char to_print) const;
+		bool print_col(int x, int y, dos_color fg, dos_color bg,
+			const std::string str) const;
 		// TODO: Replace this with DOS char mapping.
-		bool print_ext(int x, int y, int fg, int bg, const std::vector<short> & ext) const;
+		bool print_ext(int x, int y, dos_color fg, dos_color bg,
+			const std::vector<short> & ext) const;
 
 		void redraw() const { refresh(); }
 

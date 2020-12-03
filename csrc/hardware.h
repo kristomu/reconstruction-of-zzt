@@ -4,27 +4,7 @@
 
 #include "curses.h"
 
-// Everything works in terms of DOS colors. The ZZT conversion doesn't know
-// about any others. Still, we need to port over some Pascal constants.
-
 // All coordinates start at (1,1) (as is Pascal tradition).
-
-enum Color { Black = 0,
-             Blue = 1,
-             Green = 2,
-             Cyan = 3,
-             Red = 4,
-             Magenta = 5,
-             Brown = 6,
-             LightGray = 7,
-             DarkGray = 8,
-             LightBlue = 9,
-             LightGreen = 10,
-             LightCyan = 11,
-             LightRed = 12,
-             LightMagenta = 13,
-             Yellow = 14,
-             White = 15 };
 
 // Sets attributes like blink, etc. (Move into function later.)
 int TextAttr = 0x07;
@@ -34,19 +14,19 @@ int TextAttr = 0x07;
 
 int WindMaxX = 80;      // Lower right, X coordinate
 int WindMaxY = 25;      // Lower right, Y coordinate
-int WindMinX = 1;      // Upper left, X coordinate
-int WindMinY = 1;      // Upper left, Y coordinate
+int WindMinX = 1;       // Upper left, X coordinate
+int WindMinY = 1;       // Upper left, Y coordinate
 
 curses * display;
 
 // Set background color.
-void TextBackground(Color bgColor) {
-      display->set_dos_background_color(bgColor);
+void TextBackground(dos_color bgColor) {
+      display->set_background_color(bgColor);
 }
 
 // Set foreground color.
-void TextColor(Color fgColor) {
-      display->set_dos_text_color(fgColor);
+void TextColor(dos_color fgColor) {
+      display->set_text_color(fgColor);
 }
 
 // Clear the screen
