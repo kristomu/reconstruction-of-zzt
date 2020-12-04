@@ -129,24 +129,26 @@ boolean VideoConfigure() {
 
     boolean VideoConfigure_result;
     charTyped = ' ';
-    bool MonochromeOnly = false; // ???? Do something here with has_colors().
+    bool MonochromeOnly = !HasColors(); // ???? Do something here with has_colors().
     if (MonochromeOnly)  {
         VideoMonochrome = true;
-    } else {
-        cursesWriteLn("");
-        cursesWrite("  Video mode:  C)olor,  M)onochrome?  ");
-        do {
-            do {
-                /* Don't busy-wait too much. */
-                /* TODO: Introduce blocking and half-blocking readKey. */
-                usleep(100*1000);
-            } while (!Keypressed());
-            charTyped = toupper(ReadKey());
-        } while (!(set::of('\33', 'C', 'M', eos).has(charTyped)));
+        return true;
+    }
+
+    cursesWriteLn("");
+    cursesWrite("  Video mode:  C)olor,  M)onochrome?  ");
+
+    bool gotResponse = false;
+
+    while (!gotResponse) {
+        char charTyped = toupper(ReadKeyBlocking());
+        gotResponse = true;
+
         switch (charTyped) {
-        case 'C': VideoMonochrome = false; break;
-        case 'M': VideoMonochrome = true; break;
-        case '\33': VideoMonochrome = MonochromeOnly; break;
+            case 'C': VideoMonochrome = false; break;
+            case 'M': VideoMonochrome = true; break;
+            case '\33': VideoMonochrome = MonochromeOnly; break;
+            default: gotResponse = false; break;
         }
     }
     return charTyped != '\33';

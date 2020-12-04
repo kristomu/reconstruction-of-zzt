@@ -1,4 +1,4 @@
-#include "curses.h"
+#include "curses_io.h"
 #include <stdexcept>
 
 // Put the stuff below into a class? Singleton for window? Eh...
@@ -196,7 +196,7 @@ std::string dos_emulation::unicode(unsigned char dos_char) const {
 	return(defstr);
 }
 
-short curses::dos_color_to_curses(dos_color color) const {
+short curses_io::dos_color_to_curses(dos_color color) const {
 	switch(color) {
 		case 0: return (COLOR_BLACK);
 		case 1: return (COLOR_BLUE);
@@ -210,11 +210,11 @@ short curses::dos_color_to_curses(dos_color color) const {
 	}
 }
 
-int curses::linear(int x, int y, int xsize) const {
+int curses_io::linear(int x, int y, int xsize) const {
 	return(y * xsize + x);
 }
 
-bool curses::prepare_colors() {
+bool curses_io::prepare_colors() {
 
 	// There are 256 colors: 16 foreground colors and 16 background ones.
 	// However, the lower 8 fg are turned into the higher 8 by setting
@@ -232,7 +232,7 @@ bool curses::prepare_colors() {
 	return(true);
 }
 
-void curses::use_color(dos_color fg, dos_color bg) const {
+void curses_io::use_color(dos_color fg, dos_color bg) const {
 
 	attroff(A_BOLD | A_BLINK);
 
@@ -265,7 +265,7 @@ void curses::use_color(dos_color fg, dos_color bg) const {
 	return;
 }
 
-curses::curses() {
+curses_io::curses_io() {
 	window = initscr();
 
 	if (window == NULL) {
@@ -281,54 +281,54 @@ curses::curses() {
 	set_color(LightGray, Black); // set a first color
 }
 
-curses::~curses() {
+curses_io::~curses_io() {
 	// If we have an allocated screen, clean it up.
 
 	if (window != NULL) {
 		delwin(window);
 		endwin();
-		redraw();
+		refresh();
 	}
 }
 
-void curses::show_cursor() const {
+void curses_io::show_cursor() const {
 	if (curs_set(1) == ERR) {
 		throw std::runtime_error("Curses: Error making cursor visible.");
 	}
 }
 
-void curses::hide_cursor() const {
+void curses_io::hide_cursor() const {
 	if (curs_set(0) == ERR) {
 		throw std::runtime_error("Curses: Error making cursor hidden.");
 	}
 }
 
-void curses::set_color(dos_color fg, dos_color bg) const {
+void curses_io::set_color(dos_color fg, dos_color bg) const {
 	use_color(fg, bg);
 }
 
-void curses::set_text_color(dos_color fg) const {
+void curses_io::set_text_color(dos_color fg) const {
 	use_color(fg, current_bg);
 }
 
-void curses::set_background_color(dos_color bg) const {
+void curses_io::set_background_color(dos_color bg) const {
 	use_color(current_fg, bg);
 }
 
 // TODO: Use exceptions instead.
 
-bool curses::print(const std::string to_print) const {
+bool curses_io::print(const std::string to_print) const {
 	// TODO: Unicode stuff.
 	int errval = wprintw(window, to_print.c_str());
 
 	return (errval != ERR);
 }
 
-bool curses::print(int x, int y, const char * str) const {
+bool curses_io::print(int x, int y, const char * str) const {
 	return(print(x, y, str, strlen(str)));
 }
 
-bool curses::print(int x, int y, const char * str, size_t maxlen) const {
+bool curses_io::print(int x, int y, const char * str, size_t maxlen) const {
 	bool done = true;
 	for (int counter = 0; counter < std::min(strlen(str), maxlen); ++counter)
 		done &= print_ch(x + counter, y, str[counter]);
@@ -336,18 +336,18 @@ bool curses::print(int x, int y, const char * str, size_t maxlen) const {
 	return(done);
 }
 
-bool curses::print(int x, int y, std::string str) const {
+bool curses_io::print(int x, int y, std::string str) const {
 	return(print(x, y, str.c_str(), str.size()));
 }
 
-bool curses::print_ch(int x, int y, char to_print) const {
+bool curses_io::print_ch(int x, int y, char to_print) const {
 	int errval = mvwprintw(window, y, x,
 			interpreter.unicode(to_print).c_str());
 
 	return (errval != ERR);
 }
 
-bool curses::print_ch(int x, int y, dos_color fg, dos_color bg,
+bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
 		char to_print) const {
 
 	// Set our color pair to the desired color (might want to use preset
@@ -360,14 +360,14 @@ bool curses::print_ch(int x, int y, dos_color fg, dos_color bg,
 	return(worked);
 }
 
-bool curses::print_col(int x, int y, dos_color fg, dos_color bg,
+bool curses_io::print_col(int x, int y, dos_color fg, dos_color bg,
 	std::string str) const {
 
 	use_color(fg, bg);
 	return (print(x, y, str));
 }
 
-bool curses::print_ext(int x, int y, dos_color fg, dos_color bg,
+bool curses_io::print_ext(int x, int y, dos_color fg, dos_color bg,
 		const std::vector<short> & ext) const {
 
 	use_color(fg, bg);
@@ -378,4 +378,36 @@ bool curses::print_ext(int x, int y, dos_color fg, dos_color bg,
 		 retval &= mvwaddch(window, y, x+counter, ext[counter]);
 
 	return(retval);
+}
+
+// Keyboard input.
+
+bool curses_io::key_pressed() const {
+	int key_or_err = getch();
+	if (key_or_err != ERR) {
+		ungetch(key_or_err);
+		return true;
+	}
+	return false;
+}
+
+char curses_io::read_key() {
+	int key_or_err = getch();
+	if (key_or_err == ERR) {
+		throw std::runtime_error("Tried to read key with no key available.");
+	}
+	return key_or_err;
+}
+
+char curses_io::read_key_blocking() {
+	// Turn off nonblocking mode, get the key, and turn it back on.
+	nodelay(window, false);
+
+	int key_or_err = getch();
+	if (key_or_err == ERR) {
+		throw std::runtime_error("Blocking keyboard read failed!");
+	}
+
+	nodelay(window, true);
+	return key_or_err;
 }

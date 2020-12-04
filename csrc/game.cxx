@@ -34,7 +34,7 @@
 
 /*#include "Dos.h"*/
 /*#include "Crt.h"*/
-#include "Video.h"
+#include "video.h"
 #include "sounds.h"
 #include "input.h"
 #include "elements.h"

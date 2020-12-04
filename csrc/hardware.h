@@ -2,7 +2,7 @@
 #include <string>
 #include <iostream>
 
-#include "curses.h"
+#include "curses_io.h"
 
 // All coordinates start at (1,1) (as is Pascal tradition).
 
@@ -17,7 +17,7 @@ const int WindMaxY = 25;      // Lower right, Y coordinate
 const int WindMinX = 1;       // Upper left, X coordinate
 const int WindMinY = 1;       // Upper left, Y coordinate
 
-extern curses * display;
+extern curses_io * display;
 
 // Set background color.
 void TextBackground(dos_color bgColor);
@@ -27,7 +27,7 @@ void TextColor(dos_color fgColor);
 // Clear the screen (nop)
 void ClrScr();
 
-// Set the window size.
+// Set the window size. Nop for now.
 void Window(int left, int top, int right, int bottom);
 
 // Go to (x, y).
@@ -42,3 +42,9 @@ void cursesWriteLn(std::string x);
 void uninitCurses();
 bool Keypressed();
 char ReadKey();
+char ReadKeyBlocking();
+char HasColors();
+
+// Currently unimplemented as we have no sound.
+void SoundUninstall();
+void SoundClearQueue();

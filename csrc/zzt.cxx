@@ -177,7 +177,10 @@ int main(int argc, const char* argv[]) {
 
     Randomize();
     SetCBreak(false);
-    InitialTextAttr = TextAttr;
+
+    // Back up the text attributes. This shouldn't be necessary because
+    // curses cleans up after itself.
+    //InitialTextAttr = TextAttr;
 
     StartupWorldFileName = "TOWN";
     //ResourceDataFileName = "ZZT.DAT";
@@ -207,24 +210,24 @@ int main(int argc, const char* argv[]) {
             //LEAKFIX: Remember to dispose of *everything* in use.
             WorldUnload();
             delete IoTmpBuf;
-    }
+    }*/
 
     SoundUninstall();
     SoundClearQueue();
 
-    VideoUninstall();
+    /*VideoUninstall();
     TextAttr = InitialTextAttr;
-    ClrScr;
+    ClrScr();*/
 
     if (length(ConfigRegistration) == 0)  {
-            GamePrintRegisterMessage();
+            //GamePrintRegisterMessage();
     } else {
-            output << NL;
-            output << "  Registered version -- Thank you for playing ZZT." << NL;
-            output << NL;
+            cursesWriteLn("");
+            cursesWriteLn("  Registered version -- Thank you for playing ZZT.");
+            cursesWriteLn("");
     }
 
     VideoShowCursor();
-    return EXIT_SUCCESS;*/
     uninitCurses();
+    return EXIT_SUCCESS;
 }

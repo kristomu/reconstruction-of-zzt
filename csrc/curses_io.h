@@ -6,8 +6,8 @@
 #include <string>
 #include <string.h>
 
-// Everything works in terms of DOS colors and characters. The ZZT conversion
-// doesn't know about any others.
+// Everything works in terms of DOS colors and characters. The ZZT
+// conversion doesn't know about any others.
 
 // This thing emulates DOS characters by using Unicode.
 class dos_emulation {
@@ -37,7 +37,7 @@ enum dos_color{ Black = 0,
              	White = 15
 };
 
-class curses {
+class curses_io {
 
 	WINDOW * window;
 
@@ -53,12 +53,14 @@ class curses {
 		bool prepare_colors();
 
 	public:
-		curses();
-		~curses();
+		curses_io();
+		~curses_io();
 
 		void move(int x, int y) {
 			wmove(window, y, x);
 		}
+
+		bool supports_colors() { return has_colors(); }
 
 		void set_black_and_white(bool BW) { black_and_white = BW; }
 
@@ -84,7 +86,8 @@ class curses {
 		bool print_ext(int x, int y, dos_color fg, dos_color bg,
 			const std::vector<short> & ext) const;
 
-		void redraw() const { refresh(); }
+		void redraw() const { wrefresh(window); }
+		void clrscr() const { wclear(window); }
 
 		int window_max_x() const { return getmaxx(window); }
 		int window_max_y() const { return getmaxy(window); }
@@ -92,4 +95,8 @@ class curses {
 		void set_window_boundaries(int left, int up, int right,
 			int down) {}; // NOP, currently
 		void clear_scr() { wclear(window); }
+
+		bool key_pressed() const;
+		char read_key();
+		char read_key_blocking();
 };
