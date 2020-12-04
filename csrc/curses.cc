@@ -272,6 +272,8 @@ curses::curses() {
 		throw(NCURSES_INIT_FAILURE);
 	}
 
+	nodelay(window, true);
+	noecho();
 	set_black_and_white(false);
 	start_color();
 	prepare_colors();

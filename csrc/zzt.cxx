@@ -35,7 +35,7 @@
 //#include "sounds.h"
 #include "fileops.h"
 //#include "input.h"
-//#include "video.h"
+#include "video.h"
 /*#include "dos.h"
 #include "txtwind.h"
 #include "elements.h"
@@ -148,9 +148,11 @@ void GameConfigure() {
     ClrScr();
     TextColor(Yellow);*/
     // TBD: video.pas
+    GotoXY(1, 8);
     TextColor(LightGreen);
-/*    if (! VideoConfigure())
-        GameTitleExitRequested = true;*/
+    TextBackground(Black);
+    if (! VideoConfigure())
+        GameTitleExitRequested = true;
 
     Window(1, 1, 80, bottomRow+1);
 }
