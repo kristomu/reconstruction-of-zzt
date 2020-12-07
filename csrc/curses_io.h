@@ -62,7 +62,10 @@ const int64_t E_KEY_UP = -1,
 	E_KEY_F12 = -23,
 	E_KEY_PAUSE = -24,
 	E_KEY_UNKNOWN = -25,
-	KEY_ESCAPE = '\33';
+	E_KEY_ESCAPE = -26,
+	E_KEY_ENTER = -27,
+	E_KEY_TAB = -28,
+	E_KEY_BACKSPACE = -29;
 
 struct key_response {
 	int64_t key = E_KEY_UNKNOWN; // if < 0, it's an extended key, otherwise a literal
@@ -90,6 +93,7 @@ class curses_io {
 
 		mutable dos_color current_fg, current_bg;
 		bool black_and_white;
+		bool was_blocking;
 
 		void use_color(dos_color fg, dos_color bg) const;
 		short dos_color_to_curses(dos_color color) const;
@@ -143,6 +147,9 @@ class curses_io {
 		void set_window_boundaries(int left, int up, int right,
 			int down) {}; // NOP, currently
 		void clear_scr() { wclear(window); }
+
+		void set_blocking();
+		void set_nonblocking();
 
 		bool key_pressed() const;
 		key_response read_key();

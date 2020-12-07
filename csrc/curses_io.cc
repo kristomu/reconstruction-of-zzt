@@ -234,9 +234,19 @@ bool curses_io::prepare_colors() {
 	return(true);
 }
 
+// This might not actually be required. Check later... (KEY_CODE_YES)
 key_response curses_io::parse_extended(std::wstring unparsed) const {
 	key_response response;
 	response.key = E_KEY_UNKNOWN;
+
+	// Check for control characters (backspace, enter, etc.)
+	// These are considered different from the straightforward interpretation
+	// (e.g. \n shouldn't map to U+25D9) because they're not meant to be
+	// literals, but instead have some special function.
+	if (unparsed == L"\033") { response.key = E_KEY_ESCAPE; return response; }
+	if (unparsed == L"\n") { response.key = E_KEY_ENTER; return response; }
+	if (unparsed == L"\x7F") { response.key = E_KEY_BACKSPACE; return response; }
+	if (unparsed == L"\t") { response.key = E_KEY_TAB; return response; }
 
 	// Modifier keys (CTRL ALT etc)
 	if (unparsed.substr(0, 4) == L"\033[1;") {
@@ -458,6 +468,16 @@ bool curses_io::print_ext(int x, int y, dos_color fg, dos_color bg,
 
 // Keyboard input.
 
+void curses_io::set_blocking() {
+	was_blocking = true;
+	nodelay(window, false);
+}
+
+void curses_io::set_nonblocking() {
+	was_blocking = false;
+	nodelay(window, true);
+}
+
 bool curses_io::key_pressed() const {
 	wint_t out;
 
@@ -479,34 +499,41 @@ key_response curses_io::read_key() {
 	do {
 		wint_t next_key;
 		key_or_err = wget_wch(window, &next_key);
-		// If the function is called from a blocking key read,
-		// we must turn nonblocking on for subsequent keys.
-		nodelay(window, true);
+
 		if (key_or_err == ERR) {
 			if (first) {
-				throw std::runtime_error(
-					"Tried to read key with no key available.");
+				if (was_blocking) {
+					throw std::logic_error("Curses has desynchronized. "
+						"Something is wrong with the code, perhaps missing"
+						" initialization of TxtWind?");
+				} else {
+					throw std::runtime_error(
+						"Tried to read key with no key available.");
+				}
 			}
 		} else {
 			keys_read.push_back(next_key);
 		}
+		// If the function is called from a blocking key read,
+		// we must turn nonblocking on for subsequent keys.
+		set_nonblocking();
+
 		first = false;
 	} while (key_or_err != ERR);
 
-	// No special codepoint
-	if(keys_read.size() == 1) {
-		out.key = keys_read[0];
-	} else {
-		return parse_extended(keys_read);
+	// Check if it's an extended key (i.e. not a character)
+	key_response possibly_extended = parse_extended(keys_read);
+	if (possibly_extended.key != E_KEY_UNKNOWN) {
+		return possibly_extended; // it was extended
 	}
 
+	out.key = keys_read[0];
 	return out;
 }
 
 key_response curses_io::read_key_blocking() {
 	// Turn off nonblocking mode and get the key. Read_key() will
 	// turn nonblocking back on.
-	nodelay(window, false);
-
+	set_blocking();
 	return read_key();
 }

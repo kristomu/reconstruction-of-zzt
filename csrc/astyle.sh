@@ -1,1 +1,1 @@
-astyle -A2 -o --mode=c --xC75 $1
+astyle -t -A2 -o --mode=c --xC75 $1
