@@ -1,8 +1,12 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include <memory>
+#include <vector>
 
+#include "unicode.h"
 #include "curses_io.h"
+#include "video.h"
 
 // All coordinates start at (1,1) (as is Pascal tradition).
 
@@ -17,7 +21,8 @@ const int WindMaxY = 25;      // Lower right, Y coordinate
 const int WindMinX = 1;       // Upper left, X coordinate
 const int WindMinY = 1;       // Upper left, Y coordinate
 
-extern curses_io * display;
+extern std::shared_ptr<curses_io> display;
+extern Video video;
 
 // Set background color.
 void TextBackground(dos_color bgColor);
@@ -41,10 +46,25 @@ void cursesWrite(std::string x);
 void cursesWriteLn(std::string x);
 void uninitCurses();
 bool Keypressed();
-char ReadKey();
-char ReadKeyBlocking();
+key_response ReadKey();
+key_response ReadKeyBlocking();
+char LiteralKey(const key_response response);
 char HasColors();
 
 // Currently unimplemented as we have no sound.
 void SoundUninstall();
 void SoundClearQueue();
+
+void Delay(int msec);
+
+extern int InputDeltaX, InputDeltaY;	// translates arrow keys to movement
+extern bool InputShiftPressed;			// It does what it says
+extern bool InputAltPressed, InputCtrlPressed; // NEW, to handle our kb interface
+extern bool InputSpecialKeyPressed;
+extern bool InputShiftAccepted; // ???
+extern bool InputJoystickMoved; // not supported
+extern int InputKeyPressed;
+//std::vector<int> InputKeyBuffer;	// Never seems to be used in the original.
+
+void InputUpdate();				// Polls and updates.
+void InputReadWaitKey();

@@ -11,13 +11,13 @@ struct TTextWindowState {
         integer LineCount;
         integer LinePos;
         array<1 , MAX_TEXT_WINDOW_LINES,TTextWindowLine*> Lines;
-        varying_string<20> Hyperlink;
+        asciiz Hyperlink;
         TTextWindowLine Title;
-        varying_string<50> LoadedFilename;
+        asciiz LoadedFilename;
 };
 struct TResourceDataHeader {
         integer EntryCount;
-        array<1 , MAX_RESOURCE_DATA_FILES,varying_string<50> > Name;
+        array<1 , MAX_RESOURCE_DATA_FILES,asciiz> Name;
         array<1 , MAX_RESOURCE_DATA_FILES,longint> FileOffset;
 };
 
@@ -40,7 +40,7 @@ EXTERN TVideoLine TextWindowStrInnerArrows;
 EXTERN boolean TextWindowRejected;
 EXTERN varying_string<50> ResourceDataFileName;
 EXTERN TResourceDataHeader ResourceDataHeader;
-EXTERN varying_string<50>* OrderPrintId;
+EXTERN string* OrderPrintId;
 #undef EXTERN
 #define EXTERN extern
 

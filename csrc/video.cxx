@@ -1,7 +1,9 @@
 #include "ptoc.h"
 #include "hardware.h"
+#include "video.h"
 
 #include <unistd.h>
+#include <memory>
 
 /*
 	Copyright (c) 2020 Adrian Siekierka
@@ -29,102 +31,97 @@
 */
 
 /*$I-*/
-#define __Video_implementation__
-
-
-#include "video.h"
 
 #include "dos.h"
 #include "unicode.h"
 
-integer VideoColumns;
+boolean VideoMonochrome;
+
+/*integer VideoColumns;
 integer VideoBorderColor;
 word VideoTextSegment;
 pointer VideoTextPointer;
-boolean VideoCursorVisible;
+boolean VideoCursorVisible;*/
 
 /* The input x,y values are offset by 0, i.e. 0,0 is upper left. */
-void VideoWriteText(byte x, byte y, byte color, TVideoLine text) {
+void Video::VideoWriteText(int x, int y, const TTextChar & to_print) {
+    io->print_ch(x, y, to_print.Color, to_print.Char);
+    primary_buffer[x][y] = to_print;
+}
+
+void Video::VideoWriteText(int x, int y, char color, char to_print) {
+    // But this needs Unicode conversion. Later.
+    io->print_ch(x, y, color, to_print);
+}
+
+void Video::VideoWriteText(int x, int y, char color, const char * text) {
+
+    const char * cur_text_char = text;
+    int cidx = 0;
+
+    while (*cur_text_char != 0) {
+        TTextChar cur_char;
+        cur_char.Char = text[cidx];
+        cur_char.Color = color;
+
+        //if (x+offset >= terminalWidth)  return;
+
+        VideoWriteText(x+cidx, y, cur_char);
+        ++cidx;
+        ++cur_text_char;
+    }
+
+}
+
+void Video::VideoWriteText(int x, int y, char color, TVideoLine text) {
     integer offset;
     char c;
 
-    integer terminalWidth;
+    /*integer terminalWidth;
     integer terminalHeight;
-    integer charPseudoEnd;
+    integer charPseudoEnd;*/
 
     /*Get the terminal height and width to avoid printing
     outside it. TODO: Determine the dimensions at the moment of the call.
     	 https://stackoverflow.com/questions/26776980 */
 
-    terminalWidth = WindMaxX - WindMinX + 1;
-    terminalHeight = WindMaxY - WindMinY + 1;
+    // Should no longer be necessary with curses.
 
-    if (y >= terminalHeight)  return;
+    /*terminalWidth = WindMaxX - WindMinX + 1;
+    terminalHeight = WindMaxY - WindMinY + 1;*/
 
-    for( int cidx = 1; cidx <= length(text); cidx ++) {
-        if (x+offset >= terminalWidth)  return;
-        display->print_ch(x, y, (dos_color)(color & 0x8),
-            (dos_color)((color >> 4) & 0x8), text[cidx]);
+    //if (y >= terminalHeight)  return;
+
+    // With the curses class, blink works out of the box.
+    // TODO: Deal with unicode when that time happens. The conversion
+    // between DOS characters and Unicode should either happen here or
+    // in curses - I'm inclined to think that it should happen in curses,
+    // though putting it here would make "Unicode ZZT" much easier to
+    // handle.
+
+    for (int cidx = 0; cidx < text.size(); cidx ++) {
+        TTextChar cur_char;
+        cur_char.Char = text[cidx];
+        cur_char.Color = color;
+
+        //if (x+offset >= terminalWidth)  return;
+
+        VideoWriteText(x+cidx, y, cur_char);
     }
 
-    return;
-
-/*    int Blink = 0;
-
-    if (color > 0x7f)
-        TextColor((color & 0xf) + Blink);
-    else
-        TextColor(color & 0xf);
-    TextBackground((cardinal)color >> 4);*/
-
-    /* Hack from https://stackoverflow.com/a/35140822
-    A better solution will have to move away from Crt altogether.*/
-
-    /* Possible performance improvement: extract the contents of
-    this loop to a separate procedure. */
-    for( int cidx = 1; cidx <= length(text); cidx ++) {
-        if (x+offset >= terminalWidth)  return;
-
-        /* Since Crt believes we're outputting ASCII, it'll
-        "helpfully" scroll the terminal if we output multi-
-        	  char unicode while at the very lower right. There's
-        	  no way to avoid this misfeature, so just don't print
-        	  it in that case. */
-        /*
-        charPseudoEnd = x+offset+UTF8Len(CP437ToCodepoint(ord(text[cidx])));
-        if ((y == terminalHeight-1) && (charPseudoEnd >= terminalWidth))
-            continue_;
-
-        GotoXY(1, 1);
-        GotoXY(x+offset+1, y+1);
-        MainBuffer[x+offset+1][y+1].Color = color;
-        MainBuffer[x+offset+1][y+1].Char = text[cidx];*/
-
-        /* For the same reason, it'll corrupt every "too-wide" utf8
-        point, so if we have any of those, just print a black-on-grey
-        	  question mark. */
-        /*if (charPseudoEnd > terminalWidth)  {
-            TextColor(0);
-            TextBackground(0x7);
-            output << '?';
-        } else
-            WriteUnicodeAsUTF8(CP437ToCodepoint(ord(c)));
-
-        offset = offset + 1;*/
-    }
     /* Move the cursor out of the way of the playing field. */
     /*if ((! VideoCursorVisible) && (terminalWidth > 61))
         GotoXY(61, 1);*/
+    return;
 }
 
 /* Does nothing in Linux. The point in DOS is to change the charset from 9x16 to
 8x14. It will have to be done in some other way in Linux. I'm keeping the empty
 function as reminder to myself. TODO */
 void VideoToggleEGAMode(boolean EGA) {
-    ;
 }
 
-boolean VideoConfigure() {
+bool Video::VideoConfigure() {
     char charTyped;
 
     boolean VideoConfigure_result;
@@ -139,22 +136,28 @@ boolean VideoConfigure() {
     cursesWrite("  Video mode:  C)olor,  M)onochrome?  ");
 
     bool gotResponse = false;
+    int64_t typed;
 
     while (!gotResponse) {
-        char charTyped = toupper(ReadKeyBlocking());
+        typed = ReadKeyBlocking().key;
         gotResponse = true;
 
-        switch (charTyped) {
+        switch (typed) {
+            case 'c':
             case 'C': VideoMonochrome = false; break;
+            case 'm':
             case 'M': VideoMonochrome = true; break;
-            case '\33': VideoMonochrome = MonochromeOnly; break;
+            case E_KEY_ESCAPE: VideoMonochrome = MonochromeOnly; break;
             default: gotResponse = false; break;
         }
     }
-    return charTyped != '\33';
+    return typed != E_KEY_ESCAPE;
 }
 
-void VideoInstall(integer columns, dos_color borderColor) {
+void Video::VideoInstall(integer columns, dos_color borderColor,
+    std::shared_ptr<curses_io> io_in) {
+
+    io = io_in;
     VideoToggleEGAMode(true);
 
     if (! VideoMonochrome)
@@ -182,12 +185,12 @@ void VideoInstall(integer columns, dos_color borderColor) {
             TextBackground(borderColor);
         ClrScr;
     }*/
-    if (! VideoCursorVisible)
-        VideoHideCursor();
+/*    if (! VideoCursorVisible)
+        VideoHideCursor();*/
     VideoSetBorderColor(borderColor);
 }
 
-void VideoUninstall() {
+void Video::VideoUninstall() {
     VideoToggleEGAMode(false);
     TextBackground(Black);
     /*VideoColumns = 80;
@@ -202,16 +205,16 @@ void VideoUninstall() {
 /* These do nothing in Linux, but are meant to show or hide the terminal cursor.
 It will have to be done in some other way. TODO */
 void VideoShowCursor() {
-    VideoCursorVisible = true;
+    //VideoCursorVisible = true;
 }
 
 void VideoHideCursor() {
-    VideoCursorVisible = false;
+    //VideoCursorVisible = false;
 }
 
 /* This does nothing in Linux either. I'm keeping the empty function in case
 someone who makes e.g. an SDL version would like to implement it. */
-void VideoSetBorderColor(integer value) {
+void Video::VideoSetBorderColor(dos_color value) {
     ;
 }
 
@@ -219,40 +222,20 @@ void VideoSetBorderColor(integer value) {
   character/color data from the given array to screen by using WriteText. If
   toVideo is false, it copies the character/color data from the video memory
   mirror to the given array. */
-void VideoCopy(integer xfrom, integer yfrom, integer width, integer height,
-               TVideoBuffer& buf,
-               boolean toVideo) {
-    integer x, y;
+void Video::VideoCopy(int x_from, int y_from, int width, int height,
+    bool to_display) {
 
+    int x, y;
 
-    for( y = yfrom; y <= yfrom + height - 1; y ++)
-        for( x = xfrom; x <= xfrom + width - 1; x ++) {
-            if (toVideo)
-                VideoWriteText(x, y,
-                               buf[x+1][y+1].Color,
-                               buf[x+1][y+1].Char);
-            else
-                buf[x+1][y+1] = MainBuffer[x+1][y+1];
+    for (y = y_from; y < y_from + height; ++y) {
+        for(x = x_from; x < x_from + width; x ++) {
+            if (to_display) {
+                VideoWriteText(x, y, secondary_buffer[x][y]);
+            } else {
+                secondary_buffer[x][y] = primary_buffer[x][y];
+            }
         }
-}
-
-class unit_Video_initialize {
-public: unit_Video_initialize();
-};
-static unit_Video_initialize Video_constructor;
-
-// C'tor. Fugggedaboudit for now.
-
-unit_Video_initialize::unit_Video_initialize() {
-    /*VideoBorderColor = 0;
-    VideoColumns = 80;
-    if (LastMode == 7)  {
-        VideoTextSegment = 0xb000;
-        VideoMonochrome = true;
-    } else {
-        VideoTextSegment = 0xb800;
-        VideoMonochrome = false;
     }
-    VideoTextPointer = Ptr(VideoTextSegment, 0);
-    VideoCursorVisible = true;*/
 }
+
+// Border color should be 0, columns should be 80.
