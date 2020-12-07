@@ -37,6 +37,50 @@ enum dos_color{ Black = 0,
              	White = 15
 };
 
+const int64_t E_KEY_UP = -1,
+	E_KEY_DOWN = -2,
+	E_KEY_RIGHT = -3,
+	E_KEY_LEFT = -4,
+	E_KEY_NUMPAD_CLEAR = -5,	// the one in the center of the numpad
+	E_KEY_INSERT = -6,
+	E_KEY_HOME = -7,
+	E_KEY_PAGE_UP = -8,
+	E_KEY_PAGE_DOWN = -9,
+	E_KEY_DELETE = -10,
+	E_KEY_END = -11,
+	E_KEY_F1 = -12,
+	E_KEY_F2 = -13,
+	E_KEY_F3 = -14,
+	E_KEY_F4 = -15,
+	E_KEY_F5 = -16,
+	E_KEY_F6 = -17,
+	E_KEY_F7 = -18,
+	E_KEY_F8 = -19,
+	E_KEY_F9 = -20,
+	E_KEY_F10 = -21,
+	E_KEY_F11 = -22,
+	E_KEY_F12 = -23,
+	E_KEY_PAUSE = -24,
+	E_KEY_UNKNOWN = -25,
+	KEY_ESCAPE = '\33';
+
+struct key_response {
+	int64_t key = E_KEY_UNKNOWN; // if < 0, it's an extended key, otherwise a literal
+	bool alt = false, ctrl = false, shift = false;
+};
+
+// The curses IO class implicitly assumes that we're running on an ANSI
+// terminal with unicode support. It's very hard to do proper input and
+// output otherwise; I, at least, have not found a way to do so. Using
+// keypad(TRUE) causes collisions: some function key values now occupy
+// the same space as non-function keys (ĉ and F1 keys), and there's no
+// way (seemingly) to distinguish them using the external ncurses
+// interface.
+
+// Similarly, being able to print all the DOS code page 437 characters
+// requires something more powerful than just the ACS_* macros, so the code
+// assumes that wchar_int values do in fact represent UTF-8 codepoints.
+
 class curses_io {
 
 	WINDOW * window;
@@ -51,6 +95,8 @@ class curses_io {
 		short dos_color_to_curses(dos_color color) const;
 		int linear(int x, int y, int xsize) const;
 		bool prepare_colors();
+
+		key_response parse_extended(std::wstring unparsed) const;
 
 	public:
 		curses_io();
@@ -77,9 +123,11 @@ class curses_io {
 		bool print(int x, int y, const char * str, size_t maxlen) const;
 		bool print(int x, int y, const std::string str) const;
 
-		bool print_ch(int x, int y, char to_print) const;
+		bool print_ch(int x, int y, unsigned char to_print) const;
 		bool print_ch(int x, int y, dos_color fg, dos_color bg,
-			char to_print) const;
+			unsigned char to_print) const;
+		bool print_ch(int x, int y, char packed_color,
+			unsigned char to_print) const;
 		bool print_col(int x, int y, dos_color fg, dos_color bg,
 			const std::string str) const;
 		// TODO: Replace this with DOS char mapping.
@@ -97,6 +145,6 @@ class curses_io {
 		void clear_scr() { wclear(window); }
 
 		bool key_pressed() const;
-		char read_key();
-		char read_key_blocking();
+		key_response read_key();
+		key_response read_key_blocking();
 };

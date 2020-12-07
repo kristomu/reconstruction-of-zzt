@@ -1,5 +1,7 @@
 #include "curses_io.h"
+#include "unicode.h"
 #include <stdexcept>
+#include <ncurses.h>
 
 // Put the stuff below into a class? Singleton for window? Eh...
 
@@ -232,6 +234,61 @@ bool curses_io::prepare_colors() {
 	return(true);
 }
 
+key_response curses_io::parse_extended(std::wstring unparsed) const {
+	key_response response;
+	response.key = E_KEY_UNKNOWN;
+
+	// Modifier keys (CTRL ALT etc)
+	if (unparsed.substr(0, 4) == L"\033[1;") {
+		int modifier_bitmap = unparsed[4] - '1';
+		// CTRL: 4 (100)
+		// ALT: 2 (010)
+		// SHIFT: 1 (001)
+		response.ctrl = (modifier_bitmap & 4) != 0;
+		response.alt =  (modifier_bitmap & 2) != 0;
+		response.shift = (modifier_bitmap & 1) != 0;
+		// Remove the modifiers.
+		unparsed = L"\033[" + unparsed.substr(5);
+	}
+
+	if (unparsed == L"\033[A") { response.key = E_KEY_UP; }
+	if (unparsed == L"\033[B") { response.key = E_KEY_DOWN; }
+	if (unparsed == L"\033[C") { response.key = E_KEY_RIGHT; }
+	if (unparsed == L"\033[D") { response.key = E_KEY_LEFT; }
+	if (unparsed == L"\033[E") { response.key = E_KEY_NUMPAD_CLEAR; } // center of keypad
+	if (unparsed == L"\033[2~") { response.key = E_KEY_INSERT; }
+	if (unparsed == L"\033[H") { response.key = E_KEY_HOME; }
+	if (unparsed == L"\033[5~") { response.key = E_KEY_PAGE_UP; }
+	if (unparsed == L"\033[3~") { response.key = E_KEY_DELETE; }
+	if (unparsed == L"\033[F") { response.key = E_KEY_END; }
+	if (unparsed == L"\033[6~") { response.key = E_KEY_PAGE_DOWN; }
+	if (unparsed == L"\033[OP") { response.key = E_KEY_F1; }
+	if (unparsed == L"\033[OQ") { response.key = E_KEY_F2; }
+	if (unparsed == L"\033[OR") { response.key = E_KEY_F3; }
+	if (unparsed == L"\033[OS") { response.key = E_KEY_F4; }
+	if (unparsed == L"\033[15~") { response.key = E_KEY_F5; }
+	if (unparsed == L"\033[17~") { response.key = E_KEY_F6; }
+	if (unparsed == L"\033[18~") { response.key = E_KEY_F7; }
+	if (unparsed == L"\033[19~") { response.key = E_KEY_F8; }
+	if (unparsed == L"\033[20~") { response.key = E_KEY_F9; }
+	if (unparsed == L"\033[21~") { response.key = E_KEY_F10; }
+	if (unparsed == L"\033[23~") { response.key = E_KEY_F11; }
+	if (unparsed == L"\033[24~") { response.key = E_KEY_F12; }
+	if (unparsed == L"\033[P") { response.key = E_KEY_PAUSE; }
+
+	// CTRL + ordinary keys register as ordinary, but with a different char
+	// code. (To be implemented later.)
+
+	// CTRL+ALT registers as ALT + early chars. I'm gonna leave that alone.
+	// ALT + ordinary keys register like this:
+	if (unparsed.size() == 2 && unparsed[0]  == L'\033') {
+		response.alt = true;
+		response.key = unparsed[1];
+	}
+
+	return response;
+}
+
 void curses_io::use_color(dos_color fg, dos_color bg) const {
 
 	attroff(A_BOLD | A_BLINK);
@@ -265,8 +322,13 @@ void curses_io::use_color(dos_color fg, dos_color bg) const {
 	return;
 }
 
+// FML: https://stackoverflow.com/questions/54795303
+// Do you wanna have a bad time? Then switch the two first lines
+// inside here and enjoy.
 curses_io::curses_io() {
+	setlocale(LC_ALL, "");
 	window = initscr();
+	keypad(window, false);
 
 	if (window == NULL) {
 		throw(NCURSES_INIT_FAILURE);
@@ -274,9 +336,14 @@ curses_io::curses_io() {
 
 	nodelay(window, true);
 	noecho();
+	cbreak();
 	set_black_and_white(false);
 	start_color();
 	prepare_colors();
+
+	// Set a quicker time out on function keys so that the delay when
+	// pressing escape isn't as noticeable.
+	ESCDELAY = 100;
 
 	set_color(LightGray, Black); // set a first color
 }
@@ -340,15 +407,17 @@ bool curses_io::print(int x, int y, std::string str) const {
 	return(print(x, y, str.c_str(), str.size()));
 }
 
-bool curses_io::print_ch(int x, int y, char to_print) const {
-	int errval = mvwprintw(window, y, x,
-			interpreter.unicode(to_print).c_str());
+bool curses_io::print_ch(int x, int y, unsigned char to_print) const {
+	// This is kind of a hack, but apparently that's the right way
+	// to do it!
+	wchar_t arr[2] = {CP437ToCodepoint(to_print), 0};
+	int errval = mvwaddnwstr(window, y, x, arr, 1);
 
 	return (errval != ERR);
 }
 
 bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
-		char to_print) const {
+		unsigned char to_print) const {
 
 	// Set our color pair to the desired color (might want to use preset
 	// color pairs later).
@@ -358,6 +427,13 @@ bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
 	use_color(fg, bg);
 	bool worked = print_ch(x, y, to_print);
 	return(worked);
+}
+
+bool curses_io::print_ch(int x, int y, char packed_color,
+	unsigned char to_print) const {
+
+	return print_ch(x, y, (dos_color)(packed_color & 0xF),
+		(dos_color)(packed_color >> 4), to_print);
 }
 
 bool curses_io::print_col(int x, int y, dos_color fg, dos_color bg,
@@ -383,7 +459,9 @@ bool curses_io::print_ext(int x, int y, dos_color fg, dos_color bg,
 // Keyboard input.
 
 bool curses_io::key_pressed() const {
-	int key_or_err = getch();
+	wint_t out;
+
+	int key_or_err = wget_wch(window, &out);
 	if (key_or_err != ERR) {
 		ungetch(key_or_err);
 		return true;
@@ -391,23 +469,44 @@ bool curses_io::key_pressed() const {
 	return false;
 }
 
-char curses_io::read_key() {
-	int key_or_err = getch();
-	if (key_or_err == ERR) {
-		throw std::runtime_error("Tried to read key with no key available.");
+key_response curses_io::read_key() {
+	key_response out;
+	std::wstring keys_read;
+	int key_or_err;
+	bool first = true;
+
+	// Get the raw input.
+	do {
+		wint_t next_key;
+		key_or_err = wget_wch(window, &next_key);
+		// If the function is called from a blocking key read,
+		// we must turn nonblocking on for subsequent keys.
+		nodelay(window, true);
+		if (key_or_err == ERR) {
+			if (first) {
+				throw std::runtime_error(
+					"Tried to read key with no key available.");
+			}
+		} else {
+			keys_read.push_back(next_key);
+		}
+		first = false;
+	} while (key_or_err != ERR);
+
+	// No special codepoint
+	if(keys_read.size() == 1) {
+		out.key = keys_read[0];
+	} else {
+		return parse_extended(keys_read);
 	}
-	return key_or_err;
+
+	return out;
 }
 
-char curses_io::read_key_blocking() {
-	// Turn off nonblocking mode, get the key, and turn it back on.
+key_response curses_io::read_key_blocking() {
+	// Turn off nonblocking mode and get the key. Read_key() will
+	// turn nonblocking back on.
 	nodelay(window, false);
 
-	int key_or_err = getch();
-	if (key_or_err == ERR) {
-		throw std::runtime_error("Blocking keyboard read failed!");
-	}
-
-	nodelay(window, true);
-	return key_or_err;
+	return read_key();
 }
