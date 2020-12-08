@@ -87,7 +87,7 @@ int64_t keyUpCase(int64_t key) {
       if (key < 0) {
             return key;
       }
-      return toupper((char(key)));
+      return toupper((char)key);
 }
 
 void GetTime(short & hour, short & minute, short & second,
@@ -151,7 +151,7 @@ void InputUpdateCore(bool blocking) {
 
       // To avoid input lag, flush the whole buffer. The first key,
       // registered above, is what counts.
-      while (Keypressed()) { ReadKey(); }
+      display->flush_keybuf();
 
       InputShiftPressed = key_read.shift;
       InputAltPressed = key_read.alt;

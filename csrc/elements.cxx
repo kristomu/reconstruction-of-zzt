@@ -1468,7 +1468,7 @@ void ElementPlayerTick(integer statId) {
 			}
 		}
 
-		switch (upcase(InputKeyPressed)) {
+		switch (keyUpCase(InputKeyPressed)) {
 		case 'T': {
 			if (World.Info.TorchTicks <= 0)  {
 				if (World.Info.Torches > 0)  {
@@ -1567,9 +1567,11 @@ void ElementPlayerTick(integer statId) {
 }
 
 void ElementMonitorTick(integer statId) {
-	if (set::of('\33', 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|',
-	            eos).has(upcase(InputKeyPressed)))
+
+	if (set::of(E_KEY_ESCAPE, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|',
+	            eos).has(keyUpCase(InputKeyPressed))) {
 		GamePlayExitRequested = true;
+	}
 }
 
 void ResetMessageNotShownFlags() {
