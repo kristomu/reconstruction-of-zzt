@@ -40,14 +40,14 @@ struct TElementDef {
         TElementTouchProc TouchProc;
         integer EditorCategory;
         char EditorShortcut;
-        varying_string<20> Name;
-        varying_string<20> CategoryName;
-        varying_string<20> Param1Name;
-        varying_string<20> Param2Name;
-        varying_string<20> ParamBulletTypeName;
-        varying_string<20> ParamBoardName;
-        varying_string<20> ParamDirName;
-        varying_string<20> ParamTextName;
+        asciiz Name;
+        asciiz CategoryName;
+        asciiz Param1Name;
+        asciiz Param2Name;
+        asciiz ParamBulletTypeName;
+        asciiz ParamBoardName;
+        asciiz ParamDirName;
+        asciiz ParamTextName;
         integer ScoreValue;
 };
 /* Since pointers are 8 bytes on Linux, we have to rearrange
@@ -78,7 +78,7 @@ struct TBoardInfo {
         boolean IsDark;
         array<0 , 3,byte> NeighborBoards;
         boolean ReenterWhenZapped;
-        varying_string<58> Message;
+        asciiz Message;
         byte StartPlayerX;
         byte StartPlayerY;
         integer TimeLimitSec;
@@ -95,8 +95,8 @@ struct TWorldInfo {
         integer EnergizerTicks;
         integer unk1;
         integer Score;
-        varying_string<20> Name;
-        array<1 , MAX_FLAG,varying_string<20> > Flags;
+        asciiz Name;
+        array<1 , MAX_FLAG,asciiz> Flags;
         integer BoardTimeSec;
         integer BoardTimeHsec;
         boolean IsSave;
@@ -115,7 +115,8 @@ struct TBoard {
 };
 struct TWorld {
         integer BoardCount;
-        array<0 , MAX_BOARD,pointer> BoardData;
+        // dynamic board length.
+        array<0 , MAX_BOARD, byte*> BoardData;
         /* KevEdit treats board length as unsigned, so to handle >32k
 			  boards without corrupting subsequent ones... */
         array<0 , MAX_BOARD,word> BoardLen;
@@ -123,7 +124,7 @@ struct TWorld {
         array<0 , MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
 };
 struct THighScoreEntry {
-        varying_string<50> Name;
+        asciiz Name;
         integer Score;
 };
 typedef array<1 , HIGH_SCORE_COUNT,THighScoreEntry> THighScoreList;

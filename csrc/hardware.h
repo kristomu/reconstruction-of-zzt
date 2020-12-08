@@ -55,6 +55,9 @@ char HasColors();
 void SoundUninstall();
 void SoundClearQueue();
 
+// This is getting pretty ugly.
+int64_t keyUpCase(int64_t key);
+
 void Delay(int msec);
 
 extern int InputDeltaX, InputDeltaY;	// translates arrow keys to movement

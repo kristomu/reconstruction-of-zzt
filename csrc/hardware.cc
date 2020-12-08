@@ -79,6 +79,13 @@ char HasColors() {
 void SoundUninstall() {}
 void SoundClearQueue() {}
 
+int64_t keyUpCase(int64_t key) {
+      if (key < 0) {
+            return key;
+      }
+      return toupper((char(key)));
+}
+
 void Delay(int msec) { usleep(msec*1000); }
 
 int InputDeltaX, InputDeltaY;      // translates arrow keys to movement
