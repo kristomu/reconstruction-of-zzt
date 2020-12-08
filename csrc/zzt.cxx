@@ -209,7 +209,8 @@ int main(int argc, const char* argv[]) {
 
             // XXX: Fix
             //OrderPrintId = &GameVersion;
-            IoTmpBuf = new TIoTmpBuf;
+            IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+            //new TIoTmpBuf;
 
             video.VideoHideCursor();
             ClrScr;
@@ -225,7 +226,7 @@ int main(int argc, const char* argv[]) {
 
             //LEAKFIX: Remember to dispose of *everything* in use.
             WorldUnload();
-            delete IoTmpBuf;
+            delete[] IoTmpBuf;
     }
 
     SoundUninstall();

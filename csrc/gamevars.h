@@ -129,14 +129,16 @@ struct THighScoreEntry {
 };
 typedef array<1 , HIGH_SCORE_COUNT,THighScoreEntry> THighScoreList;
 /* This is used to make sure IoTmpBuf is always large enough to hold
-		  what changes may happen to the board. In the worst case, the board
-		  is completely empty when loaded but takes max space due to stats,
-		  then during play, the board gets filled with random tiles. That
-		  will require MAX_RLE_OVERFLOW additional bytes to hold. So by
-		  dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
-		  that it can never run out of space from RLE shenanigans. */
+   what changes may happen to the board. In the worst case, the board
+   is completely empty when loaded but takes max space due to stats,
+   then during play, the board gets filled with random tiles. That
+   will require MAX_RLE_OVERFLOW additional bytes to hold. So by
+   dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
+   that it can never run out of space from RLE shenanigans. */
 const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * sizeof(TRleTile);
-typedef array<0 , (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1),byte> TIoTmpBuf;
+//typedef array<0 , (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1),byte> TIoTmpBuf;
+// ptoc arrays can't be directly addressed in C, so this hack is necessary.
+typedef byte TIoTmpBuf;
 
 #ifdef __GameVars_implementation__
 #undef EXTERN
