@@ -50,7 +50,8 @@ void OopReadChar(integer statId, integer& position) {
     {
         TStat& with = Board.Stats[statId];
         if ((position >= 0) && (position < with.DataLen))  {
-            Move(* {{with.Data+position}}, OopChar, 1);
+            OopChar = *(with.Data + position);
+            /*Move(* {{with.Data+position}}, OopChar, 1);*/
             position += 1;
         } else {
             OopChar = '\0';
@@ -551,7 +552,7 @@ void OopExecute(integer statId, integer& position, TString50 name) {
     integer lastPosition;
     boolean repeatInsNextTick;
     boolean lineFinished;
-    pointer labelPtr;
+    byte* labelPtr;
     integer labelDataPos;
     integer labelStatId;
     integer* counterPtr;
@@ -736,9 +737,9 @@ LReadCommand:
                         labelStatId = 0;
                         while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r:"))  {
                             labelPtr = Board.Stats[labelStatId].Data;
-                            AdvancePointer(labelPtr, labelDataPos + 1);
+                            labelPtr += labelDataPos + 1;
 
-                            (char)(labelPtr) = '\47';
+                            *labelPtr = '\47';
                         }
                     } else if (OopWord == "RESTORE")  {
                         OopReadWord(statId, position);
@@ -747,9 +748,9 @@ LReadCommand:
                         while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r\47"))
                             do {
                                 labelPtr = Board.Stats[labelStatId].Data;
-                                AdvancePointer(labelPtr, labelDataPos + 1);
+                                labelPtr += labelDataPos + 1;
 
-                                (char)(labelPtr) = ':';
+                                *labelPtr = ':';
 
                                 labelDataPos = OopFindString(labelStatId,
                                                              string("\r\47") + OopWord + '\15');

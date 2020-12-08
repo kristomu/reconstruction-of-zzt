@@ -1,5 +1,7 @@
 #include "ptoc.h"
 
+#include <dirent.h>
+
 /*
 	Copyright (c) 2020 Adrian Siekierka
 
@@ -36,9 +38,9 @@
 /*#include "Crt.h"*/
 #include "video.h"
 #include "sounds.h"
-//#include "elements.h"
+#include "elements.h"
 //#include "editor.h"
-//#include "oop.h"
+#include "oop.h"
 #include "fileops.h"
 #include "minmax.h"
 
@@ -1175,7 +1177,8 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 			LoadedGameFileName = filename;
 			WorldLoad_result = true;
 
-			HighScoresLoad();
+            // XXX: Once we add in editor.cxx
+			//HighScoresLoad();
 
 			SidebarClearLine(5);
 		}
@@ -1279,7 +1282,7 @@ boolean GameWorldLoad(TString50 extension) {
 	GameWorldLoad_result = false;
 	textWindow.Selectable = true;
 
-	FindFirst(string('*') + extension, AnyFile, fileSearchRec);
+	/*FindFirst(string('*') + extension, AnyFile, fileSearchRec);
 	while (DosError == 0)  {
 		entryName = copy(fileSearchRec.Name, 1, length(fileSearchRec.Name) - 4);
 
@@ -1289,7 +1292,20 @@ boolean GameWorldLoad(TString50 extension) {
 
 		TextWindowAppend(textWindow, entryName);
 		FindNext(fileSearchRec);
-	}
+	}*/
+
+    // https://stackoverflow.com/questions/612097
+
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir (".")) != NULL) {
+        /* print all the files and directories within directory */
+        while ((ent = readdir (dir)) != NULL) {
+            TextWindowAppend(textWindow, ent->d_name);
+        }
+        closedir (dir);
+    }
+
 	TextWindowSort(textWindow); /* Sort the file names. */
 	TextWindowAppend(textWindow, "Exit");
 
@@ -2009,8 +2025,9 @@ void GamePlayLoop(boolean boardChanged) {
 			video.VideoWriteText(64, 5, 0x1f, "Pausing...");
 			InputUpdate();
 
-			if (InputKeyPressed == E_KEY_ESCAPE)
+			if (InputKeyPressed == E_KEY_ESCAPE) {
 				GamePromptEndPlay();
+            }
 
 			if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
 				ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y +
@@ -2073,14 +2090,34 @@ void GamePlayLoop(boolean boardChanged) {
 				InputUpdate();
 			}
 		}
+
+        // Imported from fuzz branch for easier debugging:
+
+        /* Crash if the invariant that the player (or monitor) must exist
+            and be at the X,Y given by stat 0 is violated. We have to check
+            for both player and monitor no matter what the GameStateElement
+            is in order to support Chronos' Forced Play hack. */
+        if (!ValidCoord(Board.Stats[0].X, Board.Stats[0].Y)) {
+            throw std::logic_error("game.cxx: Player or Monitor is off-board."
+                " This should never happen.");
+        }
+
+        byte playerTileElem = Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+        if (playerTileElem != E_PLAYER && playerTileElem != E_MONITOR) {
+            throw std::logic_error("game.cxx: Board has no Player or Monitor."
+                " This should never happen.");
+        }
+
 	} while (!((exitLoop || GamePlayExitRequested) && GamePlayExitRequested));
 
 	SoundClearQueue();
 
 	if (GameStateElement == E_PLAYER)  {
-		if (World.Info.Health <= 0)  {
+        // XXX: Once we add in editor.cxx
+        // Should high score routines be in editor anyway?
+		/*if (World.Info.Health <= 0)  {
 			HighScoresAdd(World.Info.Score);
-		}
+		}*/
 	} else if (GameStateElement == E_MONITOR)  {
 		SidebarClearLine(5);
 	}
@@ -2134,12 +2171,13 @@ void GameTitleLoop() {
 				GameAboutScreen();
 			}
 			break;
-			case 'E': if (EditorEnabled)  {
+            // XXX: Once we add in editor.cxx
+			/*case 'E': if (EditorEnabled)  {
 					EditorLoop();
 					ReturnBoardId = World.Info.CurrentBoard;
 					boardChanged = true;
 				}
-				break;
+				break;*/
 			case 'S': {
 				SidebarPromptSlider(true, 66, 21, "Game speed:;FS", TickSpeed);
 				InputKeyPressed = '\0';
@@ -2153,10 +2191,11 @@ void GameTitleLoop() {
 				}
 			}
 			break;
-			case 'H': {
+            // XXX: Once we add in editor.cxx
+			/*case 'H': {
 				HighScoresLoad();
 				HighScoresDisplay(1);
-			}
+			}*/
 			break;
 			case '|': {
 				GameDebugPrompt();

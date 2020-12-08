@@ -133,9 +133,12 @@ string ErrorString(integer e) {
 }
 
 void OpenForRead(untyped_file& f, longint l) {
-    throw std::logic_error("Open a file for writing, needs file size");
-    /*FileMode = FILE_READ_ONLY;
-    reset(f, l);*/
+    //throw std::logic_error("Open a file for writing, needs file size");
+    //FileMode = FILE_READ_ONLY;
+    //reset(f, l, NULL, ioResult);
+    // Yowza. That can't go well. PtoC's reset() implementation doesn't
+    // take a record size. Nor can I specify that I want it read-only.
+    reset(f, NULL, NULL, ioResult); // Yowza. That can't go well.
 }
 
 void OpenForRead(text& f) {

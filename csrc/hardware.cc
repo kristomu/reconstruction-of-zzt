@@ -2,6 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "hardware.h"
 
@@ -76,14 +78,33 @@ char HasColors() {
       return display->supports_colors();
 }
 
-void SoundUninstall() {}
-void SoundClearQueue() {}
+/*void SoundUninstall() {}
+void SoundClearQueue() {}*/
+void Sound(int hertz) {}
+void NoSound() {}
 
 int64_t keyUpCase(int64_t key) {
       if (key < 0) {
             return key;
       }
       return toupper((char(key)));
+}
+
+void GetTime(short & hour, short & minute, short & second,
+      short & hundredths) {
+
+      // https://stackoverflow.com/questions/11242642
+
+      time_t t = time(NULL);
+      struct tm *tmp = gmtime(&t);
+
+      hour = tmp->tm_hour;
+      minute = tmp->tm_min;
+      second = tmp->tm_sec;
+
+      struct timeval tv;
+      gettimeofday(&tv,NULL);
+      hundredths = tv.tv_usec / 10000;
 }
 
 void Delay(int msec) { usleep(msec*1000); }
@@ -103,7 +124,6 @@ void InputUpdateCore(bool blocking) {
       InputDeltaY = 0;
       InputShiftPressed = false;
       InputJoystickMoved = false;
-      InputKeyPressed = 0;
 
       // If there are no keys to fetch and we're nonblocking, just bail.
       if (!blocking && !Keypressed()) { return; }

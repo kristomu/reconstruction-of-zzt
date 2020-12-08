@@ -29,10 +29,13 @@
 
 #include "hardware.h"
 #include <unistd.h>
+#include <iostream>
+#include <sstream>
 
 /*#include "Crt.h"*/
 #include "gamevars.h"
-//#include "sounds.h"
+#include "game.h"
+#include "sounds.h"
 #include "fileops.h"
 //#include "input.h"
 #include "video.h"
@@ -40,9 +43,9 @@
 #include "txtwind.h"
 #include "elements.h"
 #include "editor.h"
-#include "oop.h"
-#include "game.h"
-*/
+#include "oop.h"*/
+#include "game_imp.h"
+
 
 
 void ParseArguments() {
@@ -111,7 +114,7 @@ void GameConfigure() {
     ParsingConfigFile = false;
 
     Window(1, 1, 80, bottomRow+1);
-    initCurses();
+
     TextBackground(Black);
     ClrScr();
     TextColor(White);
@@ -151,10 +154,18 @@ void GameConfigure() {
     GotoXY(1, 8);
     TextColor(LightGreen);
     TextBackground(Black);
-    if (! VideoConfigure())
+    if (! video.VideoConfigure())
         GameTitleExitRequested = true;
 
     Window(1, 1, 80, bottomRow+1);
+}
+
+// Integer to string
+
+std::string itos (int source) {
+        std::ostringstream q;
+        q << source;
+        return (q.str());
 }
 
 int main(int argc, const char* argv[]) {
@@ -175,8 +186,12 @@ int main(int argc, const char* argv[]) {
     WorldFileDescKeys[7] = "TOUR";
     WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
 
+    initCurses();
+    video.VideoInstall(80, Blue, display);
+
     Randomize();
     SetCBreak(false);
+    SetupCodepointToCP437();
 
     // Back up the text attributes. This shouldn't be necessary because
     // curses cleans up after itself.
@@ -188,14 +203,22 @@ int main(int argc, const char* argv[]) {
     GameTitleExitRequested = false;
     GameConfigure();
     ParseArguments();
+    TextWindowInit(5, 3, 50, 18);
 
-    /*if (! GameTitleExitRequested)  {
-            VideoInstall(80, Blue);
-            OrderPrintId = &GameVersion;
-            TextWindowInit(5, 3, 50, 18);
+    /*do {
+        //InputReadWaitKey();
+        //video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
+        video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
+    } while (1 == 1);*/
+
+    if (! GameTitleExitRequested)  {
+            TTextWindowState textWindow;
+
+            // XXX: Fix
+            //OrderPrintId = &GameVersion;
             IoTmpBuf = new TIoTmpBuf;
 
-            VideoHideCursor();
+            video.VideoHideCursor();
             ClrScr;
 
             TickSpeed = 4;
@@ -210,7 +233,7 @@ int main(int argc, const char* argv[]) {
             //LEAKFIX: Remember to dispose of *everything* in use.
             WorldUnload();
             delete IoTmpBuf;
-    }*/
+    }
 
     SoundUninstall();
     SoundClearQueue();
@@ -227,7 +250,7 @@ int main(int argc, const char* argv[]) {
             cursesWriteLn("");
     }
 
-    VideoShowCursor();
+    video.VideoShowCursor();
     uninitCurses();
     return EXIT_SUCCESS;
 }

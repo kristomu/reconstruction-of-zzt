@@ -36,6 +36,7 @@
 /*#include "Crt.h"*/
 /*#include "Dos.h"*/
 #include "minmax.h"
+#include "hardware.h"
 
 
 void SoundQueue(integer priority, string pattern) {
@@ -120,7 +121,7 @@ void SoundPlayDrum(TDrumData& drum) {
 }
 
 void SoundCheckTimeIntr() {
-    word hour, minute, sec, hSec;
+    short hour, minute, sec, hSec;
 
     GetTime(hour, minute, sec, hSec);
     if ((SoundTimeCheckHsec != 0)
@@ -139,7 +140,7 @@ void SoundCheckTimeIntr() {
   early. */
 
 boolean SoundHasTimeElapsed(integer& counter, integer duration) {
-    word hour, minute, sec, hSec;
+    short hour, minute, sec, hSec;
     word hSecsDiff;
     integer hSecsTotal;
 
@@ -374,8 +375,8 @@ unit_Sounds_initialize::unit_Sounds_initialize() {
     SoundDurationMultiplier = 1;
     SoundIsPlaying = false;
     TimerTicks = 0;
-    SoundNewVector = &SoundTimerHandler;
     /* Disabled in non-DOS. Fix later.*/
+    //SoundNewVector = &SoundTimerHandler;
     /*GetIntVec($1C, SoundOldVector);
     SetIntVec($1C, SoundNewVector);*/
 }

@@ -52,11 +52,16 @@ char LiteralKey(const key_response response);
 char HasColors();
 
 // Currently unimplemented as we have no sound.
-void SoundUninstall();
-void SoundClearQueue();
+/*void SoundUninstall();
+void SoundClearQueue();*/
+void Sound(int hertz);
+void NoSound();
 
 // This is getting pretty ugly.
 int64_t keyUpCase(int64_t key);
+
+// Get the current time.
+void GetTime(short & hour, short & minute, short & second, short & hundredths);
 
 void Delay(int msec);
 
