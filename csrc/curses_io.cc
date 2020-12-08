@@ -483,7 +483,7 @@ bool curses_io::key_pressed() const {
 
 	int key_or_err = wget_wch(window, &out);
 	if (key_or_err != ERR) {
-		ungetch(key_or_err);
+		unget_wch(out); // oops
 		return true;
 	}
 	return false;

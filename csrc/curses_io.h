@@ -144,6 +144,8 @@ class curses_io {
 		int window_max_x() const { return getmaxx(window); }
 		int window_max_y() const { return getmaxy(window); }
 
+		void flush_keybuf() { flushinp(); }
+
 		void set_window_boundaries(int left, int up, int right,
 			int down) {}; // NOP, currently
 		void clear_scr() { wclear(window); }

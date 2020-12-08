@@ -8,7 +8,7 @@
     would be U+1D719.*/
 extern wchar_t cp437ToUnicode[];
 
-extern std::map<unsigned char, wchar_t>  UnicodeToCP437;
+extern std::map<wchar_t, unsigned char>  UnicodeToCP437;
 
 void SetupCodepointToCP437();
 unsigned char CodepointToCP437(wchar_t cp);
