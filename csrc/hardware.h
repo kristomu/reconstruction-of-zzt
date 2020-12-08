@@ -67,7 +67,6 @@ void Delay(int msec);
 
 extern int InputDeltaX, InputDeltaY;	// translates arrow keys to movement
 extern bool InputShiftPressed;			// It does what it says
-extern bool InputAltPressed, InputCtrlPressed; // NEW, to handle our kb interface
 extern bool InputSpecialKeyPressed;
 extern bool InputShiftAccepted; // ???
 extern bool InputJoystickMoved; // not supported

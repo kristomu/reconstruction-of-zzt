@@ -316,7 +316,7 @@ LLabelNotMatched:;
 					newLinePos = state.LinePos - TextWindowHeight + 4;
 				else if (InputKeyPressed == E_KEY_PAGE_DOWN)
 					newLinePos = state.LinePos + TextWindowHeight - 4;
-				else if (InputKeyPressed == 'P' && InputAltPressed)
+				else if (InputKeyPressed == E_KEY_ALT_P)
 					TextWindowPrint(state);
 			}
 
@@ -534,9 +534,8 @@ void TextWindowEdit(TTextWindowState& state) {
 				           length(*state.Lines[state.LinePos]) - charPos);
 			}
 			break;
-			case 'Y': {
-                if (InputCtrlPressed)
-				    DeleteCurrLine(state);
+			case E_KEY_CTRL_Y: {
+				DeleteCurrLine(state);
 			}
 			break;
 			default:

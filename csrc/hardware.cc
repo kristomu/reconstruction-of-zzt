@@ -66,12 +66,11 @@ key_response ReadKeyBlocking() {
 
 // Returns the key value for an ASCII key with no modifiers, otherwise 0.
 char LiteralKey(const key_response response) {
-      if (response.alt || response.ctrl) { return 0; }
-      if (response.key < 0 || response.key > 127) {
+      if (response < 0 || response > 127) {
             return 0;
       }
 
-      return (char)response.key;
+      return (char)response;
 }
 
 char HasColors() {
@@ -111,7 +110,6 @@ void Delay(int msec) { usleep(msec*1000); }
 
 int InputDeltaX, InputDeltaY;      // translates arrow keys to movement
 bool InputShiftPressed;                  // It does what it says
-bool InputAltPressed, InputCtrlPressed; // NEW, to handle our kb interface
 bool InputSpecialKeyPressed;
 bool InputShiftAccepted; // ???
 bool InputJoystickMoved; // not supported
@@ -138,42 +136,46 @@ void InputUpdateCore(bool blocking) {
 
       // How do we handle special keys? Probably this (ugly) way:
       // If it's negative, then it's a special key, otherwise it's a
-      // CP437 character.
+      // CP437 character. Also hard-code some control characters that
+      // don't have a negative key value.
       // All of this must be fixed later, once I've got it running.
 
-      InputSpecialKeyPressed = key_read.key < 0;
+      InputSpecialKeyPressed = key_read < 0 ||
+            key_read == E_KEY_ESCAPE ||
+            key_read == E_KEY_ENTER ||
+            key_read == E_KEY_TAB;
 
       if (InputSpecialKeyPressed) {
-            InputKeyPressed = key_read.key;
+            InputKeyPressed = key_read;
       } else {
-            InputKeyPressed = CodepointToCP437(key_read.key);
+            InputKeyPressed = CodepointToCP437(key_read);
       }
 
       // To avoid input lag, flush the whole buffer. The first key,
       // registered above, is what counts.
       display->flush_keybuf();
 
-      InputShiftPressed = key_read.shift;
-      InputAltPressed = key_read.alt;
-      InputCtrlPressed = key_read.ctrl;
+      InputShiftPressed = InputKeyPressed == E_KEY_SHIFT_LEFT ||
+            InputKeyPressed == E_KEY_SHIFT_RIGHT ||
+            InputKeyPressed == E_KEY_SHIFT_UP ||
+            InputKeyPressed == E_KEY_SHIFT_DOWN;
 
-      // Set up the input deltas, but not if Ctrl or Alt were pressed.
-      if (InputAltPressed || InputCtrlPressed) { return; }
+      // Set up the input deltas.
 
       switch(InputKeyPressed) {
-            case E_KEY_UP: case '8':
+            case E_KEY_SHIFT_UP: case E_KEY_UP: case '8':
                   InputDeltaX = 0;
                   InputDeltaY = -1;
                   break;
-            case E_KEY_LEFT: case '4':
+            case E_KEY_SHIFT_LEFT: case E_KEY_LEFT: case '4':
                   InputDeltaX = -1;
                   InputDeltaY = 0;
                   break;
-            case E_KEY_RIGHT: case '6':
+            case E_KEY_SHIFT_RIGHT: case E_KEY_RIGHT: case '6':
                   InputDeltaX = 1;
                   InputDeltaY = 0;
                   break;
-            case E_KEY_DOWN: case '2':
+            case E_KEY_SHIFT_DOWN: case E_KEY_DOWN: case '2':
                   InputDeltaX = 0;
                   InputDeltaY = 1;
                   break;

@@ -2,6 +2,7 @@
 #include "unicode.h"
 #include <stdexcept>
 #include <ncurses.h>
+#include <iostream>
 
 // Put the stuff below into a class? Singleton for window? Eh...
 
@@ -234,69 +235,60 @@ bool curses_io::prepare_colors() {
 	return(true);
 }
 
-// This might not actually be required. Check later... (KEY_CODE_YES)
-key_response curses_io::parse_extended(std::wstring unparsed) const {
+// Note that we lose the capacity to directly determine what modifier keys
+// have been pressed. See
+// https://invisible-island.net/ncurses/ncurses.faq.html#modified_keys
+// or substitute your own cursing at curses at this point. (In any case,
+// this actually makes the terminal behave more like ZZT's: for instance,
+// CTRL+arrow keys no longer register as anything.)
+key_response curses_io::parse(wchar_t unparsed, bool special_ncurses) const {
+
 	key_response response;
-	response.key = E_KEY_UNKNOWN;
 
-	// Check for control characters (backspace, enter, etc.)
-	// These are considered different from the straightforward interpretation
-	// (e.g. \n shouldn't map to U+25D9) because they're not meant to be
-	// literals, but instead have some special function.
-	if (unparsed == L"\033") { response.key = E_KEY_ESCAPE; return response; }
-	if (unparsed == L"\n") { response.key = E_KEY_ENTER; return response; }
-	if (unparsed == L"\x7F") { response.key = E_KEY_BACKSPACE; return response; }
-	if (unparsed == L"\t") { response.key = E_KEY_TAB; return response; }
-
-	// Modifier keys (CTRL ALT etc)
-	if (unparsed.substr(0, 4) == L"\033[1;") {
-		int modifier_bitmap = unparsed[4] - '1';
-		// CTRL: 4 (100)
-		// ALT: 2 (010)
-		// SHIFT: 1 (001)
-		response.ctrl = (modifier_bitmap & 4) != 0;
-		response.alt =  (modifier_bitmap & 2) != 0;
-		response.shift = (modifier_bitmap & 1) != 0;
-		// Remove the modifiers.
-		unparsed = L"\033[" + unparsed.substr(5);
+	if (!special_ncurses) {
+		switch(unparsed) {
+			// ??? Seems to work...
+			case 25: return E_KEY_CTRL_Y;
+			default: return unparsed;
+		}
 	}
 
-	if (unparsed == L"\033[A") { response.key = E_KEY_UP; }
-	if (unparsed == L"\033[B") { response.key = E_KEY_DOWN; }
-	if (unparsed == L"\033[C") { response.key = E_KEY_RIGHT; }
-	if (unparsed == L"\033[D") { response.key = E_KEY_LEFT; }
-	if (unparsed == L"\033[E") { response.key = E_KEY_NUMPAD_CLEAR; } // center of keypad
-	if (unparsed == L"\033[2~") { response.key = E_KEY_INSERT; }
-	if (unparsed == L"\033[H") { response.key = E_KEY_HOME; }
-	if (unparsed == L"\033[5~") { response.key = E_KEY_PAGE_UP; }
-	if (unparsed == L"\033[3~") { response.key = E_KEY_DELETE; }
-	if (unparsed == L"\033[F") { response.key = E_KEY_END; }
-	if (unparsed == L"\033[6~") { response.key = E_KEY_PAGE_DOWN; }
-	if (unparsed == L"\033[OP") { response.key = E_KEY_F1; }
-	if (unparsed == L"\033[OQ") { response.key = E_KEY_F2; }
-	if (unparsed == L"\033[OR") { response.key = E_KEY_F3; }
-	if (unparsed == L"\033[OS") { response.key = E_KEY_F4; }
-	if (unparsed == L"\033[15~") { response.key = E_KEY_F5; }
-	if (unparsed == L"\033[17~") { response.key = E_KEY_F6; }
-	if (unparsed == L"\033[18~") { response.key = E_KEY_F7; }
-	if (unparsed == L"\033[19~") { response.key = E_KEY_F8; }
-	if (unparsed == L"\033[20~") { response.key = E_KEY_F9; }
-	if (unparsed == L"\033[21~") { response.key = E_KEY_F10; }
-	if (unparsed == L"\033[23~") { response.key = E_KEY_F11; }
-	if (unparsed == L"\033[24~") { response.key = E_KEY_F12; }
-	if (unparsed == L"\033[P") { response.key = E_KEY_PAUSE; }
+	switch(unparsed) {
+		case KEY_UP: return E_KEY_UP;
+		case KEY_DOWN: return E_KEY_DOWN;
+		case KEY_RIGHT: return E_KEY_RIGHT;
+		case KEY_LEFT: return E_KEY_LEFT;
+		case KEY_F(1): return E_KEY_F1;
+		case KEY_F(2): return E_KEY_F2;
+		case KEY_F(3): return E_KEY_F3;
+		case KEY_F(4): return E_KEY_F4;
+		case KEY_F(5): return E_KEY_F5;
+		case KEY_F(6): return E_KEY_F6;
+		case KEY_F(7): return E_KEY_F7;
+		case KEY_F(8): return E_KEY_F8;
+		case KEY_F(9): return E_KEY_F9;
+		case KEY_F(10): return E_KEY_F10;
+		case KEY_F(11): return E_KEY_F11;
+		case KEY_F(12): return E_KEY_F12;
+		case KEY_BREAK: return E_KEY_PAUSE;
+		case KEY_B2: return E_KEY_NUMPAD_CLEAR; // center of keypad
+		case KEY_NPAGE: return E_KEY_PAGE_DOWN;
+		case KEY_PPAGE: return E_KEY_PAGE_UP;
+		case KEY_IC: return E_KEY_INSERT;
+		case KEY_HOME: return E_KEY_HOME;
+		case KEY_DC: return E_KEY_DELETE;
+		case KEY_END: return E_KEY_END;
+		case KEY_BACKSPACE: return E_KEY_BACKSPACE;
 
-	// CTRL + ordinary keys register as ordinary, but with a different char
-	// code. (To be implemented later.)
+		// The ones below were found empirically (on gnome-terminal)
+		case KEY_SR: return E_KEY_SHIFT_UP;
+		case KEY_SF: return E_KEY_SHIFT_DOWN;
+		case KEY_SLEFT: return E_KEY_SHIFT_LEFT;
+		case KEY_SRIGHT: return E_KEY_SHIFT_RIGHT;
 
-	// CTRL+ALT registers as ALT + early chars. I'm gonna leave that alone.
-	// ALT + ordinary keys register like this:
-	if (unparsed.size() == 2 && unparsed[0]  == L'\033') {
-		response.alt = true;
-		response.key = unparsed[1];
+		// Makes for funny characters like in the original ZZT.
+		default: return unparsed;
 	}
-
-	return response;
 }
 
 void curses_io::use_color(dos_color fg, dos_color bg) const {
@@ -338,7 +330,7 @@ void curses_io::use_color(dos_color fg, dos_color bg) const {
 curses_io::curses_io() {
 	setlocale(LC_ALL, "");
 	window = initscr();
-	keypad(window, false);
+	keypad(window, true);
 
 	if (window == NULL) {
 		throw(NCURSES_INIT_FAILURE);
@@ -354,6 +346,9 @@ curses_io::curses_io() {
 	// Set a quicker time out on function keys so that the delay when
 	// pressing escape isn't as noticeable.
 	ESCDELAY = 100;
+
+	// sentinel for key_pressed/read_key; see these functions for details.
+	last_key_detected = E_KEY_NONE;
 
 	set_color(LightGray, Black); // set a first color
 }
@@ -478,22 +473,42 @@ void curses_io::set_nonblocking() {
 	nodelay(window, true);
 }
 
-bool curses_io::key_pressed() const {
-	wint_t out;
+bool curses_io::key_pressed() {
+	// The traditional way to code this function under curses is to
+	// try to get a key with wget_wch, then if it succeeds, push the key
+	// back with unget_wch. However, doing so when keypad is true destroys
+	// the KEY_CODE_YES return value that lets us distinguish curses meta-
+	// codes from literals, so that approach can't work.. Instead, if we
+	// read a value here , we must store it for later and then fake the
+	// response from the read_key call if there's no newer key waiting.
 
-	int key_or_err = wget_wch(window, &out);
-	if (key_or_err != ERR) {
-		unget_wch(out); // oops
+	// If we already have something queued up, say it's there.
+	if (last_key_detected != E_KEY_NONE) {
 		return true;
 	}
-	return false;
+
+	ignore_lack_of_keys = true;
+	last_key_detected = read_key();
+	ignore_lack_of_keys = false;
+
+	return last_key_detected != E_KEY_NONE;
+
 }
 
 key_response curses_io::read_key() {
 	key_response out;
-	std::wstring keys_read;
+	std::vector<key_response> keys_read;
 	int key_or_err;
 	bool first = true;
+
+	// If we got something from key_pressed, return it.
+	if (last_key_detected != E_KEY_NONE) {
+		out = last_key_detected;
+		last_key_detected = E_KEY_NONE;
+		// A real keypress will turn off blocking mode, so do that here too.
+		set_nonblocking();
+		return out;
+	}
 
 	// Get the raw input.
 	do {
@@ -506,13 +521,18 @@ key_response curses_io::read_key() {
 					throw std::logic_error("Curses has desynchronized. "
 						"Something is wrong with the code, perhaps missing"
 						" initialization of TxtWind?");
+				}
+
+				if (ignore_lack_of_keys) {
+					return E_KEY_NONE;
 				} else {
 					throw std::runtime_error(
 						"Tried to read key with no key available.");
 				}
 			}
 		} else {
-			keys_read.push_back(next_key);
+			keys_read.push_back(parse(next_key,
+				key_or_err == KEY_CODE_YES));
 		}
 		// If the function is called from a blocking key read,
 		// we must turn nonblocking on for subsequent keys.
@@ -521,14 +541,13 @@ key_response curses_io::read_key() {
 		first = false;
 	} while (key_or_err != ERR);
 
-	// Check if it's an extended key (i.e. not a character)
-	key_response possibly_extended = parse_extended(keys_read);
-	if (possibly_extended.key != E_KEY_UNKNOWN) {
-		return possibly_extended; // it was extended
+	// Hack for ALT+P on ANSI terminals. Not perfect, but it should work
+	// as long as the user isn't spamming the key combination.
+	if (keys_read.size() >= 2 && keys_read[0] == 27 && keys_read[1] == 112) {
+		return E_KEY_ALT_P;
 	}
 
-	out.key = keys_read[0];
-	return out;
+	return keys_read[0];
 }
 
 key_response curses_io::read_key_blocking() {
@@ -536,4 +555,9 @@ key_response curses_io::read_key_blocking() {
 	// turn nonblocking back on.
 	set_blocking();
 	return read_key();
+}
+
+void curses_io::flush_keybuf() {
+	flushinp();
+	last_key_detected = E_KEY_NONE;
 }

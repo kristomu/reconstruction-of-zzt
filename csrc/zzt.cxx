@@ -1,4 +1,5 @@
 #include "ptoc.h"
+#include "tools.h"
 
 /*
 	Copyright (c) 2020 Adrian Siekierka
@@ -160,14 +161,6 @@ void GameConfigure() {
     Window(1, 1, 80, bottomRow+1);
 }
 
-// Integer to string
-
-std::string itos (int source) {
-        std::ostringstream q;
-        q << source;
-        return (q.str());
-}
-
 int main(int argc, const char* argv[]) {
     pio_initialize(argc, argv);
     WorldFileDescCount = 7;
@@ -206,9 +199,9 @@ int main(int argc, const char* argv[]) {
     TextWindowInit(5, 3, 50, 18);
 
     /*do {
-        //InputReadWaitKey();
-        //video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
-        video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
+        InputReadWaitKey();
+        video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
+        //video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
     } while (1 == 1);*/
 
     if (! GameTitleExitRequested)  {

@@ -62,45 +62,47 @@ const int64_t E_KEY_UP = -1,
 	E_KEY_F12 = -23,
 	E_KEY_PAUSE = -24,
 	E_KEY_UNKNOWN = -25,
-	E_KEY_ESCAPE = -26,
-	E_KEY_ENTER = -27,
-	E_KEY_TAB = -28,
-	E_KEY_BACKSPACE = -29;
+	E_KEY_BACKSPACE = -26,
+	E_KEY_SHIFT_UP = -27,
+	E_KEY_SHIFT_DOWN = -28,
+	E_KEY_SHIFT_RIGHT = -29,
+	E_KEY_SHIFT_LEFT = -30,
+	E_KEY_CTRL_Y = -31,
+	E_KEY_ALT_P = -32,
+	//E_KEY_NONE = -33,			// private
 
-struct key_response {
-	int64_t key = E_KEY_UNKNOWN; // if < 0, it's an extended key, otherwise a literal
-	bool alt = false, ctrl = false, shift = false;
-};
+	E_KEY_ESCAPE = '\33',
+	E_KEY_ENTER = '\n',
+	E_KEY_TAB = '\t';
 
-// The curses IO class implicitly assumes that we're running on an ANSI
-// terminal with unicode support. It's very hard to do proper input and
-// output otherwise; I, at least, have not found a way to do so. Using
-// keypad(TRUE) causes collisions: some function key values now occupy
-// the same space as non-function keys (ĉ and F1 keys), and there's no
-// way (seemingly) to distinguish them using the external ncurses
-// interface.
+typedef int64_t key_response;
 
-// Similarly, being able to print all the DOS code page 437 characters
-// requires something more powerful than just the ACS_* macros, so the code
-// assumes that wchar_int values do in fact represent UTF-8 codepoints.
+// The curses IO class implicitly assumes that we're running on a Unicode
+// terminal. Printing all the DOS code page 437 characters requires something
+// more powerful than just the ACS_* macros, so the code assumes that
+// wchar_int values do in fact represent UTF-8 codepoints.
 
 class curses_io {
 
 	WINDOW * window;
 
 	private:
+		const int E_KEY_NONE = -33;
+
 		dos_emulation interpreter;
+		key_response last_key_detected;
 
 		mutable dos_color current_fg, current_bg;
 		bool black_and_white;
 		bool was_blocking;
+		bool ignore_lack_of_keys;
 
 		void use_color(dos_color fg, dos_color bg) const;
 		short dos_color_to_curses(dos_color color) const;
 		int linear(int x, int y, int xsize) const;
 		bool prepare_colors();
 
-		key_response parse_extended(std::wstring unparsed) const;
+		key_response parse(wchar_t unparsed, bool special_ncurses) const;
 
 	public:
 		curses_io();
@@ -144,8 +146,6 @@ class curses_io {
 		int window_max_x() const { return getmaxx(window); }
 		int window_max_y() const { return getmaxy(window); }
 
-		void flush_keybuf() { flushinp(); }
-
 		void set_window_boundaries(int left, int up, int right,
 			int down) {}; // NOP, currently
 		void clear_scr() { wclear(window); }
@@ -153,7 +153,8 @@ class curses_io {
 		void set_blocking();
 		void set_nonblocking();
 
-		bool key_pressed() const;
+		bool key_pressed();
 		key_response read_key();
 		key_response read_key_blocking();
+		void flush_keybuf();
 };

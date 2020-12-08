@@ -139,13 +139,11 @@ bool Video::VideoConfigure() {
     int64_t typed;
 
     while (!gotResponse) {
-        typed = ReadKeyBlocking().key;
+        typed = keyUpCase(ReadKeyBlocking());
         gotResponse = true;
 
         switch (typed) {
-            case 'c':
             case 'C': VideoMonochrome = false; break;
-            case 'm':
             case 'M': VideoMonochrome = true; break;
             case E_KEY_ESCAPE: VideoMonochrome = MonochromeOnly; break;
             default: gotResponse = false; break;
