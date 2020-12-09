@@ -1,6 +1,8 @@
 #ifndef __gamevars_h__
 #define __gamevars_h__
 
+#include <array>
+
 const integer MAX_STAT = 150;
 const integer MAX_ELEMENT = 61;               /*E_TEXT_BLINK_WHITE;*/
 const integer MAX_BOARD = 100;
@@ -50,12 +52,9 @@ struct TElementDef {
         asciiz ParamTextName;
         integer ScoreValue;
 };
-/* Since pointers are 8 bytes on Linux, we have to rearrange
-		  things in the stat structure to make room. Fortunately, we
-		  have eight bytes of padding, and the Data structure is never
-		  used in saved games or worlds, so we can simply move the
-		  pointer all the way to the end. It won't be that simple if we
-		  ever try to support Super ZZT, though... */
+/* Just dumping the structures to disk is not going to work in C due to
+   alignment issues. TODO: Fix (probably with explicit dump functions). */
+
 struct TStat {
         byte X, Y;
         integer StepX, StepY;
@@ -100,7 +99,7 @@ struct TWorldInfo {
         integer BoardTimeSec;
         integer BoardTimeHsec;
         boolean IsSave;
-        array<0 , 13,byte> unkPad;
+        std::array<byte, 13> unkPad;
 };
 struct TEditorStatSetting {
         byte P1, P2, P3;

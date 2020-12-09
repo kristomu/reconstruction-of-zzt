@@ -8,12 +8,12 @@
 
 #define items(x) (sizeof(x)/sizeof(*(x)))
 
-typedef int           integer;
-typedef unsigned      cardinal; /* unsigned integer */
-typedef float         real;
+typedef short          integer;
+typedef unsigned short cardinal; /* unsigned integer */
+typedef float          real;
 
 #if defined(TURBO_PASCAL) || defined(HP_PASCAL)
-typedef unsigned       word; /* It should have the same size as integer */
+typedef unsigned short word; /* It should have the same size as integer */
 typedef unsigned char  byte;
 #endif
 

@@ -146,7 +146,7 @@ void BoardClose(boolean showTruncationNote) {
 		        (rle.Count < 255) && (iy <= BOARD_HEIGHT)) {
 			rle.Count = rle.Count + 1;
 		} else {
-			Move(rle, ptr, sizeof(rle));
+			bcopy(&rle, ptr, sizeof(rle));
 			ptr += sizeof(rle);
 			rle.Tile = Board.Tiles[ix][iy];
 			rle.Count = 1;
@@ -1197,8 +1197,7 @@ void WorldSave(TString50 filename, TString50 extension) {
 	BoardClose(true);
 	video.VideoWriteText(63, 5, 0x1f, "Saving...");
 
-	assign(f, filename + extension);
-	OpenForWrite(f, 1);
+	std::ofstream out_file = OpenForWrite(std::string(filename + extension));
 
     // TODO IMP? Perhaps write to a temporary filename and then move it over
     // the original to create some kind of atomicity?
@@ -1217,28 +1216,26 @@ void WorldSave(TString50 filename, TString50 extension) {
 		ptr += sizeof(World.Info);
 
         word actually_written;
-		BlockWrite(f, IoTmpBuf, 512, actually_written);
-        if (actually_written < 512) {
-            ioResult = 1;   // HACK
-        }
+        out_file.write((char *)IoTmpBuf, 512);
+        ioResult = errno;
+
 		if (DisplayIOError())  goto LOnError;
 
 		for( i = 0; i <= World.BoardCount; i ++) {
             unsigned short board_len = World.BoardLen[i];
-			BlockWrite(f, &board_len, 2, actually_written);
-            if (actually_written < 2) {
-                ioResult = 1;   // HACK
-            }
+            out_file.write((char *)&board_len, 2);
+			ioResult = errno;
 			if (DisplayIOError())  goto LOnError;
 
-			BlockWrite(f, World.BoardData[i], World.BoardLen[i], actually_written);
+			out_file.write((char *)World.BoardData[i], World.BoardLen[i]);
+			ioResult = errno;
             if (actually_written < World.BoardLen[i]) {
                 ioResult = 1;   // HACK
             }
 			if (DisplayIOError())  goto LOnError;
 		}
 
-		close(f);
+		out_file.close();
 	}
 
 	BoardOpen(World.Info.CurrentBoard, false);

@@ -1,3 +1,6 @@
+#include <string>
+#include <fstream>
+
 #ifndef __fileops_h__
 #define __fileops_h__
 
@@ -7,7 +10,7 @@ typedef text TypedFile;
         void OpenForRead(untyped_file& f, longint l);
         void OpenForRead(TypedFile& f);
         void OpenForRead(text& f);
-        void OpenForWrite(untyped_file& f, longint l);
+        std::ofstream OpenForWrite(std::string name);
         void OpenForWrite(TypedFile& f);
         void OpenForWrite(text& f);
 

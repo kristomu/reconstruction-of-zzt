@@ -147,12 +147,11 @@ void OpenForRead(text& f) {
     //reset(f);
 }
 
-void OpenForWrite(untyped_file& f, longint l) {
-    throw std::logic_error("Open a file for writing, needs file size");
+std::ofstream OpenForWrite(std::string name) {
     /* Somewhat of a kludge to make it work both with existing
     write-only files and files that don't exist yet. It might
-    	  have trouble with write-only directories. I don't know why
-    	  Rewrite doesn't respect FileMode yet Reset does... */
+          have trouble with write-only directories. I don't know why
+          Rewrite doesn't respect FileMode yet Reset does... */
 
     /*FileMode = FILE_WRITE_ONLY;
     reset(f, l);
@@ -160,6 +159,11 @@ void OpenForWrite(untyped_file& f, longint l) {
 
     /* Couldn't open existing file. Try opening a new one. */
     /*rewrite(f, l);*/
+
+    // TODO: Test if this overwrites files, etc...
+    std::ofstream file(name);
+    ioResult = errno;
+    return file;
 }
 
 void OpenForWrite(text& f) {

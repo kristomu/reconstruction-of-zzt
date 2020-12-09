@@ -65,12 +65,12 @@ void GetTime(short & hour, short & minute, short & second, short & hundredths);
 
 void Delay(int msec);
 
-extern int InputDeltaX, InputDeltaY;	// translates arrow keys to movement
+extern integer InputDeltaX, InputDeltaY;	// translates arrow keys to movement
 extern bool InputShiftPressed;			// It does what it says
 extern bool InputSpecialKeyPressed;
 extern bool InputShiftAccepted; // ???
 extern bool InputJoystickMoved; // not supported
-extern int InputKeyPressed;
+extern integer InputKeyPressed;
 //std::vector<int> InputKeyBuffer;	// Never seems to be used in the original.
 
 void InputUpdate();				// Polls and updates.

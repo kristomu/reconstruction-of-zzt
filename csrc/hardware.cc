@@ -108,12 +108,12 @@ void GetTime(short & hour, short & minute, short & second,
 
 void Delay(int msec) { usleep(msec*1000); }
 
-int InputDeltaX, InputDeltaY;      // translates arrow keys to movement
+integer InputDeltaX, InputDeltaY;      // translates arrow keys to movement
 bool InputShiftPressed;                  // It does what it says
 bool InputSpecialKeyPressed;
 bool InputShiftAccepted; // ???
 bool InputJoystickMoved; // not supported
-int InputKeyPressed;
+integer InputKeyPressed;
 
 // ZZT specs say that everything coming out of here should be CP437 points.
 // Hence InputKeyPressed should be a char, and buffer also. Fix later?

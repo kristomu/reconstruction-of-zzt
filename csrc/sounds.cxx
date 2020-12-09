@@ -137,7 +137,8 @@ void SoundCheckTimeIntr() {
   Maybe a phase locked loop-ish solution where the procedure sleeps a certain
   number of milliseconds if the elapsed time since last check is below say,
   half a tick. Or just delaying until the end of the tick period if we get here
-  early. */
+  early.
+  Currently just kludges this by using system time, which is slow. */
 
 boolean SoundHasTimeElapsed(integer& counter, integer duration) {
     short hour, minute, sec, hSec;
