@@ -122,6 +122,7 @@ void InputUpdateCore(bool blocking) {
       InputDeltaY = 0;
       InputShiftPressed = false;
       InputJoystickMoved = false;
+      InputKeyPressed = 0;
 
       // If there are no keys to fetch and we're nonblocking, just bail.
       if (!blocking && !Keypressed()) { return; }
@@ -150,10 +151,6 @@ void InputUpdateCore(bool blocking) {
       } else {
             InputKeyPressed = CodepointToCP437(key_read);
       }
-
-      // To avoid input lag, flush the whole buffer. The first key,
-      // registered above, is what counts.
-      display->flush_keybuf();
 
       InputShiftPressed = InputKeyPressed == E_KEY_SHIFT_LEFT ||
             InputKeyPressed == E_KEY_SHIFT_RIGHT ||
