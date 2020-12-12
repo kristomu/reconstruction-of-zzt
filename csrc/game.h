@@ -79,8 +79,6 @@ void GamePrintRegisterMessage();
 const array<0, 7,byte> ProgressAnimColors = {{0x14, 0x1c, 0x15, 0x1d, 0x16, 0x1e, 0x17, 0x1f}};
 const array<0, 7,asciiz> ProgressAnimStrings =
 {{"....|", "...*/", "..*.-", ".*..\\", "*...|", "..../", "....-", "....\\"}};
-const array<1, 7,asciiz> ColorNames =
-{{"Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"}};
 /**/
 const array<0, 7,integer> DiagonalDeltaX = {{-1, 0, 1, 1, 1, 0, -1, -1}};
 const array<0, 7,integer> DiagonalDeltaY = {{1, 1, 1, 0, -1, -1, -1, 0}};

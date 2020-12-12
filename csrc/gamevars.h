@@ -20,6 +20,9 @@ struct TCoord {
         integer Y;
 };
 
+const std::array<std::string, 8> ColorNames =
+{"Black", "Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"};
+
 typedef void(*TElementDrawProc)(integer x, integer y, byte& ch);
 typedef void(*TElementTickProc)(integer statId);
 typedef void(*TElementTouchProc)(integer x, integer y, integer sourceStatId, integer& deltaX, integer& deltaY);

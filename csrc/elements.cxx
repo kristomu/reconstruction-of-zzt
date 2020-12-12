@@ -1102,13 +1102,13 @@ void ElementKeyTouch(integer x, integer y, integer sourceStatId,
 	key = Board.Tiles[x][y].Color % 8;
 
 	if (World.Info.HasKey(key))  {
-		DisplayMessage(200, string("You already have a ")+ColorNames[key]+" key!");
+		DisplayMessage(200, string("You already have a ")+World.Info.KeyName(key).c_str()+" key!");
 		SoundQueue(2, "\60\2\40\2");
 	} else {
 		World.Info.GiveKey(key);
 		Board.Tiles[x][y].Element = E_EMPTY;
 		GameUpdateSidebar();
-		DisplayMessage(200, string("You now have the ")+ColorNames[key]+" key.");
+		DisplayMessage(200, string("You now have the ")+World.Info.KeyName(key).c_str()+" key.");
 		SoundQueue(2,
 		           "\100\1\104\1\107\1\100\1\104\1\107\1\100\1\104\1\107\1\120\2");
 	}
@@ -1164,10 +1164,10 @@ void ElementDoorTouch(integer x, integer y, integer sourceStatId,
 		World.Info.TakeKey(key);
 		GameUpdateSidebar();
 
-		DisplayMessage(200, string("The ")+ColorNames[key]+" door is now open.");
+		DisplayMessage(200, string("The ")+World.Info.KeyName(key).c_str()+" door is now open.");
 		SoundQueue(3, "\60\1\67\1\73\1\60\1\67\1\73\1\100\4");
 	} else {
-		DisplayMessage(200, string("The ")+ColorNames[key]+" door is locked!");
+		DisplayMessage(200, string("The ")+World.Info.KeyName(key).c_str()+" door is locked!");
 		SoundQueue(3, "\27\1\20\1");
 	}
 }

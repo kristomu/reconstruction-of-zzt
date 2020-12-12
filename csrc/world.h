@@ -31,6 +31,7 @@ class TWorldInfo {
 
 		// Hiding keys like that makes it easier to deal with the black key
 		// weirdness and offset-by-one stuff.
+		std::string KeyName(int keyColor) const;
 		bool HasKey(int keyColor) const;
 		void GiveKey(int keyColor);
 		bool TakeKey(int keyColor);

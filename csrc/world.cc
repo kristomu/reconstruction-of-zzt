@@ -1,9 +1,31 @@
 #include "world.h"
 #include "serialization.h"
+#include "gamevars.h"
+
+std::string TWorldInfo::KeyName(int keyColor) const {
+	keyColor = keyColor % 8;
+
+	if (keyColor == 0) {
+		// Emulate ZZT bug
+		return ".-\05....\04Blue    \05Green   \04Cyan    \03Red     "
+			"\06Yellow  \05White";
+	}
+
+	return ColorNames[keyColor];
+
+}
 
 bool TWorldInfo::HasKey(int keyColor) const {
 	// TODO: Black key functionality
-	if (keyColor < 1 || keyColor >= 7) return false;
+	if (keyColor < 1) return false;
+
+	keyColor = keyColor % 8;
+
+	// Emulate ZZT bug: a bit in the gems field decides whether the player
+	// has the black key.
+	if (keyColor == 0) {
+		return Gems >= 256;
+	}
 
 	return Keys[keyColor-1];
 }
@@ -11,12 +33,22 @@ bool TWorldInfo::HasKey(int keyColor) const {
 void TWorldInfo::GiveKey(int keyColor) {
 	if (keyColor < 1 || keyColor >= 7) return;
 
+	keyColor = keyColor % 8;
+
+	if (keyColor == 0) {
+		Gems += 256;
+	}
+
 	Keys[keyColor-1] = true;
 }
 
 // Returns false if you don't have the key.
 bool TWorldInfo::TakeKey(int keyColor) {
 	if (!HasKey(keyColor)) return false;
+
+	if (keyColor == 0) {
+		Gems -= 256;
+	}
 
 	Keys[keyColor-1] = false;
 

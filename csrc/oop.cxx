@@ -28,8 +28,8 @@
 /*$I-*/
 #define __Oop_implementation__
 
-
 #include "oop.h"
+#include "world.h"
 
 #include "sounds.h"
 #include "txtwind.h"
@@ -365,7 +365,7 @@ boolean OopParseTile(integer& statId, integer& position, TTile& tile) {
 
     OopReadWord(statId, position);
     for( i = 1; i <= 7; i ++) {
-        if (OopWord == OopStringToWord(ColorNames[i]))  {
+        if (OopWord == OopStringToWord(string(ColorNames[i].c_str())))  {
             tile.Color = i + 0x8;
             OopReadWord(statId, position);
             goto LColorFound;
