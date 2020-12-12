@@ -63,7 +63,7 @@ void SoundQueue(integer priority, string pattern) {
 void SoundClearQueue() {
     SoundBuffer = "";
     SoundIsPlaying = false;
-    /*NoSound;*/
+    /*NoSound();*/
 }
 
 void SoundInitFreqTable() {
@@ -117,7 +117,7 @@ void SoundPlayDrum(TDrumData& drum) {
         Sound(drum.Data[i]);
         Delay(1);
     }
-    NoSound;
+    NoSound();
 }
 
 void SoundCheckTimeIntr() {
@@ -183,17 +183,17 @@ void SoundTimerHandler()
 
     if (! SoundEnabled)  {
         SoundIsPlaying = false;
-        NoSound;
+        NoSound();
     } else if (SoundIsPlaying)  {
         SoundDurationCounter -= 1;
         if (SoundDurationCounter <= 0)  {
-            NoSound;
+            NoSound();
             if (SoundBufferPos >= length(SoundBuffer))  {
-                NoSound;
+                NoSound();
                 SoundIsPlaying = false;
             } else {
                 if (SoundBuffer[SoundBufferPos] == '\0')
-                    NoSound;
+                    NoSound();
                 else if (SoundBuffer[SoundBufferPos] < '\360')
                     Sound(SoundFreqTable[ord(SoundBuffer[SoundBufferPos])]);
                 else

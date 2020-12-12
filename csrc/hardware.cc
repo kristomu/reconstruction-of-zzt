@@ -140,6 +140,7 @@ void InputUpdateCore(bool blocking) {
       // CP437 character. Also hard-code some control characters that
       // don't have a negative key value.
       // All of this must be fixed later, once I've got it running.
+      // ... I don't actually know of a better way at the moment.
 
       InputSpecialKeyPressed = key_read < 0 ||
             key_read == E_KEY_ESCAPE ||

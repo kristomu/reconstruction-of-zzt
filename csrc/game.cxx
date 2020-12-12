@@ -1,7 +1,3 @@
-#include "ptoc.h"
-
-#include <dirent.h>
-
 /*
 	Copyright (c) 2020 Adrian Siekierka
 
@@ -29,6 +25,13 @@
 
 /*$I-*/
 /*$V-*/
+
+#include "ptoc.h"
+#include "serialization.h"
+
+#include <dirent.h>
+#include <iterator>
+
 #define __Game_implementation__
 
 
@@ -118,97 +121,32 @@ template<typename T, typename Q> void MoveP(T & structureOne, Q & structureTwo,
 }
 
 void BoardClose(boolean showTruncationNote) {
-	integer ix, iy;
-	TIoTmpBuf* ptr;
-	TIoTmpBuf* ptrStart;
-	TRleTile rle;
-	boolean cleanupNeeded;
+	bool cleanupNeeded = false;
 
-	ptr = IoTmpBuf;
-	ptrStart = IoTmpBuf;
-	cleanupNeeded = false;
+	std::vector<unsigned char> closedBoard = Board.dump();
+	World.BoardData[World.Info.CurrentBoard] = closedBoard;
+	World.BoardLen[World.Info.CurrentBoard] = closedBoard.size();
 
-	Move(Board.Name, ptr, sizeof(Board.Name));
-	ptr += sizeof(Board.Name);
+	// The stuff below should be moved to board, shouldn't it? But the
+	// MAX_BOARD_LEN limit isn't inherent to the board format. Hm. Think
+	// this over.
 
-	ix = 1;
-	iy = 1;
-	rle.Count = 1;
-	rle.Tile = Board.Tiles[ix][iy];
-	do {
-		ix = ix + 1;
-		if (ix > BOARD_WIDTH)  {
-			ix = 1;
-			iy = iy + 1;
-		}
-		if ((Board.Tiles[ix][iy].Color == rle.Tile.Color) &&
-		        (Board.Tiles[ix][iy].Element == rle.Tile.Element) &&
-		        (rle.Count < 255) && (iy <= BOARD_HEIGHT)) {
-			rle.Count = rle.Count + 1;
-		} else {
-			bcopy(&rle, ptr, sizeof(rle));
-			ptr += sizeof(rle);
-			rle.Tile = Board.Tiles[ix][iy];
-			rle.Count = 1;
-		}
-	} while (!(iy > BOARD_HEIGHT));
+	/* If we're using too much space, truncate the size, feed the whole
+	   thing back through BoardOpen to fix the inevitable corruption,
+	   then run BoardClose again.
+	   This smart-ass solution should allow us to keep all the smarts of
+	   board parsing in BoardOpen and nowt have to duplicate any logic.
 
-	Move(Board.Info, ptr, sizeof(Board.Info));
-	ptr += sizeof(Board.Info);
+	   Such a situation should *only* happen if RLE is too large (see
+	   RLEFLOW.ZZT), because AddStat should reject adding stats when
+	   there's no room. */
+	if (closedBoard.size() > MAX_BOARD_LEN)  {
+		closedBoard.resize(MAX_BOARD_LEN);
 
-	Move(Board.StatCount, ptr, sizeof(Board.StatCount));
-	ptr += sizeof(Board.StatCount);
-
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-		{
-			TStat& with = Board.Stats[ix];
-			if (with.DataLen > 0)  {
-				for( iy = 1; iy <= (ix - 1); iy ++) {
-					/* IMP: Make all bound objects link to the same one. */
-					if (Board.Stats[iy].Data == with.Data)  {
-						with.DataLen = -iy;
-						with.Data = nil;
-						break;
-					}
-				}
-			}
-			Move(Board.Stats[ix], ptr, sizeof(TStat));
-			ptr += sizeof(TStat);
-			if (with.DataLen > 0)  {
-				Move(*with.Data, ptr, with.DataLen);
-				FreeMem(with.Data, with.DataLen);
-				ptr += with.DataLen;
-			}
-		}
-	}
-
-	/* For some reason, using @IoTmpBuf instead of ptrStart causes a range check error. */
-	World.BoardLen[World.Info.CurrentBoard] = ptr - ptrStart;
-
-	/* If we're using too much space, truncate the size, feed the
-	whole thing back through BoardOpen to fix the inevitable
-		  corruption, then run BoardClose again.
-		  This smart-ass solution should allow us to keep all the smarts of
-		  board parsing in BoardOpen and nowt have to duplicate any logic. */
-	/* Such a situation should *only* happen if RLE is too large (see
-	RLEFLOW.ZZT), because AddStat should reject adding stats when
-		  there's no room. */
-	if (World.BoardLen[World.Info.CurrentBoard] > MAX_BOARD_LEN)  {
-		World.BoardLen[World.Info.CurrentBoard] = MAX_BOARD_LEN;
-		cleanupNeeded = true;
-	}
-
-	/* LEAKFIX: Needs to be ReAllocMem instead of Get/Free because first time
-	around the memory isn't allocated yet.*/
-	ReAllocMem(World.BoardData[World.Info.CurrentBoard],
-	           World.BoardLen[World.Info.CurrentBoard]);
-	Move(*IoTmpBuf, World.BoardData[World.Info.CurrentBoard],
-	     World.BoardLen[World.Info.CurrentBoard]);
-
-	if (cleanupNeeded)  {
-		BoardOpen(World.Info.CurrentBoard, false);
+		// TODO
+		/*BoardOpen(World.Info.CurrentBoard, false);
 		BoardClose(false);
-		if (showTruncationNote)  DisplayTruncationNote();
+		if (showTruncationNote)  DisplayTruncationNote();*/
 	}
 }
 
@@ -303,14 +241,14 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 	if (boardId > World.BoardCount)
 		boardId = World.Info.CurrentBoard;
 
-	ptr = World.BoardData[boardId];
+	//ptr = World.BoardData[boardId];
 	bytesRead = 0;
 
 	/* Create a default yellow border board, because we might need
 	to abort before the board is fully specced. */
 	BoardCreate();
 	boardIsDamaged = worldIsDamaged;
-
+#ifdef TBD
 	/* Check that the sanity check on board titles have been executed. */
 
 	/*SANITY: Reconstruct the title. We need at least a size of
@@ -503,6 +441,7 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 
 	if (boardIsDamaged)
 		DisplayCorruptionNote();
+#endif
 }
 
 void BoardChange(integer boardId) {
@@ -584,8 +523,9 @@ void WorldCreate() {
 	World.Info.Score = 0;
 	World.Info.BoardTimeSec = 0;
 	World.Info.BoardTimeHsec = 0;
-	for( i = 1; i <= 7; i ++)
-		World.Info.Keys[i] = false;
+	for( i = 1; i <= 7; i ++) {
+		World.Info.TakeKey(i);
+	}
 	for( i = 1; i <= 10; i ++)
 		World.Info.Flags[i] = "";
 	BoardChange(0);
@@ -998,7 +938,7 @@ void WorldUnload() {
 	boards have been unloaded. */
 	for( i = 0; i <= World.BoardCount; i ++) {
 		World.BoardLen[i] = 0;
-		ReAllocMem(World.BoardData[i], World.BoardLen[i]);
+		//ReAllocMem(World.BoardData[i], World.BoardLen[i]);
 	}
 }
 
@@ -1030,6 +970,8 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 	SidebarClearLine(5);
 	SidebarClearLine(5);
 	video.VideoWriteText(62, 5, 0x1f, "Loading.....");
+
+#ifdef TBD
 
 	/* filenames must be C strings, which means that they are terminated
 	at the first 00, and thus we must remove everything from the first
@@ -1184,6 +1126,8 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 		}
 	}
 	return WorldLoad_result;
+#endif
+	return false;
 }
 
 void WorldSave(TString50 filename, TString50 extension) {
@@ -1203,20 +1147,15 @@ void WorldSave(TString50 filename, TString50 extension) {
     // the original to create some kind of atomicity?
 
 	if (! DisplayIOError())  {
-		ptr = IoTmpBuf;
-		FillChar(IoTmpBuf, 512, 0);
-		version = -1;
-		Move(version, ptr, sizeof(version));
-		ptr += sizeof(version);
+		std::vector<unsigned char> world_header;
+		append_lsb_element((short)-1, world_header); // Version
+		append_lsb_element(World.BoardCount, world_header);
+		World.Info.dump(world_header);
+		// Pad to 512
+		append_zeroes(512-world_header.size(), world_header);
 
-		Move(World.BoardCount, ptr, sizeof(World.BoardCount));
-		ptr += sizeof(World.BoardCount);
-
-		Move(World.Info, ptr, sizeof(World.Info));
-		ptr += sizeof(World.Info);
-
-        word actually_written;
-        out_file.write((char *)IoTmpBuf, 512);
+		word actually_written;
+        out_file.write((const char *)world_header.data(), 512);
         ioResult = errno;
 
 		if (DisplayIOError())  goto LOnError;
@@ -1227,11 +1166,10 @@ void WorldSave(TString50 filename, TString50 extension) {
 			ioResult = errno;
 			if (DisplayIOError())  goto LOnError;
 
-			out_file.write((char *)World.BoardData[i], World.BoardLen[i]);
+			out_file.write((const char *)World.BoardData[i].data(),
+				World.BoardData[i].size());
+
 			ioResult = errno;
-            if (actually_written < World.BoardLen[i]) {
-                ioResult = 1;   // HACK
-            }
 			if (DisplayIOError())  goto LOnError;
 		}
 
@@ -1607,7 +1545,7 @@ void GameUpdateSidebar() {
 		}
 
 		for( i = 1; i <= 7; i ++) {
-			if (World.Info.Keys[i])
+			if (World.Info.HasKey(i))
 				video.VideoWriteText(71 + i, 12, 0x18 + i, ElementDefs[E_KEY].Character);
 			else
 				video.VideoWriteText(71 + i, 12, 0x1f, " ");
@@ -1867,7 +1805,7 @@ void GameDebugPrompt() {
 	else if (input == "AMMO")
 		World.Info.Ammo = World.Info.Ammo + 5;
 	else if (input == "KEYS")
-		for( i = 1; i <= 7; i ++) World.Info.Keys[i] = true;
+		for( i = 1; i <= 7; i ++) World.Info.GiveKey(i);
 	else if (input == "TORCHES")
 		World.Info.Torches = World.Info.Torches + 3;
 	else if (input == "TIME")

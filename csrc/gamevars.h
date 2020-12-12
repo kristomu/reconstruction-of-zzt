@@ -1,29 +1,25 @@
 #ifndef __gamevars_h__
 #define __gamevars_h__
 
+#include "ptoc.h"
+#include "board.h"
+#include "world.h"
 #include <array>
 
-const integer MAX_STAT = 150;
 const integer MAX_ELEMENT = 61;               /*E_TEXT_BLINK_WHITE;*/
 const integer MAX_BOARD = 100;
-const integer MAX_FLAG = 10;
-const integer BOARD_WIDTH = 60;
-const integer BOARD_HEIGHT = 25;
 const integer HIGH_SCORE_COUNT = 30;
 const integer TORCH_DURATION = 200;
 const integer TORCH_DX = 8;
 const integer TORCH_DY = 5;
 const integer TORCH_DIST_SQR = 50;
-const integer MAX_BOARD_LEN = 20000;
+
 typedef varying_string<50> TString50;
 struct TCoord {
         integer X;
         integer Y;
 };
-struct TTile {
-        byte Element;
-        byte Color;
-};
+
 typedef void(*TElementDrawProc)(integer x, integer y, byte& ch);
 typedef void(*TElementTickProc)(integer statId);
 typedef void(*TElementTouchProc)(integer x, integer y, integer sourceStatId, integer& deltaX, integer& deltaY);
@@ -52,70 +48,22 @@ struct TElementDef {
         asciiz ParamTextName;
         integer ScoreValue;
 };
-/* Just dumping the structures to disk is not going to work in C due to
-   alignment issues. TODO: Fix (probably with explicit dump functions). */
 
-struct TStat {
-        byte X, Y;
-        integer StepX, StepY;
-        integer Cycle;
-        byte P1, P2, P3;
-        integer Follower;
-        integer Leader;
-        TTile Under;
-        array<0 , 3,byte> unk1;
-        integer DataPos;
-        integer DataLen;
-        byte* Data;
-};
-struct TRleTile {
-        byte Count;
-        TTile Tile;
-};
-struct TBoardInfo {
-        byte MaxShots;
-        boolean IsDark;
-        array<0 , 3,byte> NeighborBoards;
-        boolean ReenterWhenZapped;
-        asciiz Message;
-        byte StartPlayerX;
-        byte StartPlayerY;
-        integer TimeLimitSec;
-        array<70 , 85,byte> unk1;
-};
-struct TWorldInfo {
-        integer Ammo;
-        integer Gems;
-        array<1,7,boolean> Keys;
-        integer Health;
-        integer CurrentBoard;
-        integer Torches;
-        integer TorchTicks;
-        integer EnergizerTicks;
-        integer unk1;
-        integer Score;
-        asciiz Name;
-        array<1 , MAX_FLAG,asciiz> Flags;
-        integer BoardTimeSec;
-        integer BoardTimeHsec;
-        boolean IsSave;
-        std::array<byte, 13> unkPad;
-};
 struct TEditorStatSetting {
         byte P1, P2, P3;
         integer StepX, StepY;
 };
-struct TBoard {
+/*struct TBoard {
         TString50 Name;
         matrix<0 , BOARD_WIDTH + 1,0 , BOARD_HEIGHT + 1,TTile> Tiles;
         integer StatCount;
         array<0 , MAX_STAT + 1,TStat> Stats;
         TBoardInfo Info;
-};
+};*/
 struct TWorld {
         integer BoardCount;
         // dynamic board length.
-        array<0 , MAX_BOARD, byte*> BoardData;
+        std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
         /* KevEdit treats board length as unsigned, so to handle >32k
 			  boards without corrupting subsequent ones... */
         array<0 , MAX_BOARD,word> BoardLen;
@@ -126,15 +74,8 @@ struct THighScoreEntry {
         asciiz Name;
         integer Score;
 };
+
 typedef array<1 , HIGH_SCORE_COUNT,THighScoreEntry> THighScoreList;
-/* This is used to make sure IoTmpBuf is always large enough to hold
-   what changes may happen to the board. In the worst case, the board
-   is completely empty when loaded but takes max space due to stats,
-   then during play, the board gets filled with random tiles. That
-   will require MAX_RLE_OVERFLOW additional bytes to hold. So by
-   dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
-   that it can never run out of space from RLE shenanigans. */
-const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * sizeof(TRleTile);
 //typedef array<0 , (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1),byte> TIoTmpBuf;
 // ptoc arrays can't be directly addressed in C, so this hack is necessary.
 typedef byte TIoTmpBuf;

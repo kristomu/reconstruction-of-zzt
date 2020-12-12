@@ -1101,11 +1101,11 @@ void ElementKeyTouch(integer x, integer y, integer sourceStatId,
 
 	key = Board.Tiles[x][y].Color % 8;
 
-	if (World.Info.Keys[key])  {
+	if (World.Info.HasKey(key))  {
 		DisplayMessage(200, string("You already have a ")+ColorNames[key]+" key!");
 		SoundQueue(2, "\60\2\40\2");
 	} else {
-		World.Info.Keys[key] = true;
+		World.Info.GiveKey(key);
 		Board.Tiles[x][y].Element = E_EMPTY;
 		GameUpdateSidebar();
 		DisplayMessage(200, string("You now have the ")+ColorNames[key]+" key.");
@@ -1157,11 +1157,11 @@ void ElementDoorTouch(integer x, integer y, integer sourceStatId,
 
 	key = (Board.Tiles[x][y].Color / 16) % 8;
 
-	if (World.Info.Keys[key])  {
+	if (World.Info.HasKey(key))  {
 		Board.Tiles[x][y].Element = E_EMPTY;
 		BoardDrawTile(x, y);
 
-		World.Info.Keys[key] = false;
+		World.Info.TakeKey(key);
 		GameUpdateSidebar();
 
 		DisplayMessage(200, string("The ")+ColorNames[key]+" door is now open.");
