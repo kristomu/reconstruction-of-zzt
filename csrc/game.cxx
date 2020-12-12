@@ -853,21 +853,15 @@ void PauseOnError() {
 }
 
 boolean DisplayIOError() {
-	word ioResVal;
 	varying_string<50> errorNumStr;
 	TTextWindowState textWindow;
 
-	boolean DisplayIOError_result;
-	ioResVal = ioResult;
-	if (ioResVal == 0)  {
-		DisplayIOError_result = false;
-		return DisplayIOError_result;
+	if (errno == 0)  {
+		return false;		// no error
 	}
 
-	DisplayIOError_result = true;
-
-	/*IMP: Use explanations instead of numeric error codes if possible.*/
-	textWindow.Title = string("Error: ") + ErrorString(ioResVal);
+	/*IMP: Use explanations instead of numeric error codes. */
+	textWindow.Title = string("Error: ") + strerror(errno);
 	TextWindowInitState(textWindow);
 	TextWindowAppend(textWindow, "$DOS Error: ");
 	TextWindowAppend(textWindow, "");
@@ -882,7 +876,11 @@ boolean DisplayIOError() {
 	TextWindowSelect(textWindow, false, false);
 	TextWindowDrawClose(textWindow);
 	TextWindowFree(textWindow);
-	return DisplayIOError_result;
+
+	// So we don't trigger twice on the same error.
+	errno = 0;
+
+	return true;
 }
 
 void DisplayTruncationNote() {
@@ -1141,10 +1139,12 @@ void WorldSave(TString50 filename, TString50 extension) {
 	BoardClose(true);
 	video.VideoWriteText(63, 5, 0x1f, "Saving...");
 
-	std::ofstream out_file = OpenForWrite(std::string(filename + extension));
+	std::string full_filename = std::string(filename + extension);
+	std::ofstream out_file = OpenForWrite(full_filename);
 
     // TODO IMP? Perhaps write to a temporary filename and then move it over
     // the original to create some kind of atomicity?
+    // https://en.cppreference.com/w/cpp/io/c/tmpnam etc.
 
 	if (! DisplayIOError())  {
 		std::vector<unsigned char> world_header;
@@ -1155,21 +1155,18 @@ void WorldSave(TString50 filename, TString50 extension) {
 		append_zeroes(512-world_header.size(), world_header);
 
 		word actually_written;
-        out_file.write((const char *)world_header.data(), 512);
-        ioResult = errno;
+		out_file.write((const char *)world_header.data(), 512);
 
 		if (DisplayIOError())  goto LOnError;
 
 		for( i = 0; i <= World.BoardCount; i ++) {
             unsigned short board_len = World.BoardLen[i];
             out_file.write((char *)&board_len, 2);
-			ioResult = errno;
 			if (DisplayIOError())  goto LOnError;
 
 			out_file.write((const char *)World.BoardData[i].data(),
 				World.BoardData[i].size());
 
-			ioResult = errno;
 			if (DisplayIOError())  goto LOnError;
 		}
 
@@ -1181,10 +1178,10 @@ void WorldSave(TString50 filename, TString50 extension) {
 	return;
 
 LOnError:
-	close(f);
-    // XXX: Delete the file. Not supported by ptoc
-	// erase(f);
-	BoardOpen(World.Info.CurrentBoard, false);
+	out_file.close();
+	std::remove(full_filename.c_str()); // Delete the corrupted file.
+	// IMP? Give error message? But the above already does.
+    BoardOpen(World.Info.CurrentBoard, false);
 	SidebarClearLine(5);
 }
 
@@ -2154,7 +2151,7 @@ void GameTitleLoop() {
 
 void GamePrintRegisterMessage() {
 	string s;
-	untyped_file f;
+	std::ifstream f;
 	integer i;
 	integer ix, iy;
 	integer color;
@@ -2167,22 +2164,25 @@ void GamePrintRegisterMessage() {
 	color = 0xf;
 	word actuallyRead;
 
+	// TODO: Fix resource file reading.
+
 	for( i = 1; i <= ResourceDataHeader.EntryCount; i ++) {
 		if (s == ResourceDataHeader.Name[i])  {
-			assign(f, ResourceDataFileName);
-			OpenForRead(f, 1);
-			seek(f, ResourceDataHeader.FileOffset[i]);
+			f = OpenForRead(ResourceDataFileName.body);
+			f.seekg(ResourceDataHeader.FileOffset[i]); // * record length?
 
 			isReading = true;
-			while ((ioResult == 0) && isReading)  {
-				BlockRead(f, &s, 1, actuallyRead);
-                if (actuallyRead < 1) { ioResult = 1; } // HACK
+			while (errno == 0 && isReading)  {
+				char scratch[256];
+				f.read(scratch, 1); // is this also in record terms?
+				s = scratch;
 				strPtr = &s;
 				++strPtr;
 				if (length(s) == 0)  {
 					color -= 1;
 				} else {
-					BlockRead(f, strPtr, length(s), actuallyRead);
+					f.read(scratch+1, length(s));
+					s = scratch;
 					if (s != '@')
 						video.VideoWriteText(0, iy, color, s);
 					else
@@ -2191,12 +2191,10 @@ void GamePrintRegisterMessage() {
 				iy += 1;
 			}
 
-			close(f);
+			f.close();
 			video.VideoWriteText(28, 24, 0x1f, "Press any key to exit...");
 			TextColor(LightGray);
 
-			/*do {; } while (!keypressed());
-			InputKeyPressed = readkey();*/
 			ReadKeyBlocking();
 
 			video.VideoWriteText(28, 24, 0, "                        ");

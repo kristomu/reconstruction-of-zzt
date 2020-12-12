@@ -204,45 +204,41 @@ void TextWindowFree(TTextWindowState& state) {
 void TextWindowPrint(TTextWindowState& state) {
 	integer iLine, iChar;
 	string line;
-    text Lst;
 
-	{
-        assign(Lst, "PRINTOUT.DAT");
-		OpenForWrite(Lst); /*??? What is Lst? Lst is the printer out*/
-		for( iLine = 1; iLine <= state.LineCount; iLine ++) {
-			line = *state.Lines[iLine];
-			if (length(line) > 0)  {
-				switch (line[1]) {
-				case '$': {
-					Delete(line, 1, 1);
-					for( iChar = ((80 - length(line)) / 2); iChar >= 1; iChar --)
-						line = string(' ') + line;
-				}
-				break;
-				case '!': case ':': {
-					iChar = pos(";", line);
-					if (iChar > 0)
-						Delete(line, 1, iChar);
-					else
-						line = "";
-				}
-				break;
-				default:
-					line = string("          ") + line;
-				}
+	std::ofstream printout = OpenForWrite("PRINTOUT.DAT");
+	if (errno != 0) { return; }
+
+	for( iLine = 1; iLine <= state.LineCount; iLine ++) {
+		line = *state.Lines[iLine];
+		if (length(line) > 0)  {
+			switch (line[1]) {
+			case '$': {
+				Delete(line, 1, 1);
+				for( iChar = ((80 - length(line)) / 2); iChar >= 1; iChar --)
+					line = string(' ') + line;
 			}
-			Lst << line << NL;
-			if (ioResult != 0)  {
-				close(Lst);
-				return;
+			break;
+			case '!': case ':': {
+				iChar = pos(";", line);
+				if (iChar > 0)
+					Delete(line, 1, iChar);
+				else
+					line = "";
+			}
+			break;
+			default:
+				line = string("          ") + line;
 			}
 		}
-		if (state.LoadedFilename == "ORDER.HLP")  {
-			Lst << *OrderPrintId << NL;
+		printout << line << "\n";
+		if (errno != 0)  {
+			return;
 		}
-		Lst << chr(12); /* form feed */
-		close(Lst);
 	}
+	if (state.LoadedFilename == "ORDER.HLP")  {
+		printout << *OrderPrintId << "\n";
+	}
+	printout << chr(12); /* form feed */
 }
 
 void TextWindowSelect(TTextWindowState& state, boolean hyperlinkAsSelect,
@@ -580,109 +576,105 @@ void TextWindowEdit(TTextWindowState& state) {
 	}
 }
 
+// XXX: Probably non-functional at the moment.
 void TextWindowOpenFile(TTextWindowLine filename,
                         TTextWindowState& state) {
-	untyped_file f;
-	text tf;
+	std::ifstream f, tf;
 	integer i;
 	integer entryPos;
 	boolean retVal;
 	TTextWindowLine* line;
 	byte lineLen;
 
-	{
-		retVal = true;
-		for( i = 1; i <= length(filename); i ++)
-			retVal = retVal && (filename[i] != '.');
-		if (retVal)
-			filename = filename + ".HLP";
+	retVal = true;
+	for( i = 1; i <= length(filename); i ++)
+		retVal = retVal && (filename[i] != '.');
+	if (retVal)
+		filename = filename + ".HLP";
 
-		if (filename[1] == '*')  {
-			filename = copy(filename, 2, length(filename) - 1);
-			entryPos = -1;
-		} else {
-			entryPos = 0;
+	if (filename[1] == '*')  {
+		filename = copy(filename, 2, length(filename) - 1);
+		entryPos = -1;
+	} else {
+		entryPos = 0;
+	}
+
+	TextWindowInitState(state);
+	state.LoadedFilename = UpCaseString(filename);
+    word how_many = 1;
+	if (ResourceDataHeader.EntryCount == 0)  {
+		f = OpenForRead(ResourceDataFileName.body);
+		if (errno == 0) {
+			// TODO: Deal with packing problems that will probably ensue.
+			f.read((char*)&ResourceDataHeader, sizeof(ResourceDataHeader) * how_many);
 		}
+		if (errno != 0)
+			ResourceDataHeader.EntryCount = -1;
+	}
 
-		TextWindowInitState(state);
-		state.LoadedFilename = UpCaseString(filename);
-        word how_many = 1;
-		if (ResourceDataHeader.EntryCount == 0)  {
-			assign(f, ResourceDataFileName);
-			OpenForRead(f, 1);
-			if (ioResult == 0)
-				BlockRead(f, &ResourceDataHeader, sizeof(ResourceDataHeader), how_many);
-			if (ioResult != 0)
-				ResourceDataHeader.EntryCount = -1;
+	if (entryPos == 0)  {
+		for( i = 1; i <= ResourceDataHeader.EntryCount; i ++) {
+			if (UpCaseString(ResourceDataHeader.Name[i]) == UpCaseString(filename))
+				entryPos = i;
 		}
+	}
 
-		if (entryPos == 0)  {
-			for( i = 1; i <= ResourceDataHeader.EntryCount; i ++) {
-				if (UpCaseString(ResourceDataHeader.Name[i]) == UpCaseString(filename))
-					entryPos = i;
+	if (entryPos <= 0)  {
+		tf = OpenForRead(filename.body);
+		if (errno == 0)  {
+			while ((errno == 0) && (! tf.eof()))  {
+				state.LineCount += 1;
+				state.Lines[state.LineCount] = new TTextWindowLine;
+				std::string in_between;
+				tf >> in_between;
+				*state.Lines[state.LineCount] = in_between.c_str();
 			}
+			tf.close();
 		}
+	} else {
+		f = OpenForRead(ResourceDataFileName.body);
+		f.seekg(ResourceDataHeader.FileOffset[entryPos]); // * type size?
+		if (errno == 0)  {
+			retVal = true;
+			while ((errno == 0) && retVal)  {
+				state.LineCount += 1;
+				state.Lines[state.LineCount] = new TTextWindowLine;
 
-		if (entryPos <= 0)  {
-			assign(tf, filename);
-			OpenForRead(tf);
-			if (ioResult == 0)  {
-				while ((ioResult == 0) && (! eof(tf)))  {
-					state.LineCount += 1;
-					state.Lines[state.LineCount] = new TTextWindowLine;
-					tf >> *state.Lines[state.LineCount] >> NL;
+				f.read((char*)state.Lines[state.LineCount], 1);
+				line = state.Lines[state.LineCount] + 1;
+				lineLen = ord((*state.Lines[state.LineCount])[0]);
+				if (lineLen == 0)  {
+					*state.Lines[state.LineCount] = "";
+				} else {
+					size_t length = ord((*state.Lines[state.LineCount])[0]);
+					char in_between[length];
+					f.read(in_between, length);
+					*line = in_between;
 				}
-				close(tf);
-			}
-		} else {
-			assign(f, ResourceDataFileName);
-			OpenForRead(f, 1);
-			seek(f, ResourceDataHeader.FileOffset[entryPos]);
-            word actually_read;
-			if (ioResult == 0)  {
-				retVal = true;
-				while ((ioResult == 0) && retVal)  {
-					state.LineCount += 1;
-					state.Lines[state.LineCount] = new TTextWindowLine;
 
-					BlockRead(f, state.Lines[state.LineCount], 1, actually_read);
-					line = state.Lines[state.LineCount] + 1;
-					lineLen = ord((*state.Lines[state.LineCount])[0]);
-					if (lineLen == 0)  {
-						*state.Lines[state.LineCount] = "";
-					} else {
-						BlockRead(f, line, ord((*state.Lines[state.LineCount])[0]),
-                            actually_read);
-					}
-
-					if (*state.Lines[state.LineCount] == '@')  {
-						retVal = false;
-						*state.Lines[state.LineCount] = "";
-					}
+				if (*state.Lines[state.LineCount] == '@')  {
+					retVal = false;
+					*state.Lines[state.LineCount] = "";
 				}
-				close(f);
 			}
+			f.close();
 		}
 	}
 }
 
 void TextWindowSaveFile(TTextWindowLine filename,
                         TTextWindowState& state) {
-	text f;
 	integer i;
 
-	{
-		assign(f, filename);
-		OpenForWrite(f);
-		if (ioResult != 0)  return;
+	std::ofstream f = OpenForWrite(filename.body);
+	if (errno != 0)  return;
 
-		for( i = 1; i <= state.LineCount; i ++) {
-			f << *state.Lines[i] << NL;
-			if (ioResult != 0)  return;
-		}
-
-		close(f);
+	for( i = 1; i <= state.LineCount; i ++) {
+		f << *state.Lines[i] << "\n";
+		if (errno != 0)  return;
 	}
+
+	f.close();
 }
 
 void TextWindowDisplayFile(string filename, string title) {

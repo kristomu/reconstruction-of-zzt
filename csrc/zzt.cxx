@@ -79,7 +79,6 @@ void ParseArguments() {
 void GameConfigure() {
     integer unk1;
     boolean joystickEnabled, mouseEnabled;
-    text cfgFile;
     integer bottomRow;
 
     ParsingConfigFile = true;
@@ -88,19 +87,19 @@ void GameConfigure() {
     ConfigWorldFile = "";
     GameVersion = "3.2";
 
-    assign(cfgFile, "zzt.cfg");
-    OpenForRead(cfgFile);
-    if (ioResult == 0)  {
-        cfgFile >> ConfigWorldFile >> NL;
-        cfgFile >> ConfigRegistration >> NL;
+    std::ifstream cfgFile = OpenForRead("zzt.cfg");
+    if (errno == 0)  {
+        cfgFile >> ConfigWorldFile;
+        cfgFile >> ConfigRegistration;
     }
-    if (ConfigWorldFile[1] == '*')  {
+    if (ConfigWorldFile[0] == '*')  {
         EditorEnabled = false;
-        ConfigWorldFile = copy(ConfigWorldFile, 2, length(ConfigWorldFile) - 1);
+        ConfigWorldFile = ConfigWorldFile.substr(1);
     }
-    if (length(ConfigWorldFile) != 0)  {
-        StartupWorldFileName = ConfigWorldFile;
+    if (ConfigWorldFile.size() > 0)  {
+        StartupWorldFileName = ConfigWorldFile.c_str();
     }
+    cfgFile.close();
 
     // TBD: inputs.pas
     /*InputInitDevices();
@@ -123,7 +122,7 @@ void GameConfigure() {
     cursesWriteLn("");
     cursesWriteLn("                                 <=-  ZZT  -=>");
     TextColor(Yellow);
-    if (length(ConfigRegistration) == 0)
+    if (ConfigRegistration.size() == 0)
         cursesWriteLn("                             Shareware version 3.2");
     else
         cursesWriteLn("                                  Version  3.2");
@@ -198,10 +197,14 @@ int main(int argc, const char* argv[]) {
     ParseArguments();
     TextWindowInit(5, 3, 50, 18);
 
-    /*do {
+    /*int col = 0;
+
+    do {
         InputReadWaitKey();
-        video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
+        video.VideoWriteText(10, 10, col + 0x09, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
         //video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
+        ++col;
+        col = col % 7;
     } while (1 == 1);*/
 
     if (! GameTitleExitRequested)  {
@@ -236,8 +239,8 @@ int main(int argc, const char* argv[]) {
     TextAttr = InitialTextAttr;
     ClrScr();*/
 
-    if (length(ConfigRegistration) == 0)  {
-            //GamePrintRegisterMessage();
+    if (ConfigRegistration.size() == 0)  {
+            GamePrintRegisterMessage();
     } else {
             cursesWriteLn("");
             cursesWriteLn("  Registered version -- Thank you for playing ZZT.");

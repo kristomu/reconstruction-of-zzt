@@ -140,8 +140,8 @@ EXTERN integer OopValue;
 EXTERN boolean DebugEnabled;
 
 EXTERN THighScoreList HighScoreList;
-EXTERN string ConfigRegistration;
-EXTERN TString50 ConfigWorldFile;
+EXTERN std::string ConfigRegistration;
+EXTERN std::string ConfigWorldFile;
 EXTERN boolean EditorEnabled;
 EXTERN TString50 GameVersion;
 EXTERN boolean ParsingConfigFile;
