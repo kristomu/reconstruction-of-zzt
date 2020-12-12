@@ -794,11 +794,11 @@ void PromptString(integer x, integer y, integer arrowColor, integer color,
 			}
 			break;
 			}
-		} else if ((InputKeyPressed == KEY_LEFT)
-		           || (InputKeyPressed == KEY_BACKSPACE))  {
+		} else if ((InputKeyPressed == E_KEY_LEFT)
+		           || (InputKeyPressed == E_KEY_BACKSPACE))  {
 			buffer = copy(buffer, 1, length(buffer) - 1);
 			/*IMP: Clear the whole line if Home is pressed.*/
-		} else if (InputKeyPressed == KEY_HOME)  {
+		} else if (InputKeyPressed == E_KEY_HOME)  {
 			buffer = "";
 		}
 
