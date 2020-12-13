@@ -271,72 +271,58 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 }
 
 std::vector<unsigned char> TBoard::dump() {
-	integer ix, iy;
 
 	std::vector<unsigned char> out;
 	out.reserve(MAX_RLE_OVERFLOW);
 
-	std::vector<unsigned char>::const_iterator ptr = out.begin(),
-		ptr_start;
+	bool cleanupNeeded = false;
 
-	ptr_start = ptr;
-
-	TRleTile rle;
-	boolean cleanupNeeded = false;
-
-	// ---------------- Board name  ----------------
-
+	// Board name
 	append_pascal_string(Name, MAX_BOARD_NAME_LENGTH, out);
 
-	// ---------------- RLE board layout  ----------------
+	// RLE board layout
+	TRleTile rle;
+	rle.Count = 0;
+	rle.Tile = Tiles[1][1];
 
-	// To refactor later, because this is uh-glee.
+	for (int iy = 1; iy <= BOARD_HEIGHT; ++iy) {
+		for (int ix = 1; ix <= BOARD_WIDTH; ++ix) {
+			if (Tiles[ix][iy] == rle.Tile && rle.Count < 255) {
+				++rle.Count;
+			} else {
+				out.push_back(rle.Count);
+				rle.Tile.dump(out);
 
-	ix = 1;
-	iy = 1;
-	rle.Count = 1;
-	rle.Tile = Tiles[ix][iy];
-	do {
-		ix = ix + 1;
-		if (ix > BOARD_WIDTH)  {
-			ix = 1;
-			iy = iy + 1;
+				rle.Tile = Tiles[ix][iy];
+				rle.Count = 1;
+			}
 		}
-		if ((Tiles[ix][iy].Color == rle.Tile.Color) &&
-		        (Tiles[ix][iy].Element == rle.Tile.Element) &&
-		        (rle.Count < 255) && (iy <= BOARD_HEIGHT)) {
-			rle.Count = rle.Count + 1;
-		} else {
-			out.push_back(rle.Count);
-			rle.Tile.dump(out);
+	}
 
-			rle.Tile = Tiles[ix][iy];
-			rle.Count = 1;
-		}
-	} while (!(iy > BOARD_HEIGHT));
+	out.push_back(rle.Count);
+	rle.Tile.dump(out);
 
-	// ---------------- Metadata and stats info  ----------------
-
+	// Metadata and stats info
 	Info.dump(out);
 
-	// ---------------- Stats  ----------------
-
+	// Stats
 	append_lsb_element(StatCount, out);
 
-	for( ix = 0; ix <= StatCount; ix ++) {
+	for(int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
 		// Clean up #BIND references so they all point to the first object.
-		if (Stats[ix].DataLen > 0)  {
-			for( iy = 1; iy < ix; iy ++) {
-				/* IMP: Make all bound objects link to the same one. */
-				if (Stats[iy].Data == Stats[ix].Data)  {
-					Stats[ix].DataLen = -iy;
-					Stats[ix].Data = nil;
+		if (Stats[stat_idx].DataLen > 0)  {
+			for(int primary = 1; primary < stat_idx; ++primary) {
+				/* If two pointers share the same code (same pointer),
+				   link the latter to the former. */
+				if (Stats[primary].Data == Stats[stat_idx].Data)  {
+					Stats[stat_idx].DataLen = -primary;
+					Stats[stat_idx].Data = nil;
 					break;
 				}
 			}
 		}
 
-		Stats[ix].dump(out);
+		Stats[stat_idx].dump(out);
 	}
 
 	/* Needs to be done elsewhere, since it relates to the world itself. */

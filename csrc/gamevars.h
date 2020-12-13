@@ -56,13 +56,7 @@ struct TEditorStatSetting {
         byte P1, P2, P3;
         integer StepX, StepY;
 };
-/*struct TBoard {
-        TString50 Name;
-        matrix<0 , BOARD_WIDTH + 1,0 , BOARD_HEIGHT + 1,TTile> Tiles;
-        integer StatCount;
-        array<0 , MAX_STAT + 1,TStat> Stats;
-        TBoardInfo Info;
-};*/
+
 struct TWorld {
         integer BoardCount;
         // dynamic board length.

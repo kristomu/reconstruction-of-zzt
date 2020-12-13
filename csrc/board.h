@@ -17,6 +17,10 @@ class TTile {
         unsigned char Color;
         // TODO? Operator overloading
         void dump(std::vector<unsigned char> & out) const;
+
+        bool operator==(const TTile & x) {
+            return Element == x.Element && Color == x.Color;
+        }
 };
 
 struct TRleTile {
