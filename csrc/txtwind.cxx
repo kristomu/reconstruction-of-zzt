@@ -28,8 +28,9 @@
 /*$I-*/
 #define __TxtWind_implementation__
 
-
+#include "tools.h"
 #include "txtwind.h"
+#include "serialization.h"
 
 /*#include "Crt.h"*/
 /*#include "Printer.h"*/
@@ -274,7 +275,7 @@ void TextWindowSelect(TTextWindowState& state, boolean hyperlinkAsSelect,
 					if (pointerStr[1] == '-')  {
 						Delete(pointerStr, 1, 1);
 						TextWindowFree(state);
-						TextWindowOpenFile(pointerStr, state);
+						TextWindowOpenFile(pointerStr.body, state);
 						if (state.LineCount == 0)
 							return;
 						else {
@@ -576,51 +577,94 @@ void TextWindowEdit(TTextWindowState& state) {
 	}
 }
 
-// XXX: Probably non-functional at the moment.
-void TextWindowOpenFile(TTextWindowLine filename,
+void TextWindowOpenFile(std::string filename,
                         TTextWindowState& state) {
 	std::ifstream f, tf;
-	integer i;
+	size_t i;
 	integer entryPos;
 	boolean retVal;
 	TTextWindowLine* line;
 	byte lineLen;
 
 	retVal = true;
-	for( i = 1; i <= length(filename); i ++)
-		retVal = retVal && (filename[i] != '.');
+	for (char c: filename)
+		retVal = retVal && (c != '.');
+
 	if (retVal)
 		filename = filename + ".HLP";
 
-	if (filename[1] == '*')  {
-		filename = copy(filename, 2, length(filename) - 1);
+	if (filename[0] == '*')  {
+		filename = filename.substr(1);
 		entryPos = -1;
 	} else {
 		entryPos = 0;
 	}
 
 	TextWindowInitState(state);
-	state.LoadedFilename = UpCaseString(filename);
-    word how_many = 1;
-	if (ResourceDataHeader.EntryCount == 0)  {
-		f = OpenForRead(ResourceDataFileName.body);
+	state.LoadedFilename = UpCaseString(filename.c_str());
+
+    // If the resource file hasn't yet been opened... IMP: try and try
+    // again if the file wasn't openable.
+	if (ResourceDataHeader.EntryCount <= 0)  {
+		// First there's a file count of 2 bytes. Then there are
+		// MAX_RESOURCE_DATA_FILES records of 50-long pascal strings; and
+		// then MAX_RESOURCE_DATA_FILES 32-bit ints giving their position.
+		// That is a total of 2 + MAX_RESOURCE_DATA_FILES * (50+1+4).
+		// Fix potential off-by-one later.
+		f = OpenForRead(ResourceDataFileName);
 		if (errno == 0) {
+			size_t bufsize = 2 + MAX_RESOURCE_DATA_FILES * 55;
+			char buffer[bufsize];
 			// TODO: Deal with packing problems that will probably ensue.
-			f.read((char*)&ResourceDataHeader, sizeof(ResourceDataHeader) * how_many);
-		}
-		if (errno != 0)
+			// (And ensue, they did.)
+			//f.read((char*)&ResourceDataHeader, sizeof(ResourceDataHeader));
+			f.read(buffer, bufsize);
+
+			if (errno != 0) {
+				ResourceDataHeader.EntryCount = -1;
+				return;
+			}
+
+			char * buf_ptr = buffer;
+			buf_ptr = get_lsb_element(buf_ptr, ResourceDataHeader.EntryCount);
+
+			bool truncated = false;
+
+			// Names
+			for (i = 0; i < ResourceDataHeader.EntryCount && !truncated; ++i) {
+				buf_ptr = get_pascal_string(buf_ptr, buffer + bufsize,
+					50, true, ResourceDataHeader.Name[i], truncated);
+			}
+			// Skip the junk at the end.
+			buf_ptr += (MAX_RESOURCE_DATA_FILES -
+				ResourceDataHeader.EntryCount) * 51;
+
+			if (truncated) {
+				ResourceDataHeader.EntryCount = -1;
+				return;
+			}
+
+			for (i = 0; i < ResourceDataHeader.EntryCount; ++i) {
+				buf_ptr = get_lsb_element(buf_ptr,
+					ResourceDataHeader.FileOffset[i]);
+			}
+			f.close();
+
+		} else {
 			ResourceDataHeader.EntryCount = -1;
+		}
 	}
 
 	if (entryPos == 0)  {
-		for( i = 1; i <= ResourceDataHeader.EntryCount; i ++) {
-			if (UpCaseString(ResourceDataHeader.Name[i]) == UpCaseString(filename))
+		for( i = 0; i < ResourceDataHeader.EntryCount; ++i) {
+			if (str_toupper(ResourceDataHeader.Name[i]) == str_toupper(filename))
 				entryPos = i;
 		}
 	}
 
-	if (entryPos <= 0)  {
-		tf = OpenForRead(filename.body);
+	// User-specified file
+	if (entryPos < 0)  {
+		tf = OpenForRead(filename);
 		if (errno == 0)  {
 			while ((errno == 0) && (! tf.eof()))  {
 				state.LineCount += 1;
@@ -631,29 +675,51 @@ void TextWindowOpenFile(TTextWindowLine filename,
 			}
 			tf.close();
 		}
+	// Internal file
 	} else {
-		f = OpenForRead(ResourceDataFileName.body);
-		f.seekg(ResourceDataHeader.FileOffset[entryPos]); // * type size?
+		f = OpenForRead(ResourceDataFileName);
+
+		size_t length, pos = ResourceDataHeader.FileOffset[entryPos];
+		if (entryPos+1 == ResourceDataHeader.EntryCount) {
+			f.seekg(0, std::ios_base::end);
+			length = (size_t)f.tellg() - ResourceDataHeader.FileOffset[entryPos];
+		} else {
+			length = ResourceDataHeader.FileOffset[entryPos+1] -
+				ResourceDataHeader.FileOffset[entryPos];
+		}
+
+		// Read off the virtual file into a buffer.
+		char virtual_file[length];
+		f.seekg(pos);
+		f.read(virtual_file, length);
+		char * vbuf_ptr = virtual_file;
+		bool truncated;
+
 		if (errno == 0)  {
-			retVal = true;
-			while ((errno == 0) && retVal)  {
+			bool virtual_file_done = false;
+			while (errno == 0 && !virtual_file_done &&
+				vbuf_ptr < virtual_file + length)  {
+
+				// TODO: Handle the memory leak that'll (probably) happen here.
+				// This will require some more serious restructuring.
 				state.LineCount += 1;
 				state.Lines[state.LineCount] = new TTextWindowLine;
 
-				f.read((char*)state.Lines[state.LineCount], 1);
+				std::string this_line;
+				vbuf_ptr = get_pascal_string(vbuf_ptr,
+					virtual_file + length, 50, false, this_line, truncated);
+
 				line = state.Lines[state.LineCount] + 1;
-				lineLen = ord((*state.Lines[state.LineCount])[0]);
+				lineLen = this_line.size();
 				if (lineLen == 0)  {
 					*state.Lines[state.LineCount] = "";
 				} else {
-					size_t length = ord((*state.Lines[state.LineCount])[0]);
-					char in_between[length];
-					f.read(in_between, length);
-					*line = in_between;
+					*state.Lines[state.LineCount] = this_line.c_str();
 				}
 
-				if (*state.Lines[state.LineCount] == '@')  {
-					retVal = false;
+				// A lone @ Pascal string marks the end of the virtual file.
+				if (this_line == "@")  {
+					virtual_file_done = true;
 					*state.Lines[state.LineCount] = "";
 				}
 			}
@@ -677,7 +743,7 @@ void TextWindowSaveFile(TTextWindowLine filename,
 	f.close();
 }
 
-void TextWindowDisplayFile(string filename, string title) {
+void TextWindowDisplayFile(std::string filename, string title) {
 	TTextWindowState state;
 
 	state.Title = title;

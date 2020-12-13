@@ -17,8 +17,8 @@ struct TTextWindowState {
 };
 struct TResourceDataHeader {
         integer EntryCount;
-        array<1 , MAX_RESOURCE_DATA_FILES,asciiz> Name;
-        array<1 , MAX_RESOURCE_DATA_FILES,longint> FileOffset;
+        std::array<std::string, MAX_RESOURCE_DATA_FILES> Name;
+        std::array<int, MAX_RESOURCE_DATA_FILES> FileOffset;
 };
 
 #ifdef __TxtWind_implementation__
@@ -38,7 +38,7 @@ EXTERN TVideoLine TextWindowStrSep;
 EXTERN TVideoLine TextWindowStrInnerSep;
 EXTERN TVideoLine TextWindowStrInnerArrows;
 EXTERN boolean TextWindowRejected;
-EXTERN varying_string<50> ResourceDataFileName;
+EXTERN std::string ResourceDataFileName;
 EXTERN TResourceDataHeader ResourceDataHeader;
 EXTERN string* OrderPrintId;
 #undef EXTERN
@@ -53,9 +53,9 @@ EXTERN string* OrderPrintId;
         void TextWindowSelect(TTextWindowState& state, boolean hyperlinkAsSelect, boolean viewingFile);
         void TextWindowSort(TTextWindowState& state);
         void TextWindowEdit(TTextWindowState& state);
-        void TextWindowOpenFile(TTextWindowLine filename, TTextWindowState& state);
+        void TextWindowOpenFile(std::string filename, TTextWindowState& state);
         void TextWindowSaveFile(TTextWindowLine filename, TTextWindowState& state);
-        void TextWindowDisplayFile(string filename, string title);
+        void TextWindowDisplayFile(std::string filename, string title);
         void TextWindowInit(integer x, integer y, integer width, integer height);
 
 #endif

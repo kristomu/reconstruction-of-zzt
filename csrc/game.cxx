@@ -36,6 +36,7 @@
 
 
 #include "game.h"
+#include "tools.h"
 
 #include "dos.h"
 /*#include "Crt.h"*/
@@ -2150,7 +2151,7 @@ void GameTitleLoop() {
 }
 
 void GamePrintRegisterMessage() {
-	string s;
+	std::string s;
 	std::ifstream f;
 	integer i;
 	integer ix, iy;
@@ -2159,7 +2160,7 @@ void GamePrintRegisterMessage() {
 	string * strPtr;
 
 //	SetCBreak(false);
-	s = string("END") + chr(49 + Random(4)) + ".MSG";
+	s = "END" + itos(49 + Random(4)) + ".MSG";
 	iy = 0;
 	color = 0xf;
 	word actuallyRead;
@@ -2168,7 +2169,7 @@ void GamePrintRegisterMessage() {
 
 	for( i = 1; i <= ResourceDataHeader.EntryCount; i ++) {
 		if (s == ResourceDataHeader.Name[i])  {
-			f = OpenForRead(ResourceDataFileName.body);
+			f = OpenForRead(ResourceDataFileName);
 			f.seekg(ResourceDataHeader.FileOffset[i]); // * record length?
 
 			isReading = true;
@@ -2176,14 +2177,12 @@ void GamePrintRegisterMessage() {
 				char scratch[256];
 				f.read(scratch, 1); // is this also in record terms?
 				s = scratch;
-				strPtr = &s;
-				++strPtr;
-				if (length(s) == 0)  {
+				if (s.size() == 0)  {
 					color -= 1;
 				} else {
-					f.read(scratch+1, length(s));
+					f.read(scratch+1, s.size());
 					s = scratch;
-					if (s != '@')
+					if (s[0] != '@')
 						video.VideoWriteText(0, iy, color, s);
 					else
 						isReading = false;

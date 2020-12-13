@@ -190,7 +190,7 @@ int main(int argc, const char* argv[]) {
     //InitialTextAttr = TextAttr;
 
     StartupWorldFileName = "TOWN";
-    //ResourceDataFileName = "ZZT.DAT";
+    ResourceDataFileName = "ZZT.DAT";
     ResetConfig = false;
     GameTitleExitRequested = false;
     GameConfigure();
