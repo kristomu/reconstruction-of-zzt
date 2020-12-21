@@ -1,4 +1,3 @@
-#include "ptoc.h"
 
 /*
 	Copyright (c) 2020 Adrian Siekierka
@@ -33,6 +32,9 @@
 
 
 #include "elements.h"
+#include "ptoc.h"
+#include "gamevars.h"
+#include "board.h"
 
 /*#include "Crt.h"*/
 #include "video.h"
@@ -67,8 +69,8 @@ void ElementMessageTimerTick(integer statId) {
 		TStat& with = Board.Stats[statId];
 		switch (with.X) {
 		case 0: {
-			video.VideoWriteText((60 - length(Board.Info.Message)) / 2, 24,
-			               9 + (with.P2 % 7), string(' ')+Board.Info.Message+' ');
+			video.VideoWriteText((60 - Board.Info.Message.size()) / 2, 24,
+			               9 + (with.P2 % 7), " " + Board.Info.Message + " " );
 			with.P2 = with.P2 - 1;
 			if (with.P2 <= 0)  {
 				RemoveStat(statId);

@@ -626,7 +626,7 @@ void TextWindowOpenFile(std::string filename,
 			}
 
 			char * buf_ptr = buffer;
-			buf_ptr = get_lsb_element(buf_ptr, ResourceDataHeader.EntryCount);
+			buf_ptr = load_lsb_element(buf_ptr, ResourceDataHeader.EntryCount);
 
 			bool truncated = false;
 
@@ -645,7 +645,7 @@ void TextWindowOpenFile(std::string filename,
 			}
 
 			for (i = 0; i < ResourceDataHeader.EntryCount; ++i) {
-				buf_ptr = get_lsb_element(buf_ptr,
+				buf_ptr = load_lsb_element(buf_ptr,
 					ResourceDataHeader.FileOffset[i]);
 			}
 			f.close();

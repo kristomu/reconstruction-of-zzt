@@ -2,6 +2,8 @@
 
 #include "ptoc.h"
 #include "array.h"
+#include "elements.h"
+#include "curses_io.h"      // colors, perhaps put somewhere else?
 
 #include <vector>
 #include <string>
@@ -11,17 +13,30 @@ const integer BOARD_WIDTH = 60;
 const integer BOARD_HEIGHT = 25;
 const integer MAX_BOARD_LEN = 20000;
 
+const int BOARD_NORTH = 0,
+          BOARD_SOUTH = 1,
+          BOARD_WEST = 2,
+          BOARD_EAST = 3;
+
 class TTile {
 	public:
-        unsigned char Element;
+        element_t Element;
         unsigned char Color;
-        // TODO? Operator overloading
+
+        size_t packed_size() const;
         void dump(std::vector<unsigned char> & out) const;
+
+        std::vector<unsigned char>::const_iterator load(
+            std::vector<unsigned char>::const_iterator ptr,
+            const std::vector<unsigned char>::const_iterator end);
 
         bool operator==(const TTile & x) {
             return Element == x.Element && Color == x.Color;
         }
 };
+
+const TTile TileBorder = {E_NORMAL, Yellow};
+const TTile TileBoardEdge = {E_BOARD_EDGE, Black};
 
 struct TRleTile {
         unsigned char Count;
@@ -41,20 +56,33 @@ struct TStat {
         short DataPos;
         short DataLen;
         unsigned char* Data;
+        size_t packed_size() const;
         void dump(std::vector<unsigned char> & out) const;
+        std::vector<unsigned char>::const_iterator load(
+            std::vector<unsigned char>::const_iterator ptr,
+            const std::vector<unsigned char>::const_iterator end);
 };
+
+// Perhaps enforce minimum and maximum size with get/set? Feels kinda
+// ugly/kludgy though.
 
 struct TBoardInfo {
         unsigned char MaxShots;
         bool IsDark;
         array<0 , 3,unsigned char> NeighborBoards;
         bool ReenterWhenZapped;
-        asciiz Message;
+        std::string Message;        // Max length 58
         unsigned char StartPlayerX;
         unsigned char StartPlayerY;
         short TimeLimitSec;
         array<70 , 85,unsigned char> unk1;
+
+        size_t packed_size() const;
+
         void dump(std::vector<unsigned char> & out) const;
+        std::vector<unsigned char>::const_iterator load(
+            std::vector<unsigned char>::const_iterator ptr,
+            const std::vector<unsigned char>::const_iterator end);
 };
 
 /* This is used to make sure IoTmpBuf is always large enough to hold
@@ -67,6 +95,9 @@ struct TBoardInfo {
 const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * sizeof(TRleTile);
 
 class TBoard {
+    private:
+        void adjust_board_stats();
+
 	public:
         std::string Name;
         matrix<0 , BOARD_WIDTH + 1,0 , BOARD_HEIGHT + 1,TTile> Tiles;
@@ -74,8 +105,10 @@ class TBoard {
         array<0 , MAX_STAT + 1,TStat> Stats;
         TBoardInfo Info;
 
+        bool valid_coord(short x, short y) const;
+
         void create();					// Construct a yellow border board.
         // TODO later: use proper size-containing classes, e.g. vectors?
         std::vector<unsigned char> dump();	// Serialize
-        bool open(const std::vector<unsigned char> & source);	// Deserialize
+        bool load(const std::vector<unsigned char> & source);	// Deserialize
 };

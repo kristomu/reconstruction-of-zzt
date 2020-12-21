@@ -810,11 +810,6 @@ void cwrite(char* format_string, ...);
 
 #endif
 
-#ifdef TURBO_PASCAL
-extern "C" integer ioresult;
-#define ioResult ioresult
-#endif
-
 /*
  * Codes returned by Sun Pascal open()
  */

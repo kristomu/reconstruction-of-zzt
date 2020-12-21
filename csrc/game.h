@@ -85,8 +85,6 @@ const array<0, 7,integer> DiagonalDeltaY = {{1, 1, 1, 0, -1, -1, -1, 0}};
 const array<0, 3,integer> NeighborDeltaX = {{0, 0, -1, 1}};
 const array<0, 3,integer> NeighborDeltaY = {{-1, 1, 0, 0}};
 /**/
-const TTile TileBorder = {E_NORMAL, 0xe};
-const TTile TileBoardEdge = {E_BOARD_EDGE, 0};
 const TStat StatTemplateDefault = {
 	0, 0, 0, 0,
 	0, 0, 0, 0,

@@ -456,52 +456,7 @@ void BoardChange(integer boardId) {
 }
 
 void BoardCreate() {
-	integer ix, iy, i;
-
-	Board.Name = "";
-	Board.Info.Message = "";
-	Board.Info.MaxShots = 255;
-	Board.Info.IsDark = false;
-	Board.Info.ReenterWhenZapped = false;
-	Board.Info.TimeLimitSec = 0;
-	for( i = 0; i <= 3; i ++)
-		Board.Info.NeighborBoards[i] = 0;
-
-	for( ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
-		Board.Tiles[ix][0] = TileBoardEdge;
-		Board.Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
-	}
-	for( iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
-		Board.Tiles[0][iy] = TileBoardEdge;
-		Board.Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
-	}
-
-	for( ix = 1; ix <= BOARD_WIDTH; ix ++)
-		for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
-			Board.Tiles[ix][iy].Element = E_EMPTY;
-			Board.Tiles[ix][iy].Color = 0;
-		}
-
-	for( ix = 1; ix <= BOARD_WIDTH; ix ++) {
-		Board.Tiles[ix][1] = TileBorder;
-		Board.Tiles[ix][BOARD_HEIGHT] = TileBorder;
-	}
-	for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
-		Board.Tiles[1][iy] = TileBorder;
-		Board.Tiles[BOARD_WIDTH][iy] = TileBorder;
-	}
-
-	Board.Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Element = E_PLAYER;
-	Board.Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Color =
-	    ElementDefs[E_PLAYER].Color;
-	Board.StatCount = 0;
-	Board.Stats[0].X = BOARD_WIDTH / 2;
-	Board.Stats[0].Y = BOARD_HEIGHT / 2;
-	Board.Stats[0].Cycle = 1;
-	Board.Stats[0].Under.Element = E_EMPTY;
-	Board.Stats[0].Under.Color = 0;
-	Board.Stats[0].Data = nil;
-	Board.Stats[0].DataLen = 0;
+	Board.create();
 }
 
 void WorldCreate() {

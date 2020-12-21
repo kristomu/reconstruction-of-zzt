@@ -5,9 +5,39 @@
 
 const size_t MAX_BOARD_NAME_LENGTH = 50;
 
+// Note, all of this still operates on some coupling of the size of
+// the internal variables and what's being serialized. TODO: Fix that.
+// The packed size shouldn't depend on the internal variables, only on
+// the format that the output takes.
+
+size_t TTile::packed_size() const {
+	return sizeof(Element) + sizeof(Color);
+}
+
 void TTile::dump(std::vector<unsigned char> & out) const {
 	append_lsb_element(Element, out);
 	append_lsb_element(Color, out);
+}
+
+std::vector<unsigned char>::const_iterator TTile::load(
+	std::vector<unsigned char>::const_iterator ptr,
+	const std::vector<unsigned char>::const_iterator end) {
+
+	if (end - ptr < packed_size()) {
+		throw std::runtime_error("Insufficient data to load TTile");
+	}
+
+	ptr = load_lsb_element(ptr, Element);
+	ptr = load_lsb_element(ptr, Color);
+
+	return ptr;
+}
+
+size_t TStat::packed_size() const {
+	return sizeof(X) + sizeof(Y) + sizeof(StepX) + sizeof(StepY) +
+		sizeof(Cycle) + sizeof(P1) + sizeof(P2) + sizeof(P3) +
+		sizeof(Follower) + sizeof(Leader) + Under.packed_size() +
+		4 + sizeof(DataPos) + sizeof(DataLen) + DataLen + 8;
 }
 
 void TStat::dump(std::vector<unsigned char> & out) const {
@@ -28,6 +58,59 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 	append_zeroes(8, out);
 }
 
+std::vector<unsigned char>::const_iterator TStat::load(
+	std::vector<unsigned char>::const_iterator ptr,
+	const std::vector<unsigned char>::const_iterator end) {
+
+	std::vector<unsigned char>::const_iterator start_ptr = ptr;
+
+	if (end - start_ptr < packed_size()) {
+		throw std::runtime_error("Insufficient data to load TStat");
+	}
+
+	ptr = load_lsb_element(ptr, X);
+	ptr = load_lsb_element(ptr, Y);
+	ptr = load_lsb_element(ptr, StepX);
+	ptr = load_lsb_element(ptr, StepY);
+	ptr = load_lsb_element(ptr, Cycle);
+	ptr = load_lsb_element(ptr, P1);
+	ptr = load_lsb_element(ptr, P2);
+	ptr = load_lsb_element(ptr, P3);
+	ptr = load_lsb_element(ptr, Follower);
+	ptr = load_lsb_element(ptr, Leader);
+	ptr = Under.load(ptr, end);
+	ptr += 4;								// skip four zeroes of padding.
+	ptr = load_lsb_element(ptr, DataPos);
+	ptr = load_lsb_element(ptr, DataLen);
+
+	// We've loaded data length, now find out if we've got enough space
+	// to load it.
+	// TODO: Some kind of graceful recovery where, if there isn't enough
+	// space, we only read up to the end of the pointer? That's what the
+	// Pascal version does.
+
+	if (end - start_ptr < packed_size()) {
+		throw std::runtime_error("Insufficient data to load TStat contents");
+	}
+
+	// There will be leaks. Need to be fixed later, by turning Data into
+	// either a std::string or a vector of unsigned char. TODO.
+
+	Data = new unsigned char[DataLen];
+	std::copy(ptr, ptr + DataLen, Data);
+
+	ptr += 8; // Skip eight zeroes of padding
+
+	return ptr;
+}
+
+// The size the board info takes when in BRD/ZZT format.
+size_t TBoardInfo::packed_size() const {
+	return sizeof(MaxShots) + sizeof(IsDark) + NeighborBoards.size() +
+		sizeof(ReenterWhenZapped) + 59 + sizeof(StartPlayerX) +
+		sizeof(StartPlayerY) + sizeof(TimeLimitSec);
+}
+
 void TBoardInfo::dump(std::vector<unsigned char> & out) const {
 	// Metadata and stats info
 	append_lsb_element(MaxShots, out);
@@ -42,20 +125,196 @@ void TBoardInfo::dump(std::vector<unsigned char> & out) const {
 	append_zeroes(16, out);
 }
 
+std::vector<unsigned char>::const_iterator TBoardInfo::load(
+	std::vector<unsigned char>::const_iterator ptr,
+	const std::vector<unsigned char>::const_iterator end) {
+
+	bool truncated = false;
+
+	if (end - ptr < packed_size()) {
+		throw std::runtime_error("Insufficient data to load TBoardInfo");
+	}
+
+	ptr = load_lsb_element(ptr, MaxShots);
+	ptr = load_lsb_element(ptr, IsDark);
+	ptr = load_array(ptr, NeighborBoards);
+	ptr = load_lsb_element(ptr, ReenterWhenZapped);
+	ptr = get_pascal_string(ptr, end, 58, true, Message, truncated);
+	ptr = load_lsb_element(ptr, StartPlayerX);
+	ptr = load_lsb_element(ptr, StartPlayerY);
+	ptr = load_lsb_element(ptr, TimeLimitSec);
+
+	return ptr;
+}
+
+/* Clean up stats by processing DataLen reference chains, clamping out-of-
+   bounds stat values, and placing a player on the board if there is none
+   already. */
+void TBoard::adjust_board_stats() {
+	short ix, iy;
+
+	/* SANITY: Process referential DataLen variables. */
+
+	for( ix = 0; ix <= Board.StatCount; ix ++) {
+		TStat& with = Board.Stats[ix];
+		/* Deal with aliased objects. The two problems we can get are
+		   objects pointing to objects that themselves point to other
+		   objects; and objects pointing to objects that don't exist. */
+		if (with.DataLen < 0)  {
+			/* Well-behaved linear reference chains do nothing (don't work)
+			   in DOS ZZT, so cyclical ones should do nothing either.
+			   If we're pointing at another reference or out of bounds, do
+			   nothing.
+
+			   Furthermore, if we're the player, drop all data and
+			   references.
+			   Due to the way that serialization works, we can't let the
+			   player refer to a later object's data; because when the
+			   serializer then tries to correct this by making the latter
+			   object point to the player, the reference DataLen would be
+			   -0, which is the same as 0, and thus can't be detected as
+			   a reference to begin with. */
+			if ((ix == 0) || (-with.DataLen > Board.StatCount) ||
+			        (Board.Stats[-with.DataLen].DataLen < 0)) {
+				with.DataLen = 0;
+			}
+
+			// Dereference aliases
+			if (with.DataLen < 0)  {
+				with.Data = Board.Stats[-with.DataLen].Data;
+				with.DataLen = Board.Stats[-with.DataLen].DataLen;
+			}
+
+			// If it's still aliased (DataLen < 0), then we have a chain
+			// or a cycle. Break it.
+			if (with.DataLen < 0)
+				with.DataLen = 0;
+		}
+	}
+
+	/* SANITY: Positive Leader and Follower values must be indices
+	   to stats. If they're too large, they're corrupt: set them to zero.
+	   Furthermore, there's no need for StepX and StepY to be out of
+	   range of the board area, and clamping these values helps
+	   avoid a ton of over/underflow problems whose fixes would
+	   otherwise clutter up the code... */
+	for( ix = 0; ix <= Board.StatCount; ix ++) {
+			TStat& with = Board.Stats[ix];
+			if (with.Follower > Board.StatCount) { with.Follower = 0; }
+			if (with.Leader > Board.StatCount)	{ with.Leader = 0; }
+
+			if (with.StepX < -BOARD_WIDTH)	{ with.StepX = -BOARD_WIDTH; }
+			if (with.StepX > BOARD_WIDTH)	{ with.StepX = BOARD_WIDTH; }
+
+			if (with.StepY < -BOARD_HEIGHT)	{ with.StepY = -BOARD_HEIGHT; }
+			if (with.StepY > BOARD_HEIGHT)	{ with.StepY = BOARD_HEIGHT; }
+	}
+
+	/* SANITY: If there's neither a player nor a monitor at the position
+	   indicated by stats 0, place a player there to keep the invariant
+	   that one should always exist on every board. */
+		TStat& with = Board.Stats[0];
+		if ((Board.Tiles[with.X][with.Y].Element != E_PLAYER) &&
+			(Board.Tiles[with.X][with.Y].Element != E_MONITOR))
+			Board.Tiles[with.X][with.Y].Element = E_PLAYER;
+}
+
+// Create a yellow-border board with standard parameters
+void TBoard::create() {
+	short ix, iy, i;
+
+	Name = "";
+	Info.Message = "";
+	Info.MaxShots = -1;			// unlimited
+	Info.IsDark = false;
+	Info.ReenterWhenZapped = false;
+	Info.TimeLimitSec = 0;
+
+	for( i = 0; i < 4; i ++)
+		Info.NeighborBoards[i] = 0;
+
+	// BOARD_WIDTH and BOARD_HEIGHT gives the width and height of
+	// the part of the board that the player can see. This visible
+	// region is surrounded by board edges.
+
+	for( ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
+		Tiles[ix][0] = TileBoardEdge;
+		Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
+	}
+
+	for( iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
+		Tiles[0][iy] = TileBoardEdge;
+		Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
+	}
+
+	// Fill the interior with empties.
+
+	for( ix = 1; ix <= BOARD_WIDTH; ix ++)
+		for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
+			Tiles[ix][iy].Element = E_EMPTY;
+			Tiles[ix][iy].Color = 0;
+		}
+
+	// Then do the yellow border.
+
+	for( ix = 1; ix <= BOARD_WIDTH; ix ++) {
+		Tiles[ix][1] = TileBorder;
+		Tiles[ix][BOARD_HEIGHT] = TileBorder;
+	}
+	for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
+		Tiles[1][iy] = TileBorder;
+		Tiles[BOARD_WIDTH][iy] = TileBorder;
+	}
+
+	// Place the player.
+	// TODO: Use stats placement functions once refactored properly.
+
+	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Element = E_PLAYER;
+	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Color =
+	    ElementDefs[E_PLAYER].Color;
+	StatCount = 0;
+	Stats[0].X = BOARD_WIDTH / 2;
+	Stats[0].Y = BOARD_HEIGHT / 2;
+	Stats[0].Cycle = 1;
+	Stats[0].Under.Element = E_EMPTY;
+	Stats[0].Under.Color = 0;
+	Stats[0].Data = nil;
+	Stats[0].DataLen = 0;
+}
+
+bool TBoard::valid_coord(short x, short y) const {
+	return x >= 0 && y >= 0 && x <= BOARD_WIDTH+1 && y <= BOARD_HEIGHT+1;
+}
+
 // Returns true if the board is in OK condition or false if it is
-// corrupted. This function is also has an extreme number of checks
-// against potential corruption; the point is to pass every fuzzed
-// crash test and deal with corrupted boards as gracefully as possible.
-bool TBoard::open(const std::vector<unsigned char> & source) {
+// corrupted.
+// This function has an extreme number of checks against potential
+// corruption, so that it will pass every fuzzed crash test and deal
+// with corrupted boards as gracefully as possible.
+
+// TODO? Somehow indicate that this load routine doesn't except on an
+// error, just tries to gracefully deal with what's given? Or actually
+// *throw* an exception and use that as a signal to the world loader?
+bool TBoard::load(const std::vector<unsigned char> & source) {
 	std::vector<unsigned char>::const_iterator ptr = source.begin();
-#ifdef TO_BE_DONE
+
+	// XXX: Must be outside because it refers to the world state.
+	// Error handling also leaves something to be desired.
+
+	// https://stackoverflow.com/questions/43483669/how-to-catch-an-incrementing-iterator-exception
+
+	//World.Info.CurrentBoard = boardId;
+	// We assume the vector has been set to reflect either the data
+	// read from the file, or the world boardLen parameter, whichever
+	// is smaller. The outside should check that boardLen matches.
+	// TODO: Handle cases where the board is smaller than expected and
+	// the excess bytes can be interpreted as the next board instead...
+	// But in that case, I think it just skips the excess (trusting the
+	// metadata).
 
 	short i, ix, iy;
 
-	short bytesRead;
 	bool boardIsDamaged = false, truncated = false;
-
-	bytesRead = 0;
 
 	/* Create a default yellow border board, because we might need
 	to abort before the board is fully specced. */
@@ -67,27 +326,9 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 	   for the title: a size designation and the first letter of the title.
 	   If we don't even have that, let the title be blank.*/
 
-	// XXX: Must be outside because it refers to the world state.
-
-	//World.Info.CurrentBoard = boardId;
-	// We assume the vector has been set to reflect either the data
-	// read from the file, or the world boardLen parameter, whichever
-	// is smaller. The outside should check that boardLen matches.
-	// TODO: Handle cases where the board is smaller than expected and
-	// the excess bytes can be interpreted as the next board instead...
-	// But in that case, I think it just skips the excess (trusting the
-	// metadata).
-
 	// ---------------- Board name  ----------------
-	size_t board_length = source.size();
-
-	if (board_length > 1)  {
-		ptr = get_pascal_string(ptr, source.end(),
-			MAX_BOARD_NAME_LENGTH, Name, truncated);
-	} else {
-		Name = "";
-		truncated = true;
-	}
+	ptr = get_pascal_string(source.begin(), source.end(),
+		MAX_BOARD_NAME_LENGTH, true, Name, truncated);
 
 	if (truncated) {
 		/* This board is damaged. */
@@ -95,7 +336,6 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 	}
 
 	ptr += MAX_BOARD_NAME_LENGTH + 1;
-	bytesRead += MAX_BOARD_NAME_LENGTH + 1;
 
 	// ---------------- RLE board layout  ----------------
 	TRleTile rle;
@@ -120,12 +360,11 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 		instead, so we don't. */
 		if (rle.Count <= 0)  {
 			/* Not enough space? Get outta here. */
-			if (bytesRead + sizeof(rle) > board_length)  break;
+			if (source.end() - ptr > sizeof(rle)) return false;
 			rle.Count = *ptr++;
 			rle.Tile.Element = *ptr++;
 			rle.Tile.Color = *ptr++;
 
-            bytesRead += 3;
 			if (rle.Count == 0)  {
 				boardIsDamaged = true;
 				continue;
@@ -146,7 +385,7 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 
 		rle.Count = rle.Count - 1;
 
-	} while (!((iy > BOARD_HEIGHT) || (bytesRead >= board_length)));
+	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
 
 	// MORE TO COME ...
 
@@ -155,17 +394,13 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 	/* SANITY: If reading board info and the stats count byte would
 	get us out of bounds, we have a board that's truncated too early.
 		  Do the best we can, then show the damaged board note and exit. */
-	if ((sizeof(Info) + sizeof(StatCount) + bytesRead) >=
-	        board_length)  {
+	ptr = Info.load(ptr, source.end());
+	if (ptr == source.end()) {
 		//World.Info.CurrentBoard = boardId;
-		AdjustBoardStats();
+		adjust_board_stats();
 
 		return false;
 	}
-
-    bcopy(ptr, &Info, sizeof(Info));
-	ptr += sizeof(Info);
-	bytesRead = bytesRead + sizeof(Info);
 
 	/* Clamp out-of-bounds Info variables. They'll cause problems
 	in the editor otherwise. */
@@ -176,7 +411,7 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 			Info.NeighborBoards[i] = boardId;*/
 
 	/* Clamp an out-of-board player location, if there is any. */
-	if (! ValidCoord(Info.StartPlayerX, Info.StartPlayerY))  {
+	if (!valid_coord(Info.StartPlayerX, Info.StartPlayerY))  {
 		Info.StartPlayerX = 1;
 		Info.StartPlayerY = 1;
 		boardIsDamaged = true;
@@ -184,25 +419,25 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 
 	// This is just a short in little endian format.
 
-    bcopy(ptr, &StatCount, sizeof(StatCount));
-	ptr += sizeof(StatCount);
-	bytesRead = bytesRead + sizeof(StatCount);
+	ptr = load_lsb_element(ptr, StatCount); // Error handling req'd!
 
-	StatCount = Max(0, Min(StatCount, MAX_STAT));
+	// Clamp to be positive and to not exceed max_stat.
+	StatCount = std::max((short)0, std::min(StatCount, MAX_STAT));
 
-	for( ix = 0; ix <= StatCount; ix ++) {
+	for (ix = 0; ix <= StatCount; ++ix) {
 		TStat& with = Stats[ix];
+		with.DataLen = 0;
+
 		/* SANITY: Handle too few stats items for the stats count. */
-		if ((bytesRead + sizeof(TStat)) > board_length)  {
-			StatCount = Max(ix - 1, 0);
-			World.Info.CurrentBoard = boardId;
+		if (source.end() - ptr < with.packed_size()) {
+			StatCount = std::max(ix - 1, 0);
+			// TBD
+//			World.Info.CurrentBoard = boardId;
 			boardIsDamaged = true;
 			break;
 		}
 
-		MoveP(*ptr, Stats[ix], sizeof(TStat));
-		ptr += sizeof(TStat);
-		bytesRead = bytesRead + sizeof(TStat);
+		ptr = Stats[ix].load(ptr, source.end());
 
 		/* SANITY: If the element underneath is unknown, replace it
 		with a normal. */
@@ -212,20 +447,20 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 		}
 
 		/* SANITY: Handle objects that are out of bounds. */
-		if (! ValidCoord(with.X, with.Y))  {
-			with.X = Min(Max(with.X, 0), BOARD_WIDTH+1);
-			with.Y = Min(Max(with.Y, 0), BOARD_HEIGHT+1);
+		if (!valid_coord(with.X, with.Y))  {
+			with.X = std::min(std::max((int)with.X, 0), BOARD_WIDTH+1);
+			with.Y = std::min(std::max((int)with.Y, 0), BOARD_HEIGHT+1);
 			boardIsDamaged = true;
 		}
 
-		/* SANITY: (0,0) is not available: it's used by one-line
-		messages. So if the stat is at (0,0) or another
-				  unavailable position, put it into (1,1). TODO? Make
-				  a note of which are thus placed, and place them on
-				  empty spots on the board instead if possible... */
-		/* The compromise to the Postelic position is probably to
-		be generous, but show a warning message that the board
-				  was corrupted and attempted fixed. */
+		/* SANITY: (0,0) is not available: it's used by one-line messages.
+			So if the stat is at (0,0) or another unavailable position, put
+			it into (1,1). TODO? Make a note of which are thus placed, and
+			place them on empty spots on the board instead if possible... */
+
+		/* The compromise to the Postelic position is probably to be
+			generous, but show a warning message that the board was
+			corrupted and attempted fixed. */
 		if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
 			with.Y = 1;
@@ -235,38 +470,41 @@ bool TBoard::open(const std::vector<unsigned char> & source) {
 		/* SANITY: If DataLen is much too large, truncate. We'll
 		then stop processing more objects next round around
 		the loop. */
-		if (bytesRead + with.DataLen > board_length)  {
+		// This shouldn't be needed... ???
+		/*if (bytesRead + with.DataLen > board_length)  {
 			with.DataLen = board_length - bytesRead;
 			boardIsDamaged = true;
-		}
+		}*/
 
 		if (with.DataLen > 0)
 			/* SANITY: If DataLen is too long, truncate it. */
-			if (with.DataLen > board_length-bytesRead)  {
-				with.DataLen = board_length-bytesRead;
+			if (source.end() - ptr < with.DataLen)  {
+				with.DataLen = source.end() - ptr;
 				boardIsDamaged = true;
 			}
 
 		/* Only allocate if data length is still positive... */
 		if (with.DataLen > 0)  {
+#ifdef TBD
 			//GetMem(with.Data, with.DataLen);
             with.Data = (unsigned char *)malloc(with.DataLen);
 			MoveP(*ptr, *with.Data, with.DataLen);
+#endif
 			ptr += with.DataLen;
-			bytesRead = bytesRead + with.DataLen;
 		}
 
 		/* Otherwise, clear Data to avoid potential leaks later. */
 		if (with.DataLen == 0)  with.Data = nil;
 	}
 
-	AdjustBoardStats();
-	World.Info.CurrentBoard = boardId;
+	adjust_board_stats();
+	//World.Info.CurrentBoard = boardId;
 
-	if (boardIsDamaged)
-		DisplayCorruptionNote();
-#endif
-	return false;
+	// TBD
+/*	if (boardIsDamaged)
+		DisplayCorruptionNote();*/
+
+	return !boardIsDamaged;
 
 }
 
