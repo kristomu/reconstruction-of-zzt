@@ -70,7 +70,8 @@ const element_t E_TEXT_MIN = E_TEXT_BLUE;
 
 
 void ElementMove(integer oldX, integer oldY, integer newX, integer newY);
-void ElementPushablePush(integer x, integer y, integer deltaX, integer deltaY);
+void ElementPushablePush(integer x, integer y, integer deltaX,
+	integer deltaY);
 void DrawPlayerSurroundings(integer x, integer y, integer bombPhase);
 void GamePromptEndPlay();
 void ResetMessageNotShownFlags();

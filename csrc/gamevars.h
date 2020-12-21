@@ -16,63 +16,65 @@ const integer TORCH_DIST_SQR = 50;
 
 typedef varying_string<50> TString50;
 struct TCoord {
-        integer X;
-        integer Y;
+	integer X;
+	integer Y;
 };
 
 const std::array<std::string, 8> ColorNames =
-{"Black", "Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"};
+	{"Black", "Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"};
 
 typedef void(*TElementDrawProc)(integer x, integer y, byte& ch);
 typedef void(*TElementTickProc)(integer statId);
-typedef void(*TElementTouchProc)(integer x, integer y, integer sourceStatId, integer& deltaX, integer& deltaY);
+typedef void(*TElementTouchProc)(integer x, integer y,
+	integer sourceStatId, integer& deltaX, integer& deltaY);
+
 struct TElementDef {
-        char Character;
-        byte Color;
-        boolean Destructible;
-        boolean Pushable;
-        boolean VisibleInDark;
-        boolean PlaceableOnTop;
-        boolean Walkable;
-        boolean HasDrawProc;
-        TElementDrawProc DrawProc;
-        integer Cycle;
-        TElementTickProc TickProc;
-        TElementTouchProc TouchProc;
-        integer EditorCategory;
-        char EditorShortcut;
-        asciiz Name;
-        asciiz CategoryName;
-        asciiz Param1Name;
-        asciiz Param2Name;
-        asciiz ParamBulletTypeName;
-        asciiz ParamBoardName;
-        asciiz ParamDirName;
-        asciiz ParamTextName;
-        integer ScoreValue;
+	char Character;
+	byte Color;
+	boolean Destructible;
+	boolean Pushable;
+	boolean VisibleInDark;
+	boolean PlaceableOnTop;
+	boolean Walkable;
+	boolean HasDrawProc;
+	TElementDrawProc DrawProc;
+	integer Cycle;
+	TElementTickProc TickProc;
+	TElementTouchProc TouchProc;
+	integer EditorCategory;
+	char EditorShortcut;
+	asciiz Name;
+	asciiz CategoryName;
+	asciiz Param1Name;
+	asciiz Param2Name;
+	asciiz ParamBulletTypeName;
+	asciiz ParamBoardName;
+	asciiz ParamDirName;
+	asciiz ParamTextName;
+	integer ScoreValue;
 };
 
 struct TEditorStatSetting {
-        byte P1, P2, P3;
-        integer StepX, StepY;
+	byte P1, P2, P3;
+	integer StepX, StepY;
 };
 
 struct TWorld {
-        integer BoardCount;
-        // dynamic board length.
-        std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
-        /* KevEdit treats board length as unsigned, so to handle >32k
-			  boards without corrupting subsequent ones... */
-        array<0 , MAX_BOARD,word> BoardLen;
-        TWorldInfo Info;
-        array<0 , MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
+	integer BoardCount;
+	// dynamic board length.
+	std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
+	/* KevEdit treats board length as unsigned, so to handle >32k
+		  boards without corrupting subsequent ones... */
+	array<0, MAX_BOARD,word> BoardLen;
+	TWorldInfo Info;
+	array<0, MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
 };
 struct THighScoreEntry {
-        asciiz Name;
-        integer Score;
+	asciiz Name;
+	integer Score;
 };
 
-typedef array<1 , HIGH_SCORE_COUNT,THighScoreEntry> THighScoreList;
+typedef array<1, HIGH_SCORE_COUNT,THighScoreEntry> THighScoreList;
 //typedef array<0 , (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1),byte> TIoTmpBuf;
 // ptoc arrays can't be directly addressed in C, so this hack is necessary.
 typedef byte TIoTmpBuf;
@@ -87,7 +89,7 @@ EXTERN integer PlayerDirY;
 EXTERN integer unkVar_0476;
 EXTERN integer unkVar_0478;
 
-EXTERN array<1 , 80*25,TCoord> TransitionTable;
+EXTERN array<1, 80*25,TCoord> TransitionTable;
 EXTERN TString50 LoadedGameFileName;
 EXTERN TString50 SavedGameFileName;
 EXTERN TString50 SavedBoardFileName;
@@ -105,7 +107,7 @@ EXTERN boolean MessageForestNotShown;
 EXTERN boolean MessageFakeNotShown;
 EXTERN boolean MessageGemNotShown;
 EXTERN boolean MessageEnergizerNotShown;
-EXTERN array<0 , 14,byte> unkVar_4ABA;
+EXTERN array<0, 14,byte> unkVar_4ABA;
 
 EXTERN boolean GameTitleExitRequested;
 EXTERN boolean GamePlayExitRequested;
@@ -117,9 +119,9 @@ EXTERN byte TickSpeed;
 
 EXTERN TIoTmpBuf* IoTmpBuf;
 
-EXTERN array<0 , MAX_ELEMENT,TElementDef> ElementDefs;
+EXTERN array<0, MAX_ELEMENT,TElementDef> ElementDefs;
 EXTERN integer EditorPatternCount;
-EXTERN array<1 , 10,byte> EditorPatterns;
+EXTERN array<1, 10,byte> EditorPatterns;
 
 EXTERN integer TickTimeDuration;
 EXTERN integer CurrentTick;
@@ -146,8 +148,8 @@ EXTERN boolean ResetConfig; /* This flag is a remnant from ZZT 3.0. */
 EXTERN boolean JustStarted;
 
 EXTERN integer WorldFileDescCount;
-EXTERN array<1 , 10,TString50> WorldFileDescKeys;
-EXTERN array<1 , 10,TString50> WorldFileDescValues;
+EXTERN array<1, 10,TString50> WorldFileDescKeys;
+EXTERN array<1, 10,TString50> WorldFileDescValues;
 #undef EXTERN
 #define EXTERN extern
 

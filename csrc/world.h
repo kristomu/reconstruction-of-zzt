@@ -23,7 +23,7 @@ class TWorldInfo {
 		short unk1;
 		short Score;
 		asciiz Name;
-		array<1 , MAX_FLAG,asciiz> Flags;
+		array<1, MAX_FLAG,asciiz> Flags;
 		short BoardTimeSec;
 		short BoardTimeHsec;
 		bool IsSave;

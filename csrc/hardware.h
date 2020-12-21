@@ -61,17 +61,18 @@ void NoSound();
 int64_t keyUpCase(int64_t key);
 
 // Get the current time.
-void GetTime(short & hour, short & minute, short & second, short & hundredths);
+void GetTime(short & hour, short & minute, short & second,
+	short & hundredths);
 
 void Delay(int msec);
 
-extern integer InputDeltaX, InputDeltaY;	// translates arrow keys to movement
+extern integer InputDeltaX,
+	InputDeltaY;	// translates arrow keys to movement
 extern bool InputShiftPressed;			// It does what it says
 extern bool InputSpecialKeyPressed;
 extern bool InputShiftAccepted; // ???
 extern bool InputJoystickMoved; // not supported
 extern integer InputKeyPressed;
-//std::vector<int> InputKeyBuffer;	// Never seems to be used in the original.
 
 void InputUpdate();				// Polls and updates.
 void InputReadWaitKey();

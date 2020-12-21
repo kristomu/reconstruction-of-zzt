@@ -1,5 +1,4 @@
-#ifndef __game_h__
-#define __game_h__
+#pragma once
 
 #include "gamevars.h"
 #include "txtwind.h"
@@ -26,18 +25,18 @@ void BoardDrawTile(integer x, integer y);
 void BoardDrawBorder();
 void TransitionDrawToBoard();
 void SidebarPromptCharacter(boolean editable, integer x, integer y,
-                            TString50 prompt, byte& value);
+	TString50 prompt, byte& value);
 void SidebarPromptSlider(boolean editable, integer x, integer y,
-                         string prompt, byte& value);
+	string prompt, byte& value);
 void SidebarPromptChoice(boolean editable, integer y, string prompt,
-                         string choiceStr, byte& result);
+	string choiceStr, byte& result);
 void SidebarPromptDirection(boolean editable, integer y, string prompt,
-                            integer& deltaX, integer& deltaY);
+	integer& deltaX, integer& deltaY);
 void PromptString(integer x, integer y, integer arrowColor, integer color,
-                  integer width, byte mode, TString50& buffer);
+	integer width, byte mode, TString50& buffer);
 boolean SidebarPromptYesNo(string message, boolean defaultReturn);
 void SidebarPromptString(string prompt, TString50 extension,
-                         string& filename, byte promptMode);
+	string& filename, byte promptMode);
 void PauseOnError();
 boolean DisplayIOError();
 void DisplayTruncationNote();
@@ -46,11 +45,11 @@ void WorldUnload();
 boolean WorldLoad(TString50 filename, TString50 extension);
 void WorldSave(TString50 filename, TString50 extension);
 void GameWorldSave(TString50 prompt, TString50& filename,
-                   TString50 extension);
+	TString50 extension);
 boolean GameWorldLoad(TString50 extension);
 void CopyStatDataToTextWindow(integer statId, TTextWindowState& state);
 void AddStat(integer tx, integer ty, byte element, integer color,
-             integer tcycle, TStat template_);
+	integer tcycle, TStat template_);
 void RemoveStat(integer statId);
 integer GetStatIdAt(integer x, integer y);
 boolean BoardPrepareTileForPlacement(integer x, integer y);
@@ -62,10 +61,10 @@ void DamageStat(integer attackerStatId);
 void BoardDamageTile(integer x, integer y);
 void BoardAttack(integer attackerStatId, integer x, integer y);
 boolean BoardShoot(byte element, integer tx, integer ty, integer deltaX,
-                   integer deltaY, integer source);
+	integer deltaY, integer source);
 void CalcDirectionRnd(integer& deltaX, integer& deltaY);
 void CalcDirectionSeek(integer x, integer y, integer& deltaX,
-                       integer& deltaY);
+	integer& deltaY);
 void TransitionDrawBoardChange();
 void GameUpdateSidebar();
 void GameAboutScreen();
@@ -78,7 +77,7 @@ void GameTitleLoop();
 void GamePrintRegisterMessage();
 const array<0, 7,byte> ProgressAnimColors = {{0x14, 0x1c, 0x15, 0x1d, 0x16, 0x1e, 0x17, 0x1f}};
 const array<0, 7,asciiz> ProgressAnimStrings =
-{{"....|", "...*/", "..*.-", ".*..\\", "*...|", "..../", "....-", "....\\"}};
+	{{"....|", "...*/", "..*.-", ".*..\\", "*...|", "..../", "....-", "....\\"}};
 /**/
 const array<0, 7,integer> DiagonalDeltaX = {{-1, 0, 1, 1, 1, 0, -1, -1}};
 const array<0, 7,integer> DiagonalDeltaY = {{1, 1, 1, 0, -1, -1, -1, 0}};
@@ -91,6 +90,4 @@ const TStat StatTemplateDefault = {
 	-1, -1
 };
 const varying_string<16> LineChars =
-    "\371\320\322\272\265\274\273\271\306\310\311\314\315\312\313\316";
-
-#endif
+	"\371\320\322\272\265\274\273\271\306\310\311\314\315\312\313\316";

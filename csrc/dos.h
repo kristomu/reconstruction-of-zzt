@@ -39,57 +39,61 @@ typedef varying_string<4> ExtStr;          /* File extension string */
 /* Registers record used by Intr and MsDos */
 
 struct Registers {
-              union {
-                struct {word AX,BX,CX,DX,BP,SI,DI,DS,ES,Flags;} s1;
-                struct {byte AL,AH,BL,BH,CL,CH,DL,DH;} s2;
-              };
+	union {
+		struct {
+			word AX,BX,CX,DX,BP,SI,DI,DS,ES,Flags;
+		} s1;
+		struct {
+			byte AL,AH,BL,BH,CL,CH,DL,DH;
+		} s2;
+	};
 };
 
 /* Typed-file and untyped-file record */
 
 struct FileRec {
-            word Handle;
-            word Mode;
-            word RecSize;
-            array<1,26,byte> private_;
-            array<1,16,byte> UserData;
-            array<0,79,char> Name;
+	word Handle;
+	word Mode;
+	word RecSize;
+	array<1,26,byte> private_;
+	array<1,16,byte> UserData;
+	array<0,79,char> Name;
 };
 
 /* Textfile record */
 
 typedef array<0,127,char> TextBuf;
 struct TextRec {
-            word Handle;
-            word Mode;
-            word BufSize;
-            word private_;
-            word BufPos;
-            word BufEnd;
-            TextBuf* BufPtr;
-            pointer OpenFunc;
-            pointer InOutFunc;
-            pointer FlushFunc;
-            pointer CloseFunc;
-            array<1,16,byte> UserData;
-            array<0,79,char> Name;
-            TextBuf Buffer;
+	word Handle;
+	word Mode;
+	word BufSize;
+	word private_;
+	word BufPos;
+	word BufEnd;
+	TextBuf* BufPtr;
+	pointer OpenFunc;
+	pointer InOutFunc;
+	pointer FlushFunc;
+	pointer CloseFunc;
+	array<1,16,byte> UserData;
+	array<0,79,char> Name;
+	TextBuf Buffer;
 };
 
 /* Search record used by FindFirst and FindNext */
 
 struct SearchRec {
-              array<1,21,byte> Fill;
-              byte Attr;
-              longint Time;
-              longint Size;
-              varying_string<12> Name;
+	array<1,21,byte> Fill;
+	byte Attr;
+	longint Time;
+	longint Size;
+	varying_string<12> Name;
 };
 
 /* Date and time record used by PackTime and UnpackTime */
 
 struct DateTime {
-             word Year,Month,Day,Hour,Min,Sec;
+	word Year,Month,Day,Hour,Min,Sec;
 };
 
 
@@ -271,7 +275,7 @@ PathStr FExpand(PathStr Path);
 /* contains no such component.                                   */
 
 void FSplit(PathStr Path, DirStr& Dir,
-      NameStr& Name, ExtStr& Ext);
+            NameStr& Name, ExtStr& Ext);
 
 /* EnvCount returns the number of strings contained in the DOS   */
 /* environment.                                                  */

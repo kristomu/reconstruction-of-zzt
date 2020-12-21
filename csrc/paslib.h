@@ -47,26 +47,45 @@ double sqrt(double);
 
 #ifdef __cplusplus
 
-inline int           sqr(signed char x)    { return x*x; }
-inline unsigned      sqr(unsigned char x)  { return x*x; }
-inline int           sqr(short x)          { return x*x; }
-inline unsigned      sqr(unsigned short x) { return x*x; }
-inline int           sqr(int x)            { return x*x; }
-inline unsigned      sqr(unsigned x)       { return x*x; }
-inline long          sqr(long x)           { return x*x; }
-inline unsigned long sqr(unsigned long x)  { return x*x; }
-inline float         sqr(float x)          { return x*x; }
-inline double        sqr(double x)         { return x*x; }
+inline int           sqr(signed char x)    {
+	return x*x;
+}
+inline unsigned      sqr(unsigned char x)  {
+	return x*x;
+}
+inline int           sqr(short x)          {
+	return x*x;
+}
+inline unsigned      sqr(unsigned short x) {
+	return x*x;
+}
+inline int           sqr(int x)            {
+	return x*x;
+}
+inline unsigned      sqr(unsigned x)       {
+	return x*x;
+}
+inline long          sqr(long x)           {
+	return x*x;
+}
+inline unsigned long sqr(unsigned long x)  {
+	return x*x;
+}
+inline float         sqr(float x)          {
+	return x*x;
+}
+inline double        sqr(double x)         {
+	return x*x;
+}
 
 extern "C" void timestamp(integer* day,  integer* month, integer* year,
-			  integer* hour, integer* min,   integer* sec);
+                          integer* hour, integer* min,   integer* sec);
 
 extern "C" real get_realtime();
 
 inline void timestamp(integer& day,  integer& month, integer& year,
-		      integer& hour, integer& min,   integer& sec)
-{
-    timestamp(&day, &month, &year, &hour, &min, &sec);
+                      integer& hour, integer& min,   integer& sec) {
+	timestamp(&day, &month, &year, &hour, &min, &sec);
 }
 
 #else
@@ -77,7 +96,7 @@ inline void timestamp(integer& day,  integer& month, integer& year,
 #define sqr(x) ((x)*(x))
 
 void timestamp(integer* day,  integer* month, integer* year,
-	       integer* hour, integer* min,   integer* sec);
+               integer* hour, integer* min,   integer* sec);
 
 real get_realtime();
 
@@ -126,23 +145,38 @@ extern "C" pointer exitproc;
 extern "C" unsigned randseed;
 
 inline string paramstr(int index) {
-    assert(index <= paramcount);
-    return string(param_array[index]);
+	assert(index <= paramcount);
+	return string(param_array[index]);
 }
 
-inline void halt(int code = EXIT_FAILURE) { exit(code); }
+inline void halt(int code = EXIT_FAILURE) {
+	exit(code);
+}
 
-template<typename T> void fillchar(T & ptr, size_t size, char value) { memset(ptr, value, size); }
-template<typename T> void getmem(T & ptr, size_t size) { (T)ptr = malloc(size); }
-template<typename T> void freemem(T & ptr, size_t size) { free(ptr); }
-template<typename T> T reallocmem(T & ptr, size_t size) { ptr = (T)realloc(ptr, size); return ptr; }
+template<typename T> void fillchar(T & ptr, size_t size, char value) {
+	memset(ptr, value, size);
+}
+template<typename T> void getmem(T & ptr, size_t size) {
+	(T)ptr = malloc(size);
+}
+template<typename T> void freemem(T & ptr, size_t size) {
+	free(ptr);
+}
+template<typename T> T reallocmem(T & ptr, size_t size) {
+	ptr = (T)realloc(ptr, size);
+	return ptr;
+}
 
 extern "C" void     Randomize();
 extern "C" unsigned randint(unsigned range);
 extern "C" double   randreal();
 
-inline unsigned Random(unsigned range) { return randint(range); }
-inline double   Random() { return randreal(); }
+inline unsigned Random(unsigned range) {
+	return randint(range);
+}
+inline double   Random() {
+	return randreal();
+}
 
 #endif
 

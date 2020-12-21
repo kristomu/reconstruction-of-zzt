@@ -52,9 +52,9 @@ EXTERN boolean InputJoystickMoved;
 #undef EXTERN
 #define EXTERN extern
 
-        void InputUpdate();
-        void InputInitDevices();
-        void InputReadWaitKey();
-        boolean InputConfigure();
+void InputUpdate();
+void InputInitDevices();
+void InputReadWaitKey();
+boolean InputConfigure();
 
 #endif
