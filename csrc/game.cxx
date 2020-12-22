@@ -122,117 +122,16 @@ template<typename T, typename Q> void MoveP(T & structureOne, Q & structureTwo,
 }
 
 void BoardClose(boolean showTruncationNote) {
-	bool cleanupNeeded = false;
-
-	std::vector<unsigned char> closedBoard = Board.dump();
-	World.BoardData[World.Info.CurrentBoard] = closedBoard;
-	World.BoardLen[World.Info.CurrentBoard] = closedBoard.size();
-
-	// The stuff below should be moved to board, shouldn't it? But the
-	// MAX_BOARD_LEN limit isn't inherent to the board format. Hm. Think
-	// this over.
-
-	/* If we're using too much space, truncate the size, feed the whole
-	   thing back through BoardOpen to fix the inevitable corruption,
-	   then run BoardClose again.
-	   This smart-ass solution should allow us to keep all the smarts of
-	   board parsing in BoardOpen and nowt have to duplicate any logic.
-
-	   Such a situation should *only* happen if RLE is too large (see
-	   RLEFLOW.ZZT), because AddStat should reject adding stats when
-	   there's no room. */
-	if (closedBoard.size() > MAX_BOARD_LEN)  {
-		closedBoard.resize(MAX_BOARD_LEN);
-
-		// TODO
-		/*BoardOpen(World.Info.CurrentBoard, false);
-		BoardClose(false);
-		if (showTruncationNote)  DisplayTruncationNote();*/
-	}
-}
-
-/* Clean up stats by processing DataLen reference chains, clamping out-of-
-  bounds stat values, and placing a player on the board if there is none
-  already. */
-void AdjustBoardStats() {
-	integer ix, iy;
-
-
-	/* SANITY: Process referential DataLen variables. This must be
-	done after the former loop because otherwise it could be
-		  using incorrect data. */
-
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-		{
-			TStat& with = Board.Stats[ix];
-			if (with.DataLen < 0)  {
-				/* Well-behaved reference chains do nothing in
-				DOS ZZT, so cycles should do nothing too. If
-							  we're pointing at another reference or out of
-							  bounds, do nothing. */
-				/* Furthermore, if we're the player, do nothing.
-				Due to the way that BoardClose works, letting the
-							  player refer to a later object's data can't be
-							  allowed. Strictly speaking, referring to a later
-							  object is not allowed in general, but as long as
-							  the object doing the referring is not the player,
-							  we can pretend (in BoardClose) that the later object
-							  refers to the earlier's data instead. This is not
-							  possible with the player, because the reference
-							  DataLen would then be -0, which is just 0.*/
-				if ((ix == 0) || (-with.DataLen > Board.StatCount) ||
-				        (Board.Stats[-with.DataLen].DataLen < 0))
-					with.DataLen = 0;
-
-				if (with.DataLen < 0)  {
-					with.Data = Board.Stats[-with.DataLen].Data;
-					with.DataLen = Board.Stats[-with.DataLen].DataLen;
-				}
-
-				/* If it's part of a chain, break the chain. */
-				/* Can we do this?? */
-				if (with.DataLen < 0)
-					with.DataLen = 0;
-			}
-		}
-	}
-
-	/* SANITY: Positive Leader and Follower values must be indices
-	to stats. If they're too large, they're corrupt: set them to
-		  zero.
-		  Furthermore, there's no need for StepX and StepY to be out of
-		  range of the board area, and clamping these values helps
-		  avoid a ton of over/underflow problems whose fixes would
-		  otherwise clutter up the code... */
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-		{
-			TStat& with = Board.Stats[ix];
-			if (with.Follower > Board.StatCount)  with.Follower = 0;
-			if (with.Leader > Board.StatCount)  with.Leader = 0;
-
-			if (with.StepX < -BOARD_WIDTH)  with.StepX = -BOARD_WIDTH;
-			if (with.StepX > BOARD_WIDTH)  with.StepX = BOARD_WIDTH;
-
-			if (with.StepY < -BOARD_HEIGHT)  with.StepY = -BOARD_HEIGHT;
-			if (with.StepY > BOARD_HEIGHT)  with.StepY = BOARD_HEIGHT;
-		}
-	}
-
-	/* SANITY: If there's neither a player nor a monitor at the position
-	indicated by stats 0, place a player there to keep the invariant
-		  that one should always exist on every board. */
-	{
-		TStat& with = Board.Stats[0];
-		if ((Board.Tiles[with.X][with.Y].Element != E_PLAYER) &&
-		        (Board.Tiles[with.X][with.Y].Element != E_MONITOR))
-			Board.Tiles[with.X][with.Y].Element = E_PLAYER;
-	}
+	World.BoardData[World.Info.CurrentBoard] = Board.dump();
+	World.BoardLen[World.Info.CurrentBoard] =
+		World.BoardData[World.Info.CurrentBoard].size();
 }
 
 /* Set worldIsDamaged to true if the BoardOpen is from a world load and
 the world metadata is wrong; this will make the corruption notification
 show up regardless of whether the board itself is damaged. */
 void BoardOpen(integer boardId, boolean worldIsDamaged) {
+
 	byte* ptr;
 	integer i, ix, iy;
 	TRleTile rle;
@@ -242,207 +141,19 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 	if (boardId > World.BoardCount)
 		boardId = World.Info.CurrentBoard;
 
-	//ptr = World.BoardData[boardId];
-	bytesRead = 0;
+	std::string load_error = Board.load(
+		World.BoardData[World.Info.CurrentBoard],
+		boardId, World.BoardCount);
 
-	/* Create a default yellow border board, because we might need
-	to abort before the board is fully specced. */
-	BoardCreate();
-	boardIsDamaged = worldIsDamaged;
-#ifdef TBD
-	/* Check that the sanity check on board titles have been executed. */
-
-	/*SANITY: Reconstruct the title. We need at least a size of
-	two bytes for the title: a size designation and the first
-		 letter of the title. If we don't even have that, let the
-		 title be blank.*/
-	if (World.BoardLen[boardId] < sizeof(Board.Name))  {
-		World.Info.CurrentBoard = boardId;
-
-		if (World.BoardLen[boardId] > 1)  {
-			*ptr = Min(*ptr, World.BoardLen[boardId]-1);
-            // Copy over a string. The first byte (at *ptr) is the
-            // length because it's a Pascal string.
-            bcopy(ptr, &Board.Name, *ptr);
-			//Move(*ptr, Board.Name, *ptr);
-		} else {
-			Board.Name = "";
-		}
-
-		/* This board is damaged. */
-		DisplayCorruptionNote();
-		return;
-	}
-
-	/* SANITY: Range check on board name length. */
-	*ptr = Min(*ptr, sizeof(Board.Name));
-
-    bcopy(ptr, &Board.Name, sizeof(Board.Name));
-	ptr += sizeof(Board.Name);
-	bytesRead = bytesRead + sizeof(Board.Name);
-
-	ix = 1;
-	iy = 1;
-	rle.Count = 0;
-	do {
-		/* ZZT used to have a "feature" where an RLE count of 0 would
-		mean 256 repetitions of the tile. However, because it never
-		writes those RLE counts itself, it would get desynchronized
-		on a board close and crash. Therefore, we must simply ignore
-		such rle count 0 bytes, even though that is not what DOS ZZT
-		does. DOS ZZT would instead write past the bounds of the
-		scratch space when cleaning up, which means authors can't use
-		any RLE count 0 pairs without risking a glitch or crash
-		anyway.
-
-		BoardClose and BoardOpen may still desynchronize, but what
-		BoardClose outputs will never be longer than what BoardOpen
-		inputs, which is okay.
-
-		If you absolutely need this functionality, you would have to
-		increment an auxiliary counter by one every time you get an
-		RLE count 0 byte and then allocate that much extra scratch
-		space. But keeping two counts like that is a pain, so I don't.*/
-		if (rle.Count <= 0)  {
-			/* Not enough space? Get outta here. */
-			if (bytesRead + sizeof(rle) > World.BoardLen[boardId])  break;
-            bcopy(ptr, &rle, sizeof(rle));
-			ptr += sizeof(rle);
-			bytesRead = bytesRead + sizeof(rle);
-			if (rle.Count == 0)  {
-				boardIsDamaged = true;
-				continue;
-			}
-		}
-
-		/* SANITY: If the element is unknown, replace it with a normal. */
-
-		if (rle.Tile.Element > MAX_ELEMENT)  {
-			rle.Tile.Element = E_NORMAL;
-			boardIsDamaged = true;
-		}
-
-		Board.Tiles[ix][iy] = rle.Tile;
-		ix = ix + 1;
-		if (ix > BOARD_WIDTH)  {
-			ix = 1;
-			iy = iy + 1;
-		}
-
-		rle.Count = rle.Count - 1;
-
-	} while (!((iy > BOARD_HEIGHT) || (bytesRead >= World.BoardLen[boardId])));
-
-	/* SANITY: If reading board info and the stats count byte would
-	get us out of bounds, we have a board that's truncated too early.
-		  Do the best we can, then show the damaged board note and exit. */
-	if ((sizeof(Board.Info) + sizeof(Board.StatCount) + bytesRead) >=
-	        World.BoardLen[boardId])  {
-		World.Info.CurrentBoard = boardId;
-		AdjustBoardStats();
-		DisplayCorruptionNote();
-		return;
-	}
-
-    bcopy(ptr, &Board.Info, sizeof(Board.Info));
-	ptr += sizeof(Board.Info);
-	bytesRead = bytesRead + sizeof(Board.Info);
-
-	/* Clamp out-of-bounds Board.Info variables. They'll cause problems
-	in the editor otherwise. */
-	for( i = 0; i <= 3; i ++)
-		/* This behavior is from elements.pas, BoardEdgeTouch. */
-		if (Board.Info.NeighborBoards[i] > World.BoardCount)
-			Board.Info.NeighborBoards[i] = boardId;
-
-	if (! ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY))  {
-		Board.Info.StartPlayerX = 1;
-		Board.Info.StartPlayerY = 1;
-		boardIsDamaged = true;
-	}
-
-    bcopy(ptr, &Board.StatCount, sizeof(Board.StatCount));
-	ptr += sizeof(Board.StatCount);
-	bytesRead = bytesRead + sizeof(Board.StatCount);
-
-	Board.StatCount = Max(0, Min(Board.StatCount, MAX_STAT));
-
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-		TStat& with = Board.Stats[ix];
-		/* SANITY: Handle too few stats items for the stats count. */
-		if ((bytesRead + sizeof(TStat)) > World.BoardLen[boardId])  {
-			Board.StatCount = Max(ix - 1, 0);
-			World.Info.CurrentBoard = boardId;
-			boardIsDamaged = true;
-			break;
-		}
-
-		MoveP(*ptr, Board.Stats[ix], sizeof(TStat));
-		ptr += sizeof(TStat);
-		bytesRead = bytesRead + sizeof(TStat);
-
-		/* SANITY: If the element underneath is unknown, replace it
-		with a normal. */
-		if (with.Under.Element > MAX_ELEMENT)  {
-			with.Under.Element = E_NORMAL;
-			boardIsDamaged = true;
-		}
-
-		/* SANITY: Handle objects that are out of bounds. */
-		if (! ValidCoord(with.X, with.Y))  {
-			with.X = Min(Max(with.X, 0), BOARD_WIDTH+1);
-			with.Y = Min(Max(with.Y, 0), BOARD_HEIGHT+1);
-			boardIsDamaged = true;
-		}
-
-		/* SANITY: (0,0) is not available: it's used by one-line
-		messages. So if the stat is at (0,0) or another
-				  unavailable position, put it into (1,1). TODO? Make
-				  a note of which are thus placed, and place them on
-				  empty spots on the board instead if possible... */
-		/* The compromise to the Postelic position is probably to
-		be generous, but show a warning message that the board
-				  was corrupted and attempted fixed. */
-		if ((with.X == 0) && (with.Y == 0))  {
-			with.X = 1;
-			with.Y = 1;
-			boardIsDamaged = true;
-		}
-
-		/* SANITY: If DataLen is much too large, truncate. We'll
-		then stop processing more objects next round around
-		the loop. */
-		if (bytesRead + with.DataLen > World.BoardLen[boardId])  {
-			with.DataLen = World.BoardLen[boardId] - bytesRead;
-			boardIsDamaged = true;
-		}
-
-		if (with.DataLen > 0)
-			/* SANITY: If DataLen is too long, truncate it. */
-			if (with.DataLen > World.BoardLen[boardId]-bytesRead)  {
-				with.DataLen = World.BoardLen[boardId]-bytesRead;
-				boardIsDamaged = true;
-			}
-
-		/* Only allocate if data length is still positive... */
-		if (with.DataLen > 0)  {
-			//GetMem(with.Data, with.DataLen);
-            with.Data = (byte*)malloc(with.DataLen);
-			MoveP(*ptr, *with.Data, with.DataLen);
-			ptr += with.DataLen;
-			bytesRead = bytesRead + with.DataLen;
-		}
-
-		/* Otherwise, clear Data to avoid potential leaks later. */
-		if (with.DataLen == 0)  with.Data = nil;
-	}
-
-	AdjustBoardStats();
 	World.Info.CurrentBoard = boardId;
 
-	if (boardIsDamaged)
+	// TODO: Distinguish between truncation and corruption as in
+	// FPC. Also be more sensible about what kind of corruption
+	// notices to show -- probably just one at the very end.
+	if (load_error != "" || worldIsDamaged) {
 		DisplayCorruptionNote();
-#endif
+	}
+
 }
 
 void BoardChange(integer boardId) {
