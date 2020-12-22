@@ -108,11 +108,15 @@ public:
 
 	bool valid_coord(short x, short y) const;
 
-	void create();					// Construct a yellow border board.
-	// TODO later: use proper size-containing classes, e.g. vectors?
-	std::vector<unsigned char> dump();	// Serialize
+	void create();
 
-	// Deserialization functions
+	// Serialize
+	// BLUESKY: Make these const, because output shouldn't alter the
+	// board itself.
+	std::vector<unsigned char> dump(std::string & out_load_error);
+	std::vector<unsigned char> dump();
+
+	// Deserialize
 	std::string load(const std::vector<unsigned char> & source,
 		int board_num, int number_of_boards);
 	std::string load(const std::vector<unsigned char> & source);

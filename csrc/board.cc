@@ -532,12 +532,12 @@ std::string TBoard::load(const std::vector<unsigned char> & source) {
 	return load(source, 0, MAX_BOARD);
 }
 
-std::vector<unsigned char> TBoard::dump() {
+std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
 
 	std::vector<unsigned char> out;
 	out.reserve(MAX_RLE_OVERFLOW);
 
-	bool cleanupNeeded = false;
+	out_load_error = "";
 
 	// Board name
 	append_pascal_string(Name, MAX_BOARD_NAME_LENGTH, out);
@@ -591,24 +591,27 @@ std::vector<unsigned char> TBoard::dump() {
 	//World.BoardLen[World.Info.CurrentBoard] = ptr - ptrStart;
 
 	/* If we're using too much space, truncate the size, feed the
-	whole thing back through BoardOpen to fix the inevitable
-		  corruption, then run BoardClose again.
-		  This smart-ass solution should allow us to keep all the smarts of
-		  board parsing in BoardOpen and nowt have to duplicate any logic. */
-	/* Such a situation should *only* happen if RLE is too large (see
-	RLEFLOW.ZZT), because AddStat should reject adding stats when
-		  there's no room. */
-	if (out.size() > MAX_BOARD_LEN)  {
-		cleanupNeeded = true;
+		whole thing back through load() to fix the inevitable
+		corruption, then run BoardClose again.
+		This smart-ass solution should allow us to keep all the smarts of
+		board parsing in BoardOpen and nowt have to duplicate any logic.
+
+		Such a situation should *only* happen if RLE is too large (see
+		RLEFLOW.ZZT), because AddStat should reject adding stats when
+		there's no room. */
+	if (out.size() > MAX_BOARD_LEN) {
+		out_load_error = load(out);
+		// Propagate the error by ignoring any error we get from the
+		// second dump.
+		std::string throwaway;
+		return dump(throwaway);
 	}
 
-	// I need to actually implement BoardOpen to make *this* work.
-	// And then a bunch of tests to see if BoardOpen(BoardClose(x)) == x.
-	/*if (cleanupNeeded)  {
-		BoardOpen(World.Info.CurrentBoard, false);
-		BoardClose(false);
-		if (showTruncationNote)  DisplayTruncationNote();
-	}*/
-
 	return out;
+}
+
+// For debugging/testing purposes.
+std::vector<unsigned char> TBoard::dump() {
+	std::string throwaway;
+	return(dump(throwaway));
 }
