@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 const integer MAX_STAT = 150;
 const integer BOARD_WIDTH = 60;
@@ -43,24 +44,24 @@ struct TRleTile {
 	TTile Tile;
 };
 
-struct TStat {
-public:
-	unsigned char X, Y;
-	short StepX, StepY;
-	short Cycle;
-	unsigned char P1, P2, P3;
-	short Follower;
-	short Leader;
-	TTile Under;
-	array<0, 3,unsigned char> unk1;
-	short DataPos;
-	short DataLen;
-	unsigned char* Data;
-	size_t packed_size() const;
-	void dump(std::vector<unsigned char> & out) const;
-	std::vector<unsigned char>::const_iterator load(
-		std::vector<unsigned char>::const_iterator ptr,
-		const std::vector<unsigned char>::const_iterator end);
+class TStat {
+	public:
+		unsigned char X, Y;
+		short StepX, StepY;
+		short Cycle;
+		unsigned char P1, P2, P3;
+		short Follower;
+		short Leader;
+		TTile Under;
+		array<0, 3,unsigned char> unk1;
+		short DataPos;
+		short DataLen;
+		std::shared_ptr<unsigned char[]> data;
+		size_t packed_size() const;
+		void dump(std::vector<unsigned char> & out) const;
+		std::vector<unsigned char>::const_iterator load(
+			std::vector<unsigned char>::const_iterator ptr,
+			const std::vector<unsigned char>::const_iterator end);
 };
 
 // Perhaps enforce minimum and maximum size with get/set? Feels kinda

@@ -927,126 +927,118 @@ boolean GameWorldLoad(TString50 extension) {
 
 void CopyStatDataToTextWindow(integer statId, TTextWindowState& state) {
 	string dataStr;
-	byte * dataPtr;
 	char dataChr;
 	integer i;
 
 	TStat& with = Board.Stats[statId];
 	TextWindowInitState(state);
 	dataStr = "";
-	dataPtr = with.Data;
 
 	/* IMP: Fix off-by-one: Don't start counting
 	from 0 when copying data. */
-	for( i = 1; i <= with.DataLen; i ++) {
-		MoveP(dataPtr, dataChr, 1);
+	for( i = 0; i < with.DataLen; i ++) {
+		dataChr = with.data.get()[i];
 		if (dataChr == E_KEY_ENTER)  {
 			TextWindowAppend(state, dataStr);
 			dataStr = "";
 		} else {
 			dataStr = dataStr + dataChr;
 		}
-		++dataPtr;
 	}
 }
 
 void AddStat(integer tx, integer ty, byte element, integer color,
              integer tcycle, TStat template_) {
 	/* First of all: check if we have space. If not, no can do! */
-	if ((template_.Data == nil) &&
-	        (World.BoardLen[World.Info.CurrentBoard] + sizeof(TStat) > MAX_BOARD_LEN))
+	if (World.BoardLen[World.Info.CurrentBoard] +
+		template_.packed_size() > MAX_BOARD_LEN) {
 		return;
-	if ((template_.Data != nil) &&
-	        (World.BoardLen[World.Info.CurrentBoard] + sizeof(TStat) +
-	         template_.DataLen > MAX_BOARD_LEN))
-		return;
+	}
 
 	/* Can't put anything on top of the player. */
-	if ((tx == Board.Stats[0].X) && (ty == Board.Stats[0].Y))  return;
+	if ((tx == Board.Stats[0].X) && (ty == Board.Stats[0].Y)) { return; }
 
-	if (Board.StatCount < MAX_STAT)  {
-		Board.StatCount = Board.StatCount + 1;
-		Board.Stats[Board.StatCount] = template_;
-		World.BoardLen[World.Info.CurrentBoard] =
-		    World.BoardLen[World.Info.CurrentBoard] + sizeof(TStat);
-		{
-			TStat& with = Board.Stats[Board.StatCount];
-			with.X = tx;
-			with.Y = ty;
-			with.Cycle = tcycle;
-			with.Under = Board.Tiles[tx][ty];
-			with.DataPos = 0;
-		}
+	// Can't make more than MAX_STAT stats.
+	if (Board.StatCount >= MAX_STAT) { return; }
 
-		if ((template_.Data != nil) && (template_.DataLen > 0))  {
-			//GetMem(Board.Stats[Board.StatCount].Data, template_.DataLen);
-            Board.Stats[Board.StatCount].Data = (byte*)malloc(template_.DataLen);
-			MoveP(*template_.Data, *Board.Stats[Board.StatCount].Data,
-			     template_.DataLen);
-			World.BoardLen[World.Info.CurrentBoard] =
-			    World.BoardLen[World.Info.CurrentBoard] + template_.DataLen;
-		}
+	Board.StatCount = Board.StatCount + 1;
+	Board.Stats[Board.StatCount] = template_;
 
-		if (ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop)
-			Board.Tiles[tx][ty].Color = (color & 0xf) + (Board.Tiles[tx][ty].Color &
-			                            0x70);
-		else
-			Board.Tiles[tx][ty].Color = color;
-		Board.Tiles[tx][ty].Element = element;
+	// Beware: this counts the data as well. In our case, that's what we
+	// *want* because we'll do a deep copy, but that's not always the
+	// case! Note to self if/when I change this.
+	World.BoardLen[World.Info.CurrentBoard] =
+		World.BoardLen[World.Info.CurrentBoard] + template_.packed_size();
 
-		if (CoordInsideViewport(tx, ty))
-			BoardDrawTile(tx, ty);
+	TStat new_stat;
+	new_stat.X = tx;
+	new_stat.Y = ty;
+	new_stat.Cycle = tcycle;
+	new_stat.Under = Board.Tiles[tx][ty];
+	new_stat.DataPos = 0;
+
+	// AddStat always does a deep copy.
+	if (template_.DataLen > 0) {
+		new_stat.data = std::shared_ptr<unsigned char[]>(
+			new unsigned char[template_.DataLen]);
+
+		std::copy(template_.data.get(),
+			template_.data.get() + template_.DataLen,
+			new_stat.data.get());
+	}
+
+	if (ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop)
+		Board.Tiles[tx][ty].Color = (color & 0xf) + (Board.Tiles[tx][ty].Color &
+		                            0x70);
+	else
+		Board.Tiles[tx][ty].Color = color;
+	Board.Tiles[tx][ty].Element = element;
+
+	if (CoordInsideViewport(tx, ty)) {
+		BoardDrawTile(tx, ty);
 	}
 }
 
 void RemoveStat(integer statId) {
 	integer i;
 
+	// TODO: Update board size.
 
-	{
-		TStat& with = Board.Stats[statId];
-		if (with.DataLen != 0)  {
-			for( i = 1; i <= Board.StatCount; i ++) {
-				if ((Board.Stats[i].Data == with.Data) && (i != statId))
-					goto LStatDataInUse;
-			}
-			FreeMem(with.Data, with.DataLen);
+	Board.Stats[statId].data = NULL;	// deallocates if necessary
+
+	TStat& with = Board.Stats[statId];
+
+	if (statId < CurrentStatTicked)
+		CurrentStatTicked = CurrentStatTicked - 1;
+
+	Board.Tiles[with.X][with.Y] = with.Under;
+	if (with.Y > 0)
+		BoardDrawTile(with.X, with.Y);
+
+	for( i = 1; i <= Board.StatCount; i ++) {
+		if (Board.Stats[i].Follower >= statId)  {
+			if (Board.Stats[i].Follower == statId)
+				Board.Stats[i].Follower = -1;
+			else
+				Board.Stats[i].Follower = Board.Stats[i].Follower - 1;
 		}
 
-LStatDataInUse:
-		if (statId < CurrentStatTicked)
-			CurrentStatTicked = CurrentStatTicked - 1;
-
-		Board.Tiles[with.X][with.Y] = with.Under;
-		if (with.Y > 0)
-			BoardDrawTile(with.X, with.Y);
-
-		for( i = 1; i <= Board.StatCount; i ++) {
-			if (Board.Stats[i].Follower >= statId)  {
-				if (Board.Stats[i].Follower == statId)
-					Board.Stats[i].Follower = -1;
-				else
-					Board.Stats[i].Follower = Board.Stats[i].Follower - 1;
-			}
-
-			if (Board.Stats[i].Leader >= statId)  {
-				if (Board.Stats[i].Leader == statId)
-					Board.Stats[i].Leader = -1;
-				else
-					Board.Stats[i].Leader = Board.Stats[i].Leader - 1;
-			}
+		if (Board.Stats[i].Leader >= statId)  {
+			if (Board.Stats[i].Leader == statId)
+				Board.Stats[i].Leader = -1;
+			else
+				Board.Stats[i].Leader = Board.Stats[i].Leader - 1;
 		}
-
-		for( i = (statId + 1); i <= Board.StatCount; i ++)
-			Board.Stats[i - 1] = Board.Stats[i];
-		Board.StatCount = Board.StatCount - 1;
 	}
+
+	for( i = (statId + 1); i <= Board.StatCount; i ++)
+		Board.Stats[i - 1] = Board.Stats[i];
+	Board.StatCount = Board.StatCount - 1;
 }
 
 integer GetStatIdAt(integer x, integer y) {
 	integer i;
 
-	integer GetStatIdAt_result;
 	i = -1;
 	do {
 		i = i + 1;
@@ -1054,10 +1046,9 @@ integer GetStatIdAt(integer x, integer y) {
 	           || (i > Board.StatCount)));
 
 	if (i > Board.StatCount)
-		GetStatIdAt_result = -1;
+		return -1;
 	else
-		GetStatIdAt_result = i;
-	return GetStatIdAt_result;
+		return i;
 }
 
 boolean BoardPrepareTileForPlacement(integer x, integer y) {

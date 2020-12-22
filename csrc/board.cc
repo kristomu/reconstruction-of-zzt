@@ -36,6 +36,21 @@ std::vector<unsigned char>::const_iterator TTile::load(
 	return ptr;
 }
 
+// TODO: Don't count the data itself if it exists somewhere else
+// (unless we're the first object???). For now it overestimates the
+// necessary size.
+
+// A better implementation may split away the size counting for stats
+// so that there's a separate object for the contents. That's what DOS
+// ZZT does "in effect", because it only considers sizeof(TStat) to be
+// the literal size, which treats the data piece as a 4-byte pointer.
+// Consider that in greater detail. For now, there'll be errors with
+// stats coming close to the max board limit.
+
+// I'm guessing I'll eventually end up using some kind of associative
+// array or something. Or maybe just as simple as serializing every time
+// AddStat is called to see if we exceed the limit...
+
 size_t TStat::packed_size() const {
 	return sizeof(X) + sizeof(Y) + sizeof(StepX) + sizeof(StepY) +
 		sizeof(Cycle) + sizeof(P1) + sizeof(P2) + sizeof(P3) +
@@ -54,7 +69,7 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 	append_zeroes(4, out);
 	append_array(std::vector<short>{DataPos, DataLen}, out);
 	// Dump the data itself.
-	std::copy(Data, Data + DataLen,
+	std::copy(data.get(), data.get() + DataLen,
 		std::back_inserter<std::vector<unsigned char> >(out));
 	// Dump eight zeroes - this is where the padding went in original
 	// ZZT and the pointer was put in FPC.
@@ -96,11 +111,8 @@ std::vector<unsigned char>::const_iterator TStat::load(
 		throw std::runtime_error("Insufficient data to load TStat contents");
 	}
 
-	// There will be leaks. Need to be fixed later, by turning Data into
-	// either a std::string or a vector of unsigned char. TODO.
-
-	Data = new unsigned char[DataLen];
-	std::copy(ptr, ptr + DataLen, Data);
+	data = std::shared_ptr<unsigned char[]>(new unsigned char[DataLen]);
+	std::copy(ptr, ptr + DataLen, data.get());
 
 	ptr += 8; // Skip eight zeroes of padding
 
@@ -185,7 +197,7 @@ void TBoard::adjust_board_stats() {
 
 			// Dereference aliases
 			if (with.DataLen < 0)  {
-				with.Data = Board.Stats[-with.DataLen].Data;
+				with.data = Board.Stats[-with.DataLen].data;
 				with.DataLen = Board.Stats[-with.DataLen].DataLen;
 			}
 
@@ -282,7 +294,7 @@ void TBoard::create() {
 	Stats[0].Cycle = 1;
 	Stats[0].Under.Element = E_EMPTY;
 	Stats[0].Under.Color = 0;
-	Stats[0].Data = nil;
+	Stats[0].data = NULL;
 	Stats[0].DataLen = 0;
 
 	// CHANGE: Not actually done in DOS ZZT, but we want every
@@ -315,8 +327,6 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	int cur_board_id, int number_of_boards) {
 
 	std::vector<unsigned char>::const_iterator ptr = source.begin();
-
-	//World.Info.CurrentBoard = boardId;
 	// We assume the vector has been set to reflect either the data
 	// read from the file, or the world boardLen parameter, whichever
 	// is smaller. The outside should check that boardLen matches.
@@ -399,7 +409,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
 
 	// ---------------- Metadata and stats info  ----------------
-
+;
 	/* SANITY: If reading board info and the stats count byte would
 		get us out of bounds, we have a board that's truncated too early.
 		Do the best we can, then exit with an error. */
@@ -428,7 +438,6 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	}
 
 	if (source.end() - ptr < sizeof(StatCount)) {
-		//World.Info.CurrentBoard = boardId;
 		return "Board is truncated after Info";
 	}
 
@@ -445,8 +454,6 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		/* SANITY: Handle too few stats items for the stats count. */
 		if (source.end() - ptr < with.packed_size()) {
 			StatCount = std::max(ix - 1, 0);
-			// TBD
-//			World.Info.CurrentBoard = boardId;
 			boardIsDamaged = true;
 			break;
 		}
@@ -502,20 +509,18 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 
 		/* Only allocate if data length is still positive... */
 		if (with.DataLen > 0)  {
-#ifdef TBD
-			//GetMem(with.Data, with.DataLen);
-            with.Data = (unsigned char *)malloc(with.DataLen);
-			MoveP(*ptr, *with.Data, with.DataLen);
-#endif
+			with.data = std::shared_ptr<unsigned char[]>(
+				new unsigned char[with.DataLen]);
+			std::copy(ptr, ptr + with.DataLen, with.data.get());
+
 			ptr += with.DataLen;
 		}
 
 		/* Otherwise, clear Data to avoid potential leaks later. */
-		if (with.DataLen == 0)  with.Data = nil;
+		if (with.DataLen == 0)  with.data = NULL;
 	}
 
 	adjust_board_stats();
-	//World.Info.CurrentBoard = boardId;
 
 	if (detected_zero_RLE) {
 		return "Zero RLE count detected";
@@ -576,9 +581,9 @@ std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
 			for(int primary = 1; primary < stat_idx; ++primary) {
 				/* If two pointers share the same code (same pointer),
 				   link the latter to the former. */
-				if (Stats[primary].Data == Stats[stat_idx].Data)  {
+				if (Stats[primary].data == Stats[stat_idx].data)  {
 					Stats[stat_idx].DataLen = -primary;
-					Stats[stat_idx].Data = nil;
+					Stats[stat_idx].data = NULL;
 					break;
 				}
 			}
@@ -598,7 +603,7 @@ std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
 
 		Such a situation should *only* happen if RLE is too large (see
 		RLEFLOW.ZZT), because AddStat should reject adding stats when
-		there's no room. */
+		there's no room.; */
 	if (out.size() > MAX_BOARD_LEN) {
 		out_load_error = load(out);
 		// Propagate the error by ignoring any error we get from the

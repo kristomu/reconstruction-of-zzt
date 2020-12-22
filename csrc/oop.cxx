@@ -50,7 +50,7 @@ void OopReadChar(integer statId, integer& position) {
     {
         TStat& with = Board.Stats[statId];
         if ((position >= 0) && (position < with.DataLen))  {
-            OopChar = *(with.Data + position);
+            OopChar = *(with.data.get() + position);
             /*Move(* {{with.Data+position}}, OopChar, 1);*/
             position += 1;
         } else {
@@ -245,7 +245,7 @@ boolean OopIterateStat(integer statId, integer& iStat, string lookup) {
         }
     } else {
         while ((iStat <= Board.StatCount) && ! found)  {
-            if (Board.Stats[iStat].Data != nil)  {
+            if (Board.Stats[iStat].data)  {
                 pos = 0;
                 OopReadChar(iStat, pos);
                 if (OopChar == '@')  {
@@ -736,7 +736,7 @@ LReadCommand:
 
                         labelStatId = 0;
                         while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r:"))  {
-                            labelPtr = Board.Stats[labelStatId].Data;
+                            labelPtr = Board.Stats[labelStatId].data.get();
                             labelPtr += labelDataPos + 1;
 
                             *labelPtr = '\47';
@@ -747,7 +747,7 @@ LReadCommand:
                         labelStatId = 0;
                         while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r\47"))
                             do {
-                                labelPtr = Board.Stats[labelStatId].Data;
+                                labelPtr = Board.Stats[labelStatId].data.get();
                                 labelPtr += labelDataPos + 1;
 
                                 *labelPtr = ':';
@@ -825,8 +825,7 @@ LReadCommand:
                         OopReadWord(statId, position);
                         bindStatId = 0;
                         if (OopIterateStat(statId, bindStatId, OopWord))  {
-                            FreeMem(with.Data, with.DataLen);
-                            with.Data = Board.Stats[bindStatId].Data;
+                            with.data = Board.Stats[bindStatId].data;
                             with.DataLen = Board.Stats[bindStatId].DataLen;
                             position = 0;
                         }
