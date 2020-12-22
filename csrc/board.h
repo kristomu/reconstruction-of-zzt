@@ -111,5 +111,9 @@ public:
 	void create();					// Construct a yellow border board.
 	// TODO later: use proper size-containing classes, e.g. vectors?
 	std::vector<unsigned char> dump();	// Serialize
-	bool load(const std::vector<unsigned char> & source);	// Deserialize
+
+	// Deserialization functions
+	std::string load(const std::vector<unsigned char> & source,
+		int board_num, int number_of_boards);
+	std::string load(const std::vector<unsigned char> & source);
 };

@@ -2,13 +2,16 @@
 #include "gamevars.h"
 #include "array.h"
 #include "serialization.h"
+#include "tools.h"
 
 const size_t MAX_BOARD_NAME_LENGTH = 50;
 
 // Note, all of this still operates on some coupling of the size of
-// the internal variables and what's being serialized. TODO: Fix that.
+// the internal variables and what's being serialized. BLUESKY: Fix that.
 // The packed size shouldn't depend on the internal variables, only on
-// the format that the output takes.
+// the format that the output takes. But then we have to also construct
+// compatibility warning checks if the variables exceed the value that
+// can be represented in a classic ZZT format, etc... later.
 
 size_t TTile::packed_size() const {
 	return sizeof(Element) + sizeof(Color);
@@ -143,6 +146,7 @@ std::vector<unsigned char>::const_iterator TBoardInfo::load(
 	ptr = load_lsb_element(ptr, StartPlayerX);
 	ptr = load_lsb_element(ptr, StartPlayerY);
 	ptr = load_lsb_element(ptr, TimeLimitSec);
+	ptr += 16;	// Skip padding
 
 	return ptr;
 }
@@ -280,37 +284,42 @@ void TBoard::create() {
 	Stats[0].Under.Color = 0;
 	Stats[0].Data = nil;
 	Stats[0].DataLen = 0;
+
+	// CHANGE: Not actually done in DOS ZZT, but we want every
+	// returned board to be judged valid by the checks in load(),
+	// even if serialized right after create().
+
+	Info.StartPlayerX = Stats[0].X;
+	Info.StartPlayerY = Stats[0].Y;
 }
 
 bool TBoard::valid_coord(short x, short y) const {
 	return x >= 0 && y >= 0 && x <= BOARD_WIDTH+1 && y <= BOARD_HEIGHT+1;
 }
 
-// Returns true if the board is in OK condition or false if it is
-// corrupted.
+// load() loads the char representation of a board (given by the
+// source vector) into itself. If the board is corrupted, the function
+// reconstructs the board as best as it can and then returns an error
+// string; otherwise, it returns the empty string.
+
 // This function has an extreme number of checks against potential
 // corruption, so that it will pass every fuzzed crash test and deal
 // with corrupted boards as gracefully as possible.
 
-// TODO? Somehow indicate that this load routine doesn't except on an
-// error, just tries to gracefully deal with what's given? Or actually
-// *throw* an exception and use that as a signal to the world loader?
-bool TBoard::load(const std::vector<unsigned char> & source) {
+// NOTE: The serialized representation does not include the initial two
+// length bytes in Pascal; these are considered to be part of the world
+// structure, where the board structure is just the bytes that follow
+// the length integer.
+
+std::string TBoard::load(const std::vector<unsigned char> & source,
+	int cur_board_id, int number_of_boards) {
+
 	std::vector<unsigned char>::const_iterator ptr = source.begin();
-
-	// XXX: Must be outside because it refers to the world state.
-	// Error handling also leaves something to be desired.
-
-	// https://stackoverflow.com/questions/43483669/how-to-catch-an-incrementing-iterator-exception
 
 	//World.Info.CurrentBoard = boardId;
 	// We assume the vector has been set to reflect either the data
 	// read from the file, or the world boardLen parameter, whichever
 	// is smaller. The outside should check that boardLen matches.
-	// TODO: Handle cases where the board is smaller than expected and
-	// the excess bytes can be interpreted as the next board instead...
-	// But in that case, I think it just skips the excess (trusting the
-	// metadata).
 
 	short i, ix, iy;
 
@@ -332,16 +341,16 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 
 	if (truncated) {
 		/* This board is damaged. */
-		return false;
+		return "Board name is truncated";
 	}
-
-	ptr += MAX_BOARD_NAME_LENGTH + 1;
 
 	// ---------------- RLE board layout  ----------------
 	TRleTile rle;
 	ix = 1;
 	iy = 1;
 	rle.Count = 0;
+	bool detected_zero_RLE = false;
+
 	do {
 		/* ZZT used to have a "feature" where an RLE count of 0 would
 		mean 256 repetitions of the tile. However, because it never
@@ -360,13 +369,15 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 		instead, so we don't. */
 		if (rle.Count <= 0)  {
 			/* Not enough space? Get outta here. */
-			if (source.end() - ptr > sizeof(rle)) return false;
+			if (source.end() - ptr < sizeof(rle)) {
+				return "Abrupt end to RLE chunk";
+			}
 			rle.Count = *ptr++;
 			rle.Tile.Element = *ptr++;
 			rle.Tile.Color = *ptr++;
 
 			if (rle.Count == 0)  {
-				boardIsDamaged = true;
+				detected_zero_RLE = true;
 				continue;
 			}
 		}
@@ -387,39 +398,42 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 
 	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
 
-	// MORE TO COME ...
-
 	// ---------------- Metadata and stats info  ----------------
 
 	/* SANITY: If reading board info and the stats count byte would
-	get us out of bounds, we have a board that's truncated too early.
-		  Do the best we can, then show the damaged board note and exit. */
-	ptr = Info.load(ptr, source.end());
-	if (ptr == source.end()) {
-		//World.Info.CurrentBoard = boardId;
-		adjust_board_stats();
-
-		return false;
+		get us out of bounds, we have a board that's truncated too early.
+		Do the best we can, then exit with an error. */
+	try {
+		ptr = Info.load(ptr, source.end());
+	} catch (const std::exception & e) {
+		return e.what();
 	}
 
 	/* Clamp out-of-bounds Info variables. They'll cause problems
-	in the editor otherwise. */
-	// TODO: Put this outside, or pass in the BoardCount variable...
-	/*for( i = 0; i <= 3; i ++)
-		/v* This behavior is from elements.pas, BoardEdgeTouch. *v/
-		if (Info.NeighborBoards[i] > World.BoardCount)
-			Info.NeighborBoards[i] = boardId;*/
+		in the editor otherwise. */
+	for (size_t i = 0; i < Info.NeighborBoards.size(); ++i) {
+		if (Info.NeighborBoards[i] > number_of_boards) {
+			Info.NeighborBoards[i] = cur_board_id;
+		}
+		boardIsDamaged = true;
+	}
 
-	/* Clamp an out-of-board player location, if there is any. */
+	/* Clamp an out-of-board player location, if there is any.
+	   This is actually only damage in certain cases (save files with zap
+	   on entry, etc.) */
 	if (!valid_coord(Info.StartPlayerX, Info.StartPlayerY))  {
 		Info.StartPlayerX = 1;
 		Info.StartPlayerY = 1;
 		boardIsDamaged = true;
 	}
 
-	// This is just a short in little endian format.
+	if (source.end() - ptr < sizeof(StatCount)) {
+		//World.Info.CurrentBoard = boardId;
+		return "Board is truncated after Info";
+	}
 
-	ptr = load_lsb_element(ptr, StatCount); // Error handling req'd!
+	// This is just a short in little endian format.
+	ptr = load_lsb_element(ptr, StatCount);
 
 	// Clamp to be positive and to not exceed max_stat.
 	StatCount = std::max((short)0, std::min(StatCount, MAX_STAT));
@@ -437,7 +451,11 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 			break;
 		}
 
-		ptr = Stats[ix].load(ptr, source.end());
+		try {
+			ptr = Stats[ix].load(ptr, source.end());
+		} catch (const std::exception & e) {
+			return "Stats[" + itos(ix) + "]: " + e.what();
+		}
 
 		/* SANITY: If the element underneath is unknown, replace it
 		with a normal. */
@@ -455,8 +473,7 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 
 		/* SANITY: (0,0) is not available: it's used by one-line messages.
 			So if the stat is at (0,0) or another unavailable position, put
-			it into (1,1). TODO? Make a note of which are thus placed, and
-			place them on empty spots on the board instead if possible... */
+			it into (1,1). */
 
 		/* The compromise to the Postelic position is probably to be
 			generous, but show a warning message that the board was
@@ -470,7 +487,7 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 		/* SANITY: If DataLen is much too large, truncate. We'll
 		then stop processing more objects next round around
 		the loop. */
-		// This shouldn't be needed... ???
+		// This shouldn't be needed as we're doing it below, no ???
 		/*if (bytesRead + with.DataLen > board_length)  {
 			with.DataLen = board_length - bytesRead;
 			boardIsDamaged = true;
@@ -500,12 +517,19 @@ bool TBoard::load(const std::vector<unsigned char> & source) {
 	adjust_board_stats();
 	//World.Info.CurrentBoard = boardId;
 
-	// TBD
-/*	if (boardIsDamaged)
-		DisplayCorruptionNote();*/
+	if (detected_zero_RLE) {
+		return "Zero RLE count detected";
+	}
 
-	return !boardIsDamaged;
+	if (boardIsDamaged) {
+		return "Some parameters are out of bounds";
+	}
 
+	return "";
+}
+
+std::string TBoard::load(const std::vector<unsigned char> & source) {
+	return load(source, 0, MAX_BOARD);
 }
 
 std::vector<unsigned char> TBoard::dump() {
