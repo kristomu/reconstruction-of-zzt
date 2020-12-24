@@ -1398,12 +1398,8 @@ void BoardPassageTeleport(integer x, integer y) {
 				newY = iy;
 			}
 
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_EMPTY;
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color = 0;
-	if (newX != 0)  {
-		Board.Stats[0].X = newX;
-		Board.Stats[0].Y = newY;
-	}
+	/* Move the player onto the passage. */
+	MoveStat(0, newX, newY);
 
 	GamePaused = true;
 	SoundQueue(4,
