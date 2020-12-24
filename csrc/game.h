@@ -89,5 +89,5 @@ const TStat StatTemplateDefault = {
 	0, 0, 0, 0,
 	-1, -1
 };
-const varying_string<16> LineChars =
+const std::string LineChars =
 	"\371\320\322\272\265\274\273\271\306\310\311\314\315\312\313\316";

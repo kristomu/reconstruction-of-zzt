@@ -427,7 +427,7 @@ void ElementLineDraw(integer x, integer y, byte& ch) {
 		}
 		shift = shift << 1;
 	}
-	ch = ord(LineChars[v-1]);
+	ch = LineChars[v-1];
 }
 
 void ElementSpinningGunTick(integer statId) {
