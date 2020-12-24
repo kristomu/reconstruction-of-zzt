@@ -409,7 +409,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
 
 	// ---------------- Metadata and stats info  ----------------
-;
+
 	/* SANITY: If reading board info and the stats count byte would
 		get us out of bounds, we have a board that's truncated too early.
 		Do the best we can, then exit with an error. */
@@ -424,8 +424,8 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	for (size_t i = 0; i < Info.NeighborBoards.size(); ++i) {
 		if (Info.NeighborBoards[i] > number_of_boards) {
 			Info.NeighborBoards[i] = cur_board_id;
+			boardIsDamaged = true;
 		}
-		boardIsDamaged = true;
 	}
 
 	/* Clamp an out-of-board player location, if there is any.
