@@ -56,10 +56,16 @@ std::vector<unsigned char>::const_iterator TTile::load(
 // AddStat is called to see if we exceed the limit...
 
 size_t TStat::packed_size() const {
+	// If it's a bound object, there's no data here.
+	size_t space_for_data = 0;
+	if (DataLen > 0) {
+		space_for_data += DataLen;
+	 }
+
 	return sizeof(X) + sizeof(Y) + sizeof(StepX) + sizeof(StepY) +
 		sizeof(Cycle) + sizeof(P1) + sizeof(P2) + sizeof(P3) +
 		sizeof(Follower) + sizeof(Leader) + Under.packed_size() +
-		4 + sizeof(DataPos) + sizeof(DataLen) + DataLen + 8;
+		4 + sizeof(DataPos) + sizeof(DataLen) + space_for_data + 8;
 }
 
 void TStat::dump(std::vector<unsigned char> & out) const {
@@ -72,17 +78,20 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 	// Four bytes of padding.
 	append_zeroes(4, out);
 	append_array(std::vector<short>{DataPos, DataLen}, out);
-	// Dump the data itself.
-	std::copy(data.get(), data.get() + DataLen,
-		std::back_inserter<std::vector<unsigned char> >(out));
 	// Dump eight zeroes - this is where the padding went in original
 	// ZZT and the pointer was put in FPC.
 	append_zeroes(8, out);
+	// Dump the data itself.
+	if (DataLen > 0) {
+		std::copy(data.get(), data.get() + DataLen,
+			std::back_inserter<std::vector<unsigned char> >(out));
+	}
 }
 
 std::vector<unsigned char>::const_iterator TStat::load(
 	std::vector<unsigned char>::const_iterator ptr,
-	const std::vector<unsigned char>::const_iterator end) {
+	const std::vector<unsigned char>::const_iterator end,
+	bool load_data) {
 
 	std::vector<unsigned char>::const_iterator start_ptr = ptr;
 
@@ -104,6 +113,7 @@ std::vector<unsigned char>::const_iterator TStat::load(
 	ptr += 4;								// skip four zeroes of padding.
 	ptr = load_lsb_element(ptr, DataPos);
 	ptr = load_lsb_element(ptr, DataLen);
+	ptr += 8; 								// Skip eight zeroes of padding
 
 	// We've loaded data length, now find out if we've got enough space
 	// to load it.
@@ -115,13 +125,15 @@ std::vector<unsigned char>::const_iterator TStat::load(
 		throw std::runtime_error("Insufficient data to load TStat contents");
 	}
 
-	data = std::shared_ptr<unsigned char[]>(new unsigned char[DataLen]);
-	std::copy(ptr, ptr + DataLen, data.get());
+	if (load_data && DataLen > 0) {
+		data = std::shared_ptr<unsigned char[]>(new unsigned char[DataLen]);
+		std::copy(ptr, ptr + DataLen, data.get());
 
-	ptr += DataLen;
-	ptr += 8; // Skip eight zeroes of padding
-
-	assert(ptr - start_ptr == packed_size());
+		ptr += DataLen;
+		assert(ptr - start_ptr == packed_size());
+	} else {
+		data = NULL;
+	}
 
 	return ptr;
 }
@@ -344,7 +356,8 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 
 	short i, ix, iy;
 
-	bool boardIsDamaged = false, truncated = false;
+	std::string board_error = "";
+	bool truncated = false;
 
 	/* Create a default yellow border board, because we might need
 	to abort before the board is fully specced. */
@@ -406,7 +419,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		/* SANITY: If the element is unknown, replace it with a normal. */
 		if (rle.Tile.Element > MAX_ELEMENT)  {
 			rle.Tile.Element = E_NORMAL;
-			boardIsDamaged = true;
+			update(board_error, "RLE: Unknown element detected");
 		}
 
 		Tiles[ix++][iy] = rle.Tile;
@@ -436,7 +449,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	for (size_t i = 0; i < Info.NeighborBoards.size(); ++i) {
 		if (Info.NeighborBoards[i] > number_of_boards) {
 			Info.NeighborBoards[i] = cur_board_id;
-			boardIsDamaged = true;
+			update(board_error, "Neighboring board doesn't exist");
 		}
 	}
 
@@ -446,7 +459,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	if (!valid_coord(Info.StartPlayerX, Info.StartPlayerY))  {
 		Info.StartPlayerX = 1;
 		Info.StartPlayerY = 1;
-		boardIsDamaged = true;
+		update(board_error, "Player is not at a valid coordinate");
 	}
 
 	if (source.end() - ptr < sizeof(StatCount)) {
@@ -466,12 +479,16 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		/* SANITY: Handle too few stats items for the stats count. */
 		if (source.end() - ptr < with.packed_size()) {
 			StatCount = std::max(ix - 1, 0);
-			boardIsDamaged = true;
+			update(board_error,
+				"StatCount claims more stats than there is data");
 			break;
 		}
 
 		try {
-			ptr = Stats[ix].load(ptr, source.end());
+			// Don't load the data  inside the Stats serialization function
+			// since we want to be more careful about believing its
+			// metadata.
+			ptr = Stats[ix].load(ptr, source.end(), false);
 		} catch (const std::exception & e) {
 			return "Stats[" + itos(ix) + "]: " + e.what();
 		}
@@ -480,43 +497,42 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		with a normal. */
 		if (with.Under.Element > MAX_ELEMENT)  {
 			with.Under.Element = E_NORMAL;
-			boardIsDamaged = true;
+			update(board_error, "Stat has unknown element underneath");
 		}
 
 		/* SANITY: Handle objects that are out of bounds. */
 		if (!valid_coord(with.X, with.Y))  {
 			with.X = std::min(std::max((int)with.X, 0), BOARD_WIDTH+1);
 			with.Y = std::min(std::max((int)with.Y, 0), BOARD_HEIGHT+1);
-			boardIsDamaged = true;
+			update(board_error, "Stat owner is not at a valid coordinate");
 		}
+
+		/* The compromise to the Postelic position is probably to be
+			generous, but show a warning message that the board was
+			corrupted and attempted fixed. */
 
 		/* SANITY: (0,0) is not available: it's used by one-line messages.
 			So if the stat is at (0,0) or another unavailable position, put
 			it into (1,1). */
 
-		/* The compromise to the Postelic position is probably to be
-			generous, but show a warning message that the board was
-			corrupted and attempted fixed. */
-		if ((with.X == 0) && (with.Y == 0))  {
+		// For now, don't fix this error since the "Lab 5" board of TOWN.ZZT
+		// exhibits it and TOWN shouldn't be considered corrupted. So we
+		// can't signal corruption here. But then fixing the bug would
+		// violate the invariant that Board.dump(load(x)) == x whenever
+		// there's no error reported. TODO: Find out how to deal with this
+		// conundrum.
+
+		/*if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
 			with.Y = 1;
-			boardIsDamaged = true;
-		}
-
-		/* SANITY: If DataLen is much too large, truncate. We'll
-		then stop processing more objects next round around
-		the loop. */
-		// This shouldn't be needed as we're doing it below, no ???
-		/*if (bytesRead + with.DataLen > board_length)  {
-			with.DataLen = board_length - bytesRead;
-			boardIsDamaged = true;
+			update(board_error, "Stat owner is at (0,0)");
 		}*/
 
 		if (with.DataLen > 0)
 			/* SANITY: If DataLen is too long, truncate it. */
 			if (source.end() - ptr < with.DataLen)  {
 				with.DataLen = source.end() - ptr;
-				boardIsDamaged = true;
+				update(board_error, "Stat DataLen extends past end of board");
 			}
 
 		/* Only allocate if data length is still positive... */
@@ -538,11 +554,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		return "Zero RLE count detected";
 	}
 
-	if (boardIsDamaged) {
-		return "Some parameters are out of bounds";
-	}
-
-	return "";
+	return board_error;
 }
 
 std::string TBoard::load(const std::vector<unsigned char> & source) {

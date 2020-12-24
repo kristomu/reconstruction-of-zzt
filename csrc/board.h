@@ -61,7 +61,8 @@ class TStat {
 		void dump(std::vector<unsigned char> & out) const;
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
-			const std::vector<unsigned char>::const_iterator end);
+			const std::vector<unsigned char>::const_iterator end,
+			bool load_data);
 };
 
 // Perhaps enforce minimum and maximum size with get/set? Feels kinda

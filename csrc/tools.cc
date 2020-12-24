@@ -19,3 +19,7 @@ std::string str_toupper(std::string s) {
 	);
     return s;
 }
+
+void update(std::string & to_update, std::string update_with) {
+	if (to_update == "") { to_update = update_with; }
+}
