@@ -883,7 +883,7 @@ boolean GameWorldLoad(TString50 extension) {
 
         	// Strip the extension
         	filename = filename.substr(0, filename.find(extension));
-            TextWindowAppend(textWindow, ent->d_name);
+            TextWindowAppend(textWindow, filename.c_str());
         }
         closedir (dir);
     }

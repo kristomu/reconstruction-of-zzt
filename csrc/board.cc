@@ -520,7 +520,9 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		// can't signal corruption here. But then fixing the bug would
 		// violate the invariant that Board.dump(load(x)) == x whenever
 		// there's no error reported. TODO: Find out how to deal with this
-		// conundrum.
+		// conundrum. The invariant might be too strong, e.g. input ZZT
+		// boards with random junk in the padding - should that random junk
+		// be reproduced on output?
 
 		/*if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
