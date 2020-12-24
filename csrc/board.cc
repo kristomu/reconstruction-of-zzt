@@ -30,8 +30,12 @@ std::vector<unsigned char>::const_iterator TTile::load(
 		throw std::runtime_error("Insufficient data to load TTile");
 	}
 
+	std::vector<unsigned char>::const_iterator start_ptr = ptr;
+
 	ptr = load_lsb_element(ptr, Element);
 	ptr = load_lsb_element(ptr, Color);
+
+	assert(ptr - start_ptr == packed_size());
 
 	return ptr;
 }
@@ -114,7 +118,10 @@ std::vector<unsigned char>::const_iterator TStat::load(
 	data = std::shared_ptr<unsigned char[]>(new unsigned char[DataLen]);
 	std::copy(ptr, ptr + DataLen, data.get());
 
+	ptr += DataLen;
 	ptr += 8; // Skip eight zeroes of padding
+
+	assert(ptr - start_ptr == packed_size());
 
 	return ptr;
 }
@@ -123,7 +130,7 @@ std::vector<unsigned char>::const_iterator TStat::load(
 size_t TBoardInfo::packed_size() const {
 	return sizeof(MaxShots) + sizeof(IsDark) + NeighborBoards.size() +
 		sizeof(ReenterWhenZapped) + 59 + sizeof(StartPlayerX) +
-		sizeof(StartPlayerY) + sizeof(TimeLimitSec);
+		sizeof(StartPlayerY) + sizeof(TimeLimitSec) + 16;
 }
 
 void TBoardInfo::dump(std::vector<unsigned char> & out) const {
@@ -150,6 +157,8 @@ std::vector<unsigned char>::const_iterator TBoardInfo::load(
 		throw std::runtime_error("Insufficient data to load TBoardInfo");
 	}
 
+	std::vector<unsigned char>::const_iterator start_ptr = ptr;
+
 	ptr = load_lsb_element(ptr, MaxShots);
 	ptr = load_lsb_element(ptr, IsDark);
 	ptr = load_array(ptr, NeighborBoards);
@@ -159,6 +168,8 @@ std::vector<unsigned char>::const_iterator TBoardInfo::load(
 	ptr = load_lsb_element(ptr, StartPlayerY);
 	ptr = load_lsb_element(ptr, TimeLimitSec);
 	ptr += 16;	// Skip padding
+
+	assert(ptr - start_ptr == packed_size());
 
 	return ptr;
 }
@@ -407,6 +418,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		rle.Count = rle.Count - 1;
 
 	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
+
 
 	// ---------------- Metadata and stats info  ----------------
 
