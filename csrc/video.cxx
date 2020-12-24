@@ -50,8 +50,12 @@ void Video::VideoWriteText(int x, int y, const TTextChar & to_print) {
 }
 
 void Video::VideoWriteText(int x, int y, char color, char to_print) {
-    // But this needs Unicode conversion. Later.
-    io->print_ch(x, y, color, to_print);
+    // Call the prior function so we're sure to always be writing to the
+    // primary buffer.
+
+    passthrough.Color = color;
+    passthrough.Char = to_print;
+    VideoWriteText(x, y, passthrough);
 }
 
 void Video::VideoWriteText(int x, int y, char color, const char * text) {
@@ -233,6 +237,9 @@ void Video::VideoCopy(int x_from, int y_from, int width, int height,
                 secondary_buffer[x][y] = primary_buffer[x][y];
             }
         }
+    }
+    if (to_display) {
+        redraw();
     }
 }
 

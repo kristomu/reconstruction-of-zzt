@@ -23,6 +23,8 @@ void TextColor(dos_color fgColor) {
 // Clear the screen
 void ClrScr() { display->clrscr(); }
 
+void redraw() { display->redraw(); }
+
 // Set the window size.
 void Window(int left, int top, int right, int bottom) {}
 

@@ -28,6 +28,7 @@ class Video {
 	private:
 		std::shared_ptr<curses_io> io;
 		TVideoBuffer primary_buffer, secondary_buffer;
+		TTextChar passthrough;
 
 	public:
 		void VideoWriteText(int x, int y, const TTextChar & to_print);

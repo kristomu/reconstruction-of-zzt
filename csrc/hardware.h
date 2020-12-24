@@ -29,8 +29,10 @@ void TextBackground(dos_color bgColor);
 // Set foreground color.
 void TextColor(dos_color fgColor);
 
-// Clear the screen (nop)
+// Clear the screen
 void ClrScr();
+// Redraw
+void redraw();
 
 // Set the window size. Nop for now.
 void Window(int left, int top, int right, int bottom);
