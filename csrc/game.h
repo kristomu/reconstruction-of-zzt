@@ -40,9 +40,9 @@ void SidebarPromptString(string prompt, TString50 extension,
 void PauseOnError();
 boolean DisplayIOError();
 void DisplayTruncationNote();
-void DisplayCorruptionNote();
+void DisplayCorruptionNote(std::string corruption_type);
 void WorldUnload();
-boolean WorldLoad(TString50 filename, TString50 extension);
+boolean WorldLoad(std::string filename, std::string extension);
 void WorldSave(TString50 filename, TString50 extension);
 void GameWorldSave(TString50 prompt, TString50& filename,
 	TString50 extension);

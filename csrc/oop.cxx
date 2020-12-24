@@ -314,7 +314,7 @@ integer WorldGetFlagPosition(TString50 name) {
     integer WorldGetFlagPosition_result;
     WorldGetFlagPosition_result = -1;
     for( i = 1; i <= 10; i ++) {
-        if (World.Info.Flags[i] == name)
+        if (World.Info.Flags[i] == std::string(name))
             WorldGetFlagPosition_result = i;
     }
     return WorldGetFlagPosition_result;
@@ -325,7 +325,7 @@ void WorldSetFlag(TString50 name) {
 
     if (WorldGetFlagPosition(name) < 0)  {
         i = 1;
-        while ((i < MAX_FLAG) && (length(World.Info.Flags[i]) != 0))
+        while ((i < MAX_FLAG) && (World.Info.Flags[i].size() != 0))
             i = i + 1;
         World.Info.Flags[i] = name;
     }

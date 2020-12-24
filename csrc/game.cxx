@@ -141,8 +141,7 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 	if (boardId > World.BoardCount)
 		boardId = World.Info.CurrentBoard;
 
-	std::string load_error = Board.load(
-		World.BoardData[World.Info.CurrentBoard],
+	std::string load_error = Board.load(World.BoardData[boardId],
 		boardId, World.BoardCount);
 
 	World.Info.CurrentBoard = boardId;
@@ -151,7 +150,7 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 	// FPC. Also be more sensible about what kind of corruption
 	// notices to show -- probably just one at the very end.
 	if (load_error != "" || worldIsDamaged) {
-		DisplayCorruptionNote();
+		DisplayCorruptionNote(load_error);
 	}
 
 }
@@ -572,7 +571,7 @@ void DisplayTruncationNote() {
 	TextWindowFree(textWindow);
 }
 
-void DisplayCorruptionNote() {
+void DisplayCorruptionNote(std::string corruption_type) {
 	TTextWindowState textWindow;
 
 	textWindow.Title = "Warning: Corruption detected";
@@ -585,6 +584,12 @@ void DisplayCorruptionNote() {
 	TextWindowAppend(textWindow, "or disk corruption. ZZT has tried");
 	TextWindowAppend(textWindow, "to undo the damage, but some data");
 	TextWindowAppend(textWindow, "might be lost.");
+
+	if (corruption_type != "") {
+		TextWindowAppend(textWindow, "");
+		TextWindowAppend(textWindow, "This was corrupted:");
+		TextWindowAppend(textWindow, (" - " + corruption_type + ".").c_str());
+	}
 
 	TextWindowDrawOpen(textWindow);
 	TextWindowSelect(textWindow, false, false);
@@ -607,7 +612,7 @@ void WorldUnload() {
 	}
 }
 
-boolean WorldLoad(TString50 filename, TString50 extension);
+boolean WorldLoad(std::string filename, std::string extension);
 
 static integer loadProgress;
 
@@ -617,9 +622,9 @@ static void SidebarAnimateLoading() {
 	loadProgress = (loadProgress + 1) % 8;
 }
 
-boolean WorldLoad(TString50 filename, TString50 extension) {
-	untyped_file f;
-	TIoTmpBuf* ptr;
+boolean WorldLoad(std::string filename, std::string extension) {
+
+	std::vector<unsigned char>::const_iterator ptr;
 	integer boardId;
 	word actuallyRead;
 	integer firstZero;
@@ -636,59 +641,43 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 	SidebarClearLine(5);
 	video.VideoWriteText(62, 5, 0x1f, "Loading.....");
 
-#ifdef TBD
-
-	/* filenames must be C strings, which means that they are terminated
-	at the first 00, and thus we must remove everything from the first
-		  00 out. Not doing this can cause Assign to assign stdin to
-		  the file handle, with predictable results. */
-
-	firstZero = length(filename)+1;
-	for( i = length(filename); i >= 1; i --)
-		if (filename[i] == '\0')
-			firstZero = i;
-
-	set_length(filename, firstZero-1);
-
 	if (filename + extension == "")  return WorldLoad_result;
 
-	assign(f, filename + extension);
-	OpenForRead(f, 1);
+	std::string full_filename = std::string(filename + extension);
+	std::ifstream f = OpenForRead(full_filename);
 
 	if (! DisplayIOError())  {
+		// Unload the current error. TODO: Do RAII-style.
 		WorldUnload();
-		// XXX: This will never trigger IO errors anymore due to ptoc's
-		// lack of error handling. Fix later.
-		word actually_read;
-		BlockRead(f, IoTmpBuf, 512, actually_read);
-		if (actually_read < 512) {
-			ioResult = 1;   // HACK
-		}
 
+		// Buffer.
+		std::vector<unsigned char> world_header(512);
+
+		f.read((char *)world_header.data(), 512);
+		ptr = world_header.begin();
 		if (! DisplayIOError())  {
-			ptr = IoTmpBuf;
-			MoveP(ptr, World.BoardCount, sizeof(World.BoardCount));
-			ptr += sizeof(World.BoardCount);
+			ptr = load_lsb_element(ptr, World.BoardCount);
 
+			// If the file starts FF, then the board count is next.
+			// Otherwise, if below zero, that indicates another version
+			// of ZZT. Otherwise (positive count), that's the board count.
 			if (World.BoardCount < 0)  {
 				if (World.BoardCount != -1)  {
 					video.VideoWriteText(63, 5, 0x1e, "You need a newer");
 					video.VideoWriteText(63, 6, 0x1e, " version of ZZT!");
 					return WorldLoad_result;
 				} else {
-					MoveP(ptr, World.BoardCount, sizeof(World.BoardCount));
-					ptr += sizeof(World.BoardCount);
+					ptr = load_lsb_element(ptr, World.BoardCount);
 				}
 			}
 
-			MoveP(ptr, World.Info, sizeof(World.Info));
-			ptr += sizeof(World.Info);
+			// TODO: I know these aren't vector pointers. fix later.
+			ptr = World.Info.load(ptr, world_header.end());
 
 			/* If the board count is negative, set it to zero. This should
-			also signal that the world is corrupt. Another option
-					  would be to make all the fields unsigned, but who needs
-					  worlds with >32k boards anyway? Besides, they'd crash
-					  DOS ZZT. */
+			also signal that the world is corrupt. Another option would be
+			to make all the fields unsigned, but who needs worlds with more
+			than 32 thousand boards anyway? Besides, they'd crash DOS ZZT. */
 			if (World.BoardCount < 0)  {
 				World.BoardCount = 0;
 				worldIsDamaged = true;
@@ -703,8 +692,9 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 
 			/* Don't accept CurrentBoard values that are too large or
 			small. */
-			if ((World.Info.CurrentBoard < 0)
-			        || (World.Info.CurrentBoard > World.BoardCount))  {
+			if (World.Info.CurrentBoard > World.BoardCount ||
+				World.Info.CurrentBoard < 0)  {
+
 				World.Info.CurrentBoard = Max(0, Min(World.BoardCount,
 				                                     World.Info.CurrentBoard));
 				worldIsDamaged = true;
@@ -717,9 +707,11 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 
                 // XXX: Problem with endian assumptions and assumption
                 // that the output is 16 bits.
+                char thisBoardLenBuf[2];
                 unsigned short thisBoardLen = 0;
-				BlockRead(f, &thisBoardLen, 2, actually_read);
-                if (actually_read < 2) { ioResult = 1;} // HACK
+                f.read(thisBoardLenBuf, 2);
+                load_lsb_element(thisBoardLenBuf, thisBoardLen);
+
                 World.BoardLen[boardId] = thisBoardLen;
 
 				/* Sanity check. Abort at this position so that any
@@ -737,52 +729,48 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 					break;
 				} else {
 					/* If it's the last board, get everything we can.
-					This recovers the last Super Lock-corrupted board.
-									  actuallyRead below will adjust the board length back
-									  if we're dealing with an ordinary world. */
+						This recovers the last Super Lock-corrupted board.
+						actuallyRead below will adjust the board length back
+						if we're dealing with an ordinary world. */
 					if (boardId == World.BoardCount)
 						World.BoardLen[boardId] = MAX_BOARD_LEN;
+					World.BoardData[boardId].resize(World.BoardLen[boardId]);
+					f.read((char *)World.BoardData[boardId].data(),
+						World.BoardLen[boardId]);
+					actuallyRead = f.gcount();
 
-					//GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
-                    World.BoardData[boardId] = (byte*)malloc(World.BoardLen[boardId]);
-					BlockRead(f, World.BoardData[boardId], World.BoardLen[boardId],
-					          actuallyRead);
 					/* SANITY: If reading the whole board would lead to an
-					overflow down the line, pretend we only read the
-								  MAX_BOARD_LEN first. */
+						overflow down the line, pretend we only read the
+						MAX_BOARD_LEN first. */
 					if (actuallyRead > MAX_BOARD_LEN)  {
 						actuallyRead = Min(actuallyRead, MAX_BOARD_LEN);
 						worldIsDamaged = true;
 					}
 
+					World.BoardData[boardId].resize(actuallyRead);
+
 					/* SANITY: reallocate and update board len if
-					there's a mismatch between how much we were told
-									  we could read, and how much we actually read.
-									  This also cuts down very large boards that we can't
-									  represent in memory anyway (size > 20k). */
-					/* If you want to be extra stingy with memory, just
-					move this logic up to BlockRead and only read up to
-									  MAX_BOARD_LEN, then seek the rest of the way. But
-									  I can't be bothered. */
+						there's a mismatch between how much we were told
+						we could read, and how much we actually read.
+						This also cuts down very large boards that we can't
+						represent in memory anyway (size > 20k). */
 					if (actuallyRead != World.BoardLen[boardId])  {
-						World.BoardData[boardId] = ReAllocMem(World.BoardData[boardId],
-						                                      actuallyRead);
 						World.BoardLen[boardId] = actuallyRead;
 					}
 				}
 			}
 
-			close(f);
+			f.close();
 
-			/* More sanity checks. If the current board number is
-			negative or too high, set it to zero. */
+			/* More sanity checks. If the current board number is negative
+				or too high, set it to zero. (Maybe instead set it to the
+				actual number of boards read?) */
 			if ((World.Info.CurrentBoard < 0) ||
-			        (World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)))
+				(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)))
 				World.Info.CurrentBoard = 0;
 
 			BoardOpen(World.Info.CurrentBoard, worldIsDamaged);
-			LoadedGameFileName = filename;
-			WorldLoad_result = true;
+			LoadedGameFileName = filename.c_str();
 
             // XXX: Once we add in editor.cxx
 			//HighScoresLoad();
@@ -790,9 +778,7 @@ boolean WorldLoad(TString50 filename, TString50 extension) {
 			SidebarClearLine(5);
 		}
 	}
-	return WorldLoad_result;
-#endif
-	return false;
+	return true;
 }
 
 void WorldSave(TString50 filename, TString50 extension) {
@@ -881,18 +867,6 @@ boolean GameWorldLoad(TString50 extension) {
 	GameWorldLoad_result = false;
 	textWindow.Selectable = true;
 
-	/*FindFirst(string('*') + extension, AnyFile, fileSearchRec);
-	while (DosError == 0)  {
-		entryName = copy(fileSearchRec.Name, 1, length(fileSearchRec.Name) - 4);
-
-		for( i = 1; i <= WorldFileDescCount; i ++)
-			if (entryName == WorldFileDescKeys[i])
-				entryName = WorldFileDescValues[i];
-
-		TextWindowAppend(textWindow, entryName);
-		FindNext(fileSearchRec);
-	}*/
-
     // https://stackoverflow.com/questions/612097
 
     DIR *dir;
@@ -900,6 +874,15 @@ boolean GameWorldLoad(TString50 extension) {
     if ((dir = opendir (".")) != NULL) {
         /* print all the files and directories within directory */
         while ((ent = readdir (dir)) != NULL) {
+        	std::string filename = ent->d_name;
+			// If it doesn't have the right extension, skip.
+			// TODO: Make case-insensitive. But the way extensions are
+			// handled currently makes that a pain.
+        	if (filename.find(extension) == std::string::npos)
+        		continue;
+
+        	// Strip the extension
+        	filename = filename.substr(0, filename.find(extension));
             TextWindowAppend(textWindow, ent->d_name);
         }
         closedir (dir);
@@ -917,7 +900,8 @@ boolean GameWorldLoad(TString50 extension) {
 		if (pos(" ", entryName) != 0)
 			entryName = copy(entryName, 1, pos(" ", entryName) - 1);
 
-		GameWorldLoad_result = WorldLoad(entryName, extension);
+		GameWorldLoad_result = WorldLoad(std::string(entryName),
+			std::string(extension));
 		TransitionDrawToFill('\333', 0x44);
 	}
 
@@ -1534,7 +1518,7 @@ static void GameDrawSidebar() {
 		video.VideoWriteText(62, 7, 0x30, " W ");
 		video.VideoWriteText(65, 7, 0x1e, " World:");
 
-		if (length(World.Info.Name) != 0)
+		if (World.Info.Name.size() != 0)
 			video.VideoWriteText(69, 8, 0x1f, World.Info.Name);
 		else
 			video.VideoWriteText(69, 8, 0x1f, "Untitled");
@@ -1569,7 +1553,7 @@ void GamePlayLoop(boolean boardChanged) {
 		if (length(StartupWorldFileName) != 0)  {
 			SidebarClearLine(8);
 			video.VideoWriteText(69, 8, 0x1f, StartupWorldFileName);
-			if (! WorldLoad(StartupWorldFileName, ".ZZT"))  WorldCreate();
+			if (! WorldLoad(std::string(StartupWorldFileName), ".ZZT"))  WorldCreate();
 		}
 		ReturnBoardId = World.Info.CurrentBoard;
 		BoardChange(0);

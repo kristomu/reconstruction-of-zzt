@@ -22,12 +22,20 @@ class TWorldInfo {
 		short EnergizerTicks;
 		short unk1;
 		short Score;
-		asciiz Name;
-		array<1, MAX_FLAG,asciiz> Flags;
+		std::string Name;
+		array<1, MAX_FLAG,std::string> Flags;
 		short BoardTimeSec;
 		short BoardTimeHsec;
 		bool IsSave;
 		std::array<byte, 13> unkPad;
+
+		size_t packed_size() const {
+			return 7 + sizeof(Ammo) + sizeof(Gems) + sizeof(Health) +
+				sizeof(CurrentBoard) + sizeof(Torches) + sizeof(TorchTicks) +
+				sizeof(EnergizerTicks) + sizeof(unk1) + sizeof(Score) + 21 +
+				21 * MAX_FLAG + sizeof(BoardTimeSec) + sizeof(BoardTimeHsec) +
+				sizeof(IsSave) + 13;
+		}
 
 		// Hiding keys like that makes it easier to deal with the black key
 		// weirdness and offset-by-one stuff.
@@ -37,4 +45,8 @@ class TWorldInfo {
 		bool TakeKey(int keyColor);
 
 		void dump(std::vector<unsigned char> & out) const;
+
+		std::vector<unsigned char>::const_iterator load(
+			std::vector<unsigned char>::const_iterator ptr,
+			const std::vector<unsigned char>::const_iterator end);
 };
