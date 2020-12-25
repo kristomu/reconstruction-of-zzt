@@ -652,6 +652,7 @@ void TextWindowOpenFile(std::string filename,
 
 		} else {
 			ResourceDataHeader.EntryCount = -1;
+			return;
 		}
 	}
 
