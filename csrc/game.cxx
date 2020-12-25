@@ -954,21 +954,22 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 	World.BoardLen[World.Info.CurrentBoard] =
 		World.BoardLen[World.Info.CurrentBoard] + template_.packed_size();
 
-	TStat new_stat;
-	new_stat.X = tx;
-	new_stat.Y = ty;
-	new_stat.Cycle = tcycle;
-	new_stat.Under = Board.Tiles[tx][ty];
-	new_stat.DataPos = 0;
+	TStat * new_stat = &Board.Stats[Board.StatCount];
+
+	new_stat->X = tx;
+	new_stat->Y = ty;
+	new_stat->Cycle = tcycle;
+	new_stat->Under = Board.Tiles[tx][ty];
+	new_stat->DataPos = 0;
 
 	// AddStat always does a deep copy.
 	if (template_.DataLen > 0) {
-		new_stat.data = std::shared_ptr<unsigned char[]>(
+		new_stat->data = std::shared_ptr<unsigned char[]>(
 			new unsigned char[template_.DataLen]);
 
 		std::copy(template_.data.get(),
 			template_.data.get() + template_.DataLen,
-			new_stat.data.get());
+			new_stat->data.get());
 	}
 
 	if (ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop)
