@@ -29,20 +29,17 @@
 /*$V-*/
 #define __Editor_implementation__
 
-
-#include "editor.h"
-
-/*#include "Dos.h"*/
-/*#include "Crt.h"*/
+#include "hardware.h"
 #include "video.h"
+#include "editor.h"
 #include "sounds.h"
-#include "input.h"
 #include "elements.h"
 #include "oop.h"
 #include "game.h"
 #include "fileops.h"
 #include "minmax.h"
 
+#include <iterator>
 
 enum TDrawMode {DrawingOff, DrawingOn, TextEntry, last_TDrawMode};
 const array<0, 3,varying_string<20> > NeighborBoardStrs =
@@ -60,8 +57,8 @@ void EditorAppendBoard() {
         TransitionDrawToBoard();
 
         do {
-            PopupPromptString("Room\47s Title:", Board.Name);
-        } while (!(length(Board.Name) != 0));
+            popup_prompt_string("Room\47s Title:", Board.Name);
+        } while (Board.Name.size() == 0);
 
         TransitionDrawToBoard();
     }
@@ -81,7 +78,7 @@ static TStat copiedStat;
 
 static boolean copiedHasStat;
 
-static byte* copiedData;
+static std::shared_ptr<unsigned char[]> copiedData;
 
 static integer copiedDataLen;
 
@@ -96,54 +93,54 @@ static void EditorDrawSidebar() {
 
     SidebarClear();
     SidebarClearLine(1);
-    VideoWriteText(61, 0, 0x1f, "     - - - -       ");
-    VideoWriteText(62, 1, 0x70, "  ZZT Editor   ");
-    VideoWriteText(61, 2, 0x1f, "     - - - -       ");
-    VideoWriteText(61, 4, 0x70, " L ");
-    VideoWriteText(64, 4, 0x1f, " Load");
-    VideoWriteText(61, 5, 0x30, " S ");
-    VideoWriteText(64, 5, 0x1f, " Save");
-    VideoWriteText(70, 4, 0x70, " H ");
-    VideoWriteText(73, 4, 0x1e, " Help");
-    VideoWriteText(70, 5, 0x30, " Q ");
-    VideoWriteText(73, 5, 0x1f, " Quit");
-    VideoWriteText(61, 7, 0x70, " B ");
-    VideoWriteText(65, 7, 0x1f, " Switch boards");
-    VideoWriteText(61, 8, 0x30, " I ");
-    VideoWriteText(65, 8, 0x1f, " Board Info");
-    VideoWriteText(61, 10, 0x70, "  f1   ");
-    VideoWriteText(68, 10, 0x1f, " Item");
-    VideoWriteText(61, 11, 0x30, "  f2   ");
-    VideoWriteText(68, 11, 0x1f, " Creature");
-    VideoWriteText(61, 12, 0x70, "  f3   ");
-    VideoWriteText(68, 12, 0x1f, " Terrain");
-    VideoWriteText(61, 13, 0x30, "  f4   ");
-    VideoWriteText(68, 13, 0x1f, " Enter text");
-    VideoWriteText(61, 15, 0x70, " Space ");
-    VideoWriteText(68, 15, 0x1f, " Plot");
-    VideoWriteText(61, 16, 0x30, "  Tab  ");
-    VideoWriteText(68, 16, 0x1f, " Draw mode");
-    VideoWriteText(61, 18, 0x70, " P ");
-    VideoWriteText(64, 18, 0x1f, " Pattern");
-    VideoWriteText(61, 19, 0x30, " C ");
-    VideoWriteText(64, 19, 0x1f, " Color:");
+    video.VideoWriteText(61, 0, 0x1f, "     - - - -       ");
+    video.VideoWriteText(62, 1, 0x70, "  ZZT Editor   ");
+    video.VideoWriteText(61, 2, 0x1f, "     - - - -       ");
+    video.VideoWriteText(61, 4, 0x70, " L ");
+    video.VideoWriteText(64, 4, 0x1f, " Load");
+    video.VideoWriteText(61, 5, 0x30, " S ");
+    video.VideoWriteText(64, 5, 0x1f, " Save");
+    video.VideoWriteText(70, 4, 0x70, " H ");
+    video.VideoWriteText(73, 4, 0x1e, " Help");
+    video.VideoWriteText(70, 5, 0x30, " Q ");
+    video.VideoWriteText(73, 5, 0x1f, " Quit");
+    video.VideoWriteText(61, 7, 0x70, " B ");
+    video.VideoWriteText(65, 7, 0x1f, " Switch boards");
+    video.VideoWriteText(61, 8, 0x30, " I ");
+    video.VideoWriteText(65, 8, 0x1f, " Board Info");
+    video.VideoWriteText(61, 10, 0x70, "  f1   ");
+    video.VideoWriteText(68, 10, 0x1f, " Item");
+    video.VideoWriteText(61, 11, 0x30, "  f2   ");
+    video.VideoWriteText(68, 11, 0x1f, " Creature");
+    video.VideoWriteText(61, 12, 0x70, "  f3   ");
+    video.VideoWriteText(68, 12, 0x1f, " Terrain");
+    video.VideoWriteText(61, 13, 0x30, "  f4   ");
+    video.VideoWriteText(68, 13, 0x1f, " Enter text");
+    video.VideoWriteText(61, 15, 0x70, " Space ");
+    video.VideoWriteText(68, 15, 0x1f, " Plot");
+    video.VideoWriteText(61, 16, 0x30, "  Tab  ");
+    video.VideoWriteText(68, 16, 0x1f, " Draw mode");
+    video.VideoWriteText(61, 18, 0x70, " P ");
+    video.VideoWriteText(64, 18, 0x1f, " Pattern");
+    video.VideoWriteText(61, 19, 0x30, " C ");
+    video.VideoWriteText(64, 19, 0x1f, " Color:");
 
     /* Colors */
     for( i = 9; i <= 15; i ++)
-        VideoWriteText(61 + i, 22, i, "\333");
+        video.VideoWriteText(61 + i, 22, i, "\333");
 
     /* Patterns */
     for( i = 1; i <= EditorPatternCount; i ++)
-        VideoWriteText(61 + i, 22, 0xf, ElementDefs[EditorPatterns[i]].Character);
+        video.VideoWriteText(61 + i, 22, 0xf, ElementDefs[EditorPatterns[i]].Character);
 
     if (ElementDefs[copiedTile.Element].HasDrawProc)
         ElementDefs[copiedTile.Element].DrawProc(copiedX, copiedY, copiedChr);
     else
         copiedChr = ord(ElementDefs[copiedTile.Element].Character);
-    VideoWriteText(62 + EditorPatternCount, 22, copiedTile.Color,
+    video.VideoWriteText(62 + EditorPatternCount, 22, copiedTile.Color,
                    chr(copiedChr));
 
-    VideoWriteText(61, 24, 0x1f, " Mode:");
+    video.VideoWriteText(61, 24, 0x1f, " Mode:");
 }
 
 
@@ -164,15 +161,15 @@ static void EditorDrawTileAndNeighborsAt(integer x, integer y) {
 
 static void EditorUpdateSidebar() {
     if (drawMode == DrawingOn)
-        VideoWriteText(68, 24, 0x9e, "Drawing on ");
+        video.VideoWriteText(68, 24, 0x9e, "Drawing on ");
     else if (drawMode == TextEntry)
-        VideoWriteText(68, 24, 0x9e, "Text entry ");
+        video.VideoWriteText(68, 24, 0x9e, "Text entry ");
     else if (drawMode == DrawingOff)
-        VideoWriteText(68, 24, 0x1e, "Drawing off");
+        video.VideoWriteText(68, 24, 0x1e, "Drawing off");
 
-    VideoWriteText(72, 19, 0x1e, ColorNames[cursorColor - 8]);
-    VideoWriteText(61 + cursorPattern, 21, 0x1f, "\37");
-    VideoWriteText(61 + cursorColor, 21, 0x1f, "\37");
+    video.VideoWriteText(72, 19, 0x1e, ColorNames[cursorColor - 8]);
+    video.VideoWriteText(61 + cursorPattern, 21, 0x1f, "\37");
+    video.VideoWriteText(61 + cursorColor, 21, 0x1f, "\37");
 }
 
 
@@ -185,11 +182,12 @@ static void EditorDrawRefresh() {
     str(World.Info.CurrentBoard, boardNumStr);
     TransitionDrawToBoard();
 
-    if (length(Board.Name) != 0)
-        VideoWriteText((59 - length(Board.Name)) / 2, 0, 0x70,
-                       string(' ') + Board.Name + ' ');
-    else
-        VideoWriteText(26, 0, 0x70, " Untitled ");
+    if (Board.Name.size() != 0) {
+        video.VideoWriteText((59 - Board.Name.size()) / 2, 0, 0x70,
+                       " " + Board.Name + " ");
+    } else {
+        video.VideoWriteText(26, 0, 0x70, " Untitled ");
+    }
 }
 
 
@@ -213,7 +211,7 @@ static void EditorAskSaveChanged() {
     InputKeyPressed = '\0';
     if (wasModified)
         if (SidebarPromptYesNo("Save first? ", true))
-            if (InputKeyPressed != KEY_ESCAPE)
+            if (InputKeyPressed != E_KEY_ESCAPE)
                 GameWorldSave("Save world", LoadedGameFileName, ".ZZT");
     World.Info.Name = LoadedGameFileName;
 }
@@ -252,10 +250,10 @@ static void EditorPlaceTile(integer x, integer y) {
             }
         } else if (copiedHasStat)  {
             if (EditorPrepareModifyStatAtCursor())  {
-                /* AddStat automatically allocates new pointers,
-                for any potential data, so no need to do that here.
-                				 Instead, we can just copy the pointer over. */
-                copiedStat.Data = copiedData;
+                /* AddStat automatically allocates new pointers, for any
+                   potential data, so no need to do that here.
+                   Instead, we can just copy the pointer over. */
+                copiedStat.data = copiedData;
                 AddStat(x, y, copiedTile.Element, copiedTile.Color, copiedStat.Cycle,
                         copiedStat);
             }
@@ -286,7 +284,7 @@ static string BoolToString(boolean val) {
 static void EditorEditBoardInfo() {
     TTextWindowState state;
     integer i;
-    varying_string<50> numStr;
+    TString50 numStr;
     boolean exitRequested;
 
 
@@ -305,7 +303,7 @@ static void EditorEditBoardInfo() {
         for( i = 1; i <= state.LineCount; i ++)
             state.Lines[i] = new TTextWindowLine;
 
-        *state.Lines[1] = string("         Title: ") + Board.Name;
+        *state.Lines[1] = string("         Title: ") + string(Board.Name.c_str());
 
         str(Board.Info.MaxShots, numStr);
         *state.Lines[2] = string("      Can fire: ") + numStr + " shots.";
@@ -327,13 +325,13 @@ static void EditorEditBoardInfo() {
         *state.Lines[10] = "          Quit!";
 
         TextWindowSelect(state, false, false);
-        if ((InputKeyPressed == KEY_ENTER) && (state.LinePos >= 1)
+        if ((InputKeyPressed == E_KEY_ENTER) && (state.LinePos >= 1)
                 && (state.LinePos <= 8))
             wasModified = true;
-        if (InputKeyPressed == KEY_ENTER)
+        if (InputKeyPressed == E_KEY_ENTER)
             switch (state.LinePos) {
             case 1: {
-                PopupPromptString("New title for board:", Board.Name);
+                popup_prompt_string("New title for board:", Board.Name);
                 exitRequested = true;
                 TextWindowDrawClose(state);
             }
@@ -341,8 +339,11 @@ static void EditorEditBoardInfo() {
             case 2: {
                 str(Board.Info.MaxShots, numStr);
                 SidebarPromptString("Maximum shots?", "", numStr, PROMPT_NUMERIC);
-                if (length(numStr) != 0)
-                    val(numStr, Board.Info.MaxShots, i);
+                if (length(numStr) != 0) {
+                    integer temp_store;
+                    val(numStr, temp_store, i);
+                    Board.Info.MaxShots = temp_store;
+                }
                 EditorDrawSidebar();
             }
             break;
@@ -389,13 +390,13 @@ static void EditorEditBoardInfo() {
 }
 
 
-
+// Looks pretty ugly. TODO: Check that it works.
 static void EditorEditStatText(integer statId, string prompt) {
     TTextWindowState state;
     integer iLine, iChar;
     array<0, 51,byte> unk1;
     char dataChar;
-    pointer dataPtr;
+    unsigned char * dataPtr;
 
     {
         TStat& with = Board.Stats[statId];
@@ -405,7 +406,7 @@ static void EditorEditStatText(integer statId, string prompt) {
         CopyStatDataToTextWindow(statId, state);
 
         if (with.DataLen > 0)  {
-            FreeMem(with.Data, with.DataLen);
+            with.data = NULL;
             with.DataLen = 0;
         }
 
@@ -413,19 +414,18 @@ static void EditorEditStatText(integer statId, string prompt) {
 
         for( iLine = 1; iLine <= state.LineCount; iLine ++)
             with.DataLen = with.DataLen + length(*state.Lines[iLine]) + 1;
-        GetMem(with.Data, with.DataLen);
+        with.data = std::shared_ptr<unsigned char[]>(
+            new unsigned char[with.DataLen]);
 
-        dataPtr = with.Data;
+        dataPtr = with.data.get();
         for( iLine = 1; iLine <= state.LineCount; iLine ++) {
             for( iChar = 1; iChar <= length(*state.Lines[iLine]); iChar ++) {
                 dataChar = (*state.Lines[iLine])[iChar];
-                Move(dataChar, dataPtr, 1);
-                AdvancePointer(dataPtr, 1);
+                *dataPtr++ = dataChar;
             }
 
             dataChar = '\15';
-            Move(dataChar, dataPtr, 1);
-            AdvancePointer(dataPtr, 1);
+            *dataPtr++ = dataChar;
         }
 
         TextWindowFree(state);
@@ -461,13 +461,13 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
             iy = iy + 4;
         }
 
-        if ((InputKeyPressed != KEY_ESCAPE) &&
+        if ((InputKeyPressed != E_KEY_ESCAPE) &&
                 (length(ElementDefs[element].ParamTextName) != 0)) {
             if (selected)
                 EditorEditStatText(statId, ElementDefs[element].ParamTextName);
         }
 
-        if ((InputKeyPressed != KEY_ESCAPE) &&
+        if ((InputKeyPressed != E_KEY_ESCAPE) &&
                 (length(ElementDefs[element].Param2Name) != 0)) {
             promptByte = (with.P2 % 0x80);
             SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name,
@@ -479,7 +479,7 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
             iy = iy + 4;
         }
 
-        if ((InputKeyPressed != KEY_ESCAPE) &&
+        if ((InputKeyPressed != E_KEY_ESCAPE) &&
                 (length(ElementDefs[element].ParamBulletTypeName) != 0)) {
             promptByte = (with.P2) / 0x80;
             SidebarPromptChoice(selected, iy, ElementDefs[element].ParamBulletTypeName,
@@ -491,7 +491,7 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
             iy = iy + 4;
         }
 
-        if ((InputKeyPressed != KEY_ESCAPE) &&
+        if ((InputKeyPressed != E_KEY_ESCAPE) &&
                 (length(ElementDefs[element].ParamDirName) != 0)) {
             SidebarPromptDirection(selected, iy, ElementDefs[element].ParamDirName,
                                    with.StepX, with.StepY);
@@ -502,7 +502,7 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
             iy = iy + 4;
         }
 
-        if ((InputKeyPressed != KEY_ESCAPE) &&
+        if ((InputKeyPressed != E_KEY_ESCAPE) &&
                 (length(ElementDefs[element].ParamBoardName) != 0)) {
             if (selected)  {
                 selectedBoard = EditorSelectBoard(ElementDefs[element].ParamBoardName,
@@ -518,11 +518,11 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
                     }
                     World.EditorStatSettings[element].P3 = with.P3;
                 } else {
-                    InputKeyPressed = KEY_ESCAPE;
+                    InputKeyPressed = E_KEY_ESCAPE;
                 }
                 iy = iy + 4;
             } else {
-                VideoWriteText(63, iy, 0x1f,
+                video.VideoWriteText(63, iy, 0x1f,
                                string("Room: ") + copy(EditorGetBoardName(with.P3, true), 1, 10));
             }
         }
@@ -539,7 +539,6 @@ static void EditorEditStat(integer statId) {
     integer iy;
     byte promptByte;
 
-
     {
         TStat& with = Board.Stats[statId];
         SidebarClear();
@@ -555,15 +554,15 @@ static void EditorEditStat(integer statId) {
             }
         }
 
-        VideoWriteText(64, 6, 0x1e, categoryName);
-        VideoWriteText(64, 7, 0x1f, ElementDefs[element].Name);
+        video.VideoWriteText(64, 6, 0x1e, categoryName);
+        video.VideoWriteText(64, 7, 0x1f, ElementDefs[element].Name);
 
         EditorEditStatSettings(false, statId, iy, element, promptByte,
                                selectedBoard);
         EditorEditStatSettings(true, statId, iy, element, promptByte,
                                selectedBoard);
 
-        if (InputKeyPressed != KEY_ESCAPE)  {
+        if (InputKeyPressed != E_KEY_ESCAPE)  {
             copiedHasStat = true;
             copiedStat = Board.Stats[statId];
             copiedTile = Board.Tiles[with.X][with.Y];
@@ -572,13 +571,15 @@ static void EditorEditStat(integer statId) {
             so the object can be moved between boards. */
 
             if (copiedDataLen > 0)  {
-                FreeMem(copiedData, copiedDataLen);
+                copiedData = NULL;
                 copiedDataLen = 0;
             }
             if (with.DataLen > 0)  {
-                GetMem(copiedData, with.DataLen);
+                copiedData = std::shared_ptr<unsigned char[]>(
+                    new unsigned char[with.DataLen]);
                 copiedDataLen = with.DataLen;
-                Move(*with.Data, *copiedData, copiedDataLen);
+                std::copy(with.data.get(), with.data.get()+copiedDataLen,
+                    copiedData.get());
             }
             copiedX = with.X;
             copiedY = with.Y;
@@ -586,40 +587,38 @@ static void EditorEditStat(integer statId) {
     }
 }
 
-
-
 static void EditorTransferBoard() {
     byte i;
-    untyped_file f;
-
 
     i = 1;
     SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
-    if (InputKeyPressed != KEY_ESCAPE)  {
+    std::string full_filename = std::string(SavedBoardFileName + ".BRD");
+
+    if (InputKeyPressed != E_KEY_ESCAPE)  {
         if (i == 0)  {
+            // TODO: check what happens if we specify a file that doesn't
+            // exist. (OpenForRead should give an IO error right away, but
+            // I'm not sure it does.)
             SidebarPromptString("Import board", ".BRD", SavedBoardFileName,
                                 PROMPT_ALPHANUM);
-            if ((InputKeyPressed != KEY_ESCAPE)
+            if ((InputKeyPressed != E_KEY_ESCAPE)
                     && (length(SavedBoardFileName) != 0))  {
-                assign(f, SavedBoardFileName + ".BRD");
-                OpenForRead(f, 1);
+                std::ifstream input_board_file = OpenForRead(full_filename);
                 if (DisplayIOError())  goto LTransferEnd;
 
                 /* The old board is toast; no need to warn about
                 data loss. */
                 BoardClose(false);
-                FreeMem(World.BoardData[World.Info.CurrentBoard],
-                        World.BoardLen[World.Info.CurrentBoard]);
-                BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
-                if (! DisplayIOError())  {
-                    GetMem(World.BoardData[World.Info.CurrentBoard],
-                           World.BoardLen[World.Info.CurrentBoard]);
-                    BlockRead(f, World.BoardData[World.Info.CurrentBoard],
-                              World.BoardLen[World.Info.CurrentBoard]);
-                }
 
-                if (DisplayIOError())  {
-                    World.BoardLen[World.Info.CurrentBoard] = 0;
+                bool successful_board_read = load_board_from_file(
+                    input_board_file, true,
+                    World.BoardData[World.Info.CurrentBoard]);
+
+                World.BoardLen[World.Info.CurrentBoard] =
+                    World.BoardData[World.Info.CurrentBoard].size();
+
+                if (DisplayIOError() &&
+                    World.BoardLen[World.Info.CurrentBoard] == 0)  {
                     BoardCreate();
                     EditorDrawRefresh();
                 } else {
@@ -628,27 +627,30 @@ static void EditorTransferBoard() {
                     for( i = 0; i <= 3; i ++)
                         Board.Info.NeighborBoards[i] = 0;
                 }
+
+                input_board_file.close();
             }
         } else if (i == 1)  {
             SidebarPromptString("Export board", ".BRD", SavedBoardFileName,
                                 PROMPT_ALPHANUM);
-            if ((InputKeyPressed != KEY_ESCAPE)
+            if ((InputKeyPressed != E_KEY_ESCAPE)
                     && (length(SavedBoardFileName) != 0))  {
-                assign(f, SavedBoardFileName + ".BRD");
-                OpenForWrite(f, 1);
+                std::ofstream out_file =
+                    OpenForWrite(full_filename);
+
                 if (DisplayIOError())  goto LTransferEnd;
 
                 BoardClose(true);
-                BlockWrite(f, World.BoardLen[World.Info.CurrentBoard], 2);
-                BlockWrite(f, World.BoardData[World.Info.CurrentBoard],
-                           World.BoardLen[World.Info.CurrentBoard]);
+
+                short board_len = World.BoardLen[i];
+                out_file.write((char *)&board_len, 2);
+                out_file.write((const char *)World.BoardData[i].data(),
+                    World.BoardData[i].size());
+
                 BoardOpen(World.Info.CurrentBoard, false);
 
-                if (DisplayIOError())  {
-                    ;
-                } else {
-                    close(f);
-                }
+                DisplayIOError();
+                out_file.close();
             }
         }
     }
@@ -735,7 +737,7 @@ void EditorLoop() {
             if (cursorBlinker == 0)
                 BoardDrawTile(cursorX, cursorY);
             else
-                VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+                video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
             EditorUpdateSidebar();
         } else {
             BoardDrawTile(cursorX, cursorY);
@@ -751,11 +753,11 @@ void EditorLoop() {
                     InputDeltaY = 0;
                 }
                 InputKeyPressed = '\0';
-            } else if ((InputKeyPressed == KEY_BACKSPACE) && (cursorX > 1)
+            } else if ((InputKeyPressed == E_KEY_BACKSPACE) && (cursorX > 1)
                        && EditorPrepareModifyTile(cursorX - 1, cursorY)) {
                 cursorX = cursorX - 1;
-            } else if ((InputKeyPressed == KEY_ENTER)
-                       || (InputKeyPressed == KEY_ESCAPE))  {
+            } else if ((InputKeyPressed == E_KEY_ENTER)
+                       || (InputKeyPressed == E_KEY_ESCAPE))  {
                 drawMode = DrawingOff;
                 InputKeyPressed = '\0';
             }
@@ -790,7 +792,7 @@ void EditorLoop() {
                 if (cursorY > BOARD_HEIGHT)
                     cursorY = BOARD_HEIGHT;
 
-                VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+                video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
                 if ((InputKeyPressed == '\0') && InputJoystickEnabled)
                     Delay(70);
                 InputShiftAccepted = false;
@@ -799,7 +801,7 @@ void EditorLoop() {
             switch (upcase(InputKeyPressed)) {
             case '`': EditorDrawRefresh(); break;
             case 'P': {
-                VideoWriteText(62, 21, 0x1f, "       ");
+                video.VideoWriteText(62, 21, 0x1f, "       ");
                 if (cursorPattern <= EditorPatternCount)
                     cursorPattern = cursorPattern + 1;
                 else
@@ -807,8 +809,8 @@ void EditorLoop() {
             }
             break;
             case 'C': {
-                VideoWriteText(72, 19, 0x1e, "       ");
-                VideoWriteText(69, 21, 0x1f, "        ");
+                video.VideoWriteText(72, 19, 0x1e, "       ");
+                video.VideoWriteText(69, 21, 0x1f, "        ");
                 if ((cursorColor % 0x10) != 0xf)
                     cursorColor = cursorColor + 1;
                 else
@@ -817,17 +819,17 @@ void EditorLoop() {
             break;
             case 'L': {
                 EditorAskSaveChanged();
-                if ((InputKeyPressed != KEY_ESCAPE) && GameWorldLoad(".ZZT"))  {
+                if ((InputKeyPressed != E_KEY_ESCAPE) && GameWorldLoad(".ZZT"))  {
                     if (World.Info.IsSave || (WorldGetFlagPosition("SECRET") >= 0))  {
                         if (! DebugEnabled)  {
                             SidebarClearLine(3);
                             SidebarClearLine(4);
                             SidebarClearLine(5);
-                            VideoWriteText(63, 4, 0x1e, "Can not edit");
+                            video.VideoWriteText(63, 4, 0x1e, "Can not edit");
                             if (World.Info.IsSave)
-                                VideoWriteText(63, 5, 0x1e, "a saved game!");
+                                video.VideoWriteText(63, 5, 0x1e, "a saved game!");
                             else
-                                VideoWriteText(63, 5, 0x1e, string("  ") + World.Info.Name + '!');
+                                video.VideoWriteText(63, 5, 0x1e, "  " + World.Info.Name + "!");
                             PauseOnError();
                             WorldUnload();
                             WorldCreate();
@@ -841,7 +843,7 @@ void EditorLoop() {
             break;
             case 'S': {
                 GameWorldSave("Save world:", LoadedGameFileName, ".ZZT");
-                if (InputKeyPressed != KEY_ESCAPE)
+                if (InputKeyPressed != E_KEY_ESCAPE)
                     wasModified = false;
                 EditorDrawSidebar();
             }
@@ -859,9 +861,9 @@ void EditorLoop() {
             break;
             case 'N': {
                 if (SidebarPromptYesNo("Make new world? ", false)
-                        && (InputKeyPressed != KEY_ESCAPE))  {
+                        && (InputKeyPressed != E_KEY_ESCAPE))  {
                     EditorAskSaveChanged();
-                    if (InputKeyPressed != KEY_ESCAPE)  {
+                    if (InputKeyPressed != E_KEY_ESCAPE)  {
                         WorldUnload();
                         WorldCreate();
                         EditorDrawRefresh();
@@ -871,13 +873,13 @@ void EditorLoop() {
                 EditorDrawSidebar();
             }
             break;
-            case 'Q': case KEY_ESCAPE: {
+            case 'Q': case E_KEY_ESCAPE: {
                 editorExitRequested = true;
             }
             break;
             case 'B': {
                 i = EditorSelectBoard("Switch boards", World.Info.CurrentBoard, false);
-                if (InputKeyPressed != KEY_ESCAPE)  {
+                if (InputKeyPressed != E_KEY_ESCAPE)  {
                     if (i > World.BoardCount)
                         if (SidebarPromptYesNo("Add new board? ", false))
                             EditorAppendBoard();
@@ -892,34 +894,34 @@ void EditorLoop() {
                 EditorDrawSidebar();
             }
             break;
-            case KEY_TAB: {
+            case E_KEY_TAB: {
                 if (drawMode == DrawingOff)
                     drawMode = DrawingOn;
                 else
                     drawMode = DrawingOff;
             }
             break;
-            case KEY_F1: case KEY_F2: case KEY_F3: {
-                VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+            case E_KEY_F1: case E_KEY_F2: case E_KEY_F3: {
+                video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
                 for( i = 3; i <= 20; i ++)
                     SidebarClearLine(i);
                 switch (InputKeyPressed) {
-                case KEY_F1: selectedCategory = CATEGORY_ITEM; break;
-                case KEY_F2: selectedCategory = CATEGORY_CREATURE; break;
-                case KEY_F3: selectedCategory = CATEGORY_TERRAIN; break;
+                case E_KEY_F1: selectedCategory = CATEGORY_ITEM; break;
+                case E_KEY_F2: selectedCategory = CATEGORY_CREATURE; break;
+                case E_KEY_F3: selectedCategory = CATEGORY_TERRAIN; break;
                 }
                 i = 3;  /* Y position for text writing */
                 for( iElem = 0; iElem <= MAX_ELEMENT; iElem ++) {
                     if (ElementDefs[iElem].EditorCategory == selectedCategory)  {
                         if (length(ElementDefs[iElem].CategoryName) != 0)  {
                             i = i + 1;
-                            VideoWriteText(65, i, 0x1e, ElementDefs[iElem].CategoryName);
+                            video.VideoWriteText(65, i, 0x1e, ElementDefs[iElem].CategoryName);
                             i = i + 1;
                         }
 
-                        VideoWriteText(61, i, ((i % 2) << 6) + 0x30,
+                        video.VideoWriteText(61, i, ((i % 2) << 6) + 0x30,
                                        string(' ') + ElementDefs[iElem].EditorShortcut + ' ');
-                        VideoWriteText(65, i, 0x1f, ElementDefs[iElem].Name);
+                        video.VideoWriteText(65, i, 0x1f, ElementDefs[iElem].Name);
                         if (ElementDefs[iElem].Color == COLOR_CHOICE_ON_BLACK)
                             elemMenuColor = (cursorColor % 0x10) + 0x10;
                         else if (ElementDefs[iElem].Color == COLOR_WHITE_ON_CHOICE)
@@ -930,7 +932,7 @@ void EditorLoop() {
                             elemMenuColor = (ElementDefs[iElem].Color % 0x10) + 0x10;
                         else
                             elemMenuColor = ElementDefs[iElem].Color;
-                        VideoWriteText(78, i, elemMenuColor, ElementDefs[iElem].Character);
+                        video.VideoWriteText(78, i, elemMenuColor, ElementDefs[iElem].Character);
 
                         i = i + 1;
                     }
@@ -973,7 +975,7 @@ void EditorLoop() {
                                             with1.P3 = World.EditorStatSettings[iElem].P3;
                                     }
                                     EditorEditStat(Board.StatCount);
-                                    if (InputKeyPressed == KEY_ESCAPE)
+                                    if (InputKeyPressed == E_KEY_ESCAPE)
                                         RemoveStat(Board.StatCount);
                                 }
                             }
@@ -983,7 +985,7 @@ void EditorLoop() {
                 EditorDrawSidebar();
             }
             break;
-            case KEY_F4: {
+            case E_KEY_F4: {
                 if (drawMode != TextEntry)
                     drawMode = TextEntry;
                 else
@@ -1007,7 +1009,7 @@ void EditorLoop() {
                 EditorTransferBoard();
             }
             break;
-            case KEY_ENTER: {
+            case E_KEY_ENTER: {
                 if (GetStatIdAt(cursorX, cursorY) >= 0)  {
                     EditorEditStat(GetStatIdAt(cursorX, cursorY));
                     EditorDrawSidebar();
@@ -1027,7 +1029,7 @@ void EditorLoop() {
 
         if (editorExitRequested)  {
             EditorAskSaveChanged();
-            if (InputKeyPressed == KEY_ESCAPE)  {
+            if (InputKeyPressed == E_KEY_ESCAPE)  {
                 editorExitRequested = false;
                 EditorDrawSidebar();
             }
@@ -1036,17 +1038,16 @@ void EditorLoop() {
 
     /* Deallocate copied data if there is any. */
 
-    if (copiedDataLen > 0)  {
-        FreeMem(copiedData, copiedDataLen);
-        copiedDataLen = 0;
-    }
+    copiedData = NULL;
 
     InputKeyPressed = '\0';
     InitElementsGame();
 }
 
+// TODO: Implement these. Buncha serialization.
+
 void HighScoresLoad() {
-    file<THighScoreList> f;
+/*    file<THighScoreList> f;
     integer i;
 
     assign(f, World.Info.Name + ".HI");
@@ -1060,21 +1061,17 @@ void HighScoresLoad() {
             HighScoreList[i].Name = "";
             HighScoreList[i].Score = -1;
         }
-    }
+    }*/
 }
 
 void HighScoresSave() {
-    file<THighScoreList> f;
+/*    file<THighScoreList> f;
 
     assign(f, World.Info.Name + ".HI");
     OpenForWrite(f);
     f << HighScoreList;
     close(f);
-    if (DisplayIOError())  {
-        ;
-    } else {
-        ;
-    }
+    DisplayIOError();*/
 }
 
 /*$F+*/
@@ -1100,7 +1097,8 @@ void HighScoresDisplay(integer linePos) {
     state.LinePos = linePos;
     HighScoresInitTextWindow(state);
     if (state.LineCount > 2)  {
-        state.Title = string("High scores for ") + World.Info.Name;
+        std::string title = "High scores for " + World.Info.Name;
+        state.Title = string(title.c_str());
         TextWindowDrawOpen(state);
         TextWindowSelect(state, false, true);
         TextWindowDrawClose(state);
@@ -1110,29 +1108,30 @@ void HighScoresDisplay(integer linePos) {
 
 void EditorOpenEditTextWindow(TTextWindowState& state) {
     SidebarClear();
-    VideoWriteText(61, 4, 0x30, " Return ");
-    VideoWriteText(64, 5, 0x1f, " Insert line");
-    VideoWriteText(61, 7, 0x70, " Ctrl-Y ");
-    VideoWriteText(64, 8, 0x1f, " Delete line");
-    VideoWriteText(61, 10, 0x30, " Cursor keys ");
-    VideoWriteText(64, 11, 0x1f, " Move cursor");
-    VideoWriteText(61, 13, 0x70, " Insert ");
-    VideoWriteText(64, 14, 0x1f, " Insert mode: ");
-    VideoWriteText(61, 16, 0x30, " Delete ");
-    VideoWriteText(64, 17, 0x1f, " Delete char");
-    VideoWriteText(61, 19, 0x70, " Escape ");
-    VideoWriteText(64, 20, 0x1f, " Exit editor");
+    video.VideoWriteText(61, 4, 0x30, " Return ");
+    video.VideoWriteText(64, 5, 0x1f, " Insert line");
+    video.VideoWriteText(61, 7, 0x70, " Ctrl-Y ");
+    video.VideoWriteText(64, 8, 0x1f, " Delete line");
+    video.VideoWriteText(61, 10, 0x30, " Cursor keys ");
+    video.VideoWriteText(64, 11, 0x1f, " Move cursor");
+    video.VideoWriteText(61, 13, 0x70, " Insert ");
+    video.VideoWriteText(64, 14, 0x1f, " Insert mode: ");
+    video.VideoWriteText(61, 16, 0x30, " Delete ");
+    video.VideoWriteText(64, 17, 0x1f, " Delete char");
+    video.VideoWriteText(61, 19, 0x70, " Escape ");
+    video.VideoWriteText(64, 20, 0x1f, " Exit editor");
     TextWindowEdit(state);
 }
 
 void EditorEditHelpFile() {
     TTextWindowState textWindow;
-    varying_string<50> filename;
+    TString50 filename;
 
     filename = "";
     SidebarPromptString("File to edit", ".HLP", filename, PROMPT_ALPHANUM);
     if (length(filename) != 0)  {
-        TextWindowOpenFile(string('*') + filename + ".HLP", textWindow);
+        std::string wildcard = "*" + std::string(filename) + ".HLP";
+        TextWindowOpenFile(wildcard, textWindow);
         textWindow.Title = string("Editing ") + filename;
         TextWindowDrawOpen(textWindow);
         EditorOpenEditTextWindow(textWindow);
@@ -1158,7 +1157,7 @@ void HighScoresAdd(integer score) {
 
         HighScoresInitTextWindow(textWindow);
         textWindow.LinePos = listPos;
-        textWindow.Title = string("New high score for ") + World.Info.Name;
+        textWindow.Title = string(std::string("New high score for " + World.Info.Name).c_str());
         TextWindowDrawOpen(textWindow);
         TextWindowDraw(textWindow, false, false);
 
@@ -1179,19 +1178,16 @@ TString50 EditorGetBoardName(integer boardId, boolean titleScreenIsNone) {
 
     TString50 EditorGetBoardName_result;
     if ((boardId == 0) && titleScreenIsNone)
-        EditorGetBoardName_result = "None";
+        return "None";
     else if (boardId == World.Info.CurrentBoard)
-        EditorGetBoardName_result = Board.Name;
+        return Board.Name.c_str();
     else {
-        boardData = World.BoardData[boardId];
-        /* SANITY: Range check on board name length.*/
-        *boardData = Min(*boardData, sizeof(copiedName)-1);
-        *boardData = Min(*boardData, World.BoardLen[boardId]-1);
+        // Memory-intensive approach, but it works.
+        TBoard deserializer;
+        deserializer.load(World.BoardData[boardId]);
 
-        Move(*boardData, copiedName, 1+(*boardData));
-        EditorGetBoardName_result = copiedName;
+        return deserializer.Name.c_str();
     }
-    return EditorGetBoardName_result;
 }
 
 integer EditorSelectBoard(string title, integer currentBoard,
@@ -1214,7 +1210,7 @@ integer EditorSelectBoard(string title, integer currentBoard,
     TextWindowSelect(textWindow, false, false);
     TextWindowDrawClose(textWindow);
     TextWindowFree(textWindow);
-    if (InputKeyPressed == KEY_ESCAPE)
+    if (InputKeyPressed == E_KEY_ESCAPE)
         EditorSelectBoard_result = 0;
     else
         EditorSelectBoard_result = textWindow.LinePos - 1;

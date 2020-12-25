@@ -2,6 +2,8 @@
 
 #include "gamevars.h"
 #include "txtwind.h"
+#include <vector>
+#include <fstream>
 
 const integer PROMPT_NUMERIC = 0;
 const integer PROMPT_ALPHANUM = 1;
@@ -36,12 +38,14 @@ void PromptString(integer x, integer y, integer arrowColor, integer color,
 	integer width, byte mode, TString50& buffer);
 boolean SidebarPromptYesNo(string message, boolean defaultReturn);
 void SidebarPromptString(string prompt, TString50 extension,
-	string& filename, byte promptMode);
+	TString50& filename, byte promptMode);
 void PauseOnError();
 boolean DisplayIOError();
 void DisplayTruncationNote();
 void DisplayCorruptionNote(std::string corruption_type);
 void WorldUnload();
+bool load_board_from_file(std::istream & f, bool is_final_board,
+	std::vector<unsigned char> & out_packed_board);
 boolean WorldLoad(std::string filename, std::string extension);
 void WorldSave(TString50 filename, TString50 extension);
 void GameWorldSave(TString50 prompt, TString50& filename,
@@ -55,6 +59,7 @@ integer GetStatIdAt(integer x, integer y);
 boolean BoardPrepareTileForPlacement(integer x, integer y);
 void MoveStat(integer statId, integer newX, integer newY);
 void PopupPromptString(string question, TString50& buffer);
+void popup_prompt_string(const std::string question, std::string & buffer);
 integer Signum(integer val);
 integer Difference(integer a, integer b);
 void DamageStat(integer attackerStatId);

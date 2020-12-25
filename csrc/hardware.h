@@ -68,13 +68,14 @@ void GetTime(short & hour, short & minute, short & second,
 
 void Delay(int msec);
 
-extern integer InputDeltaX,
-	InputDeltaY;	// translates arrow keys to movement
+extern integer InputDeltaX,	InputDeltaY; // translates arrow keys to movement
 extern bool InputShiftPressed;			// It does what it says
 extern bool InputSpecialKeyPressed;
 extern bool InputShiftAccepted; // ???
-extern bool InputJoystickMoved; // not supported
 extern integer InputKeyPressed;
+
+const bool InputJoystickMoved = false;	 // not supported
+const bool InputJoystickEnabled = false; // ditto
 
 void InputUpdate();				// Polls and updates.
 void InputReadWaitKey();

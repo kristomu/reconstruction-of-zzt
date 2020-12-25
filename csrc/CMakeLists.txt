@@ -36,6 +36,7 @@ add_executable(zzt
 	oop.cxx
 	dos.cxx
 	sounds.cxx
+	editor.cxx
 	tools.cc
 	board.cc
 	serialization.cc

@@ -114,7 +114,6 @@ integer InputDeltaX, InputDeltaY;      // translates arrow keys to movement
 bool InputShiftPressed;                  // It does what it says
 bool InputSpecialKeyPressed;
 bool InputShiftAccepted; // ???
-bool InputJoystickMoved; // not supported
 integer InputKeyPressed;
 
 // ZZT specs say that everything coming out of here should be CP437 points.
@@ -123,7 +122,6 @@ void InputUpdateCore(bool blocking) {
       InputDeltaX = 0;
       InputDeltaY = 0;
       InputShiftPressed = false;
-      InputJoystickMoved = false;
       InputKeyPressed = 0;
 
       // If there are no keys to fetch and we're nonblocking, just bail.

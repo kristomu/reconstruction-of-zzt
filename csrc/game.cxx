@@ -43,7 +43,7 @@
 #include "video.h"
 #include "sounds.h"
 #include "elements.h"
-//#include "editor.h"
+#include "editor.h"
 #include "oop.h"
 #include "fileops.h"
 #include "minmax.h"
@@ -85,8 +85,9 @@ void SidebarClearLine(integer y) {
 void SidebarClear() {
 	integer i;
 
-	for( i = 3; i <= 24; i ++)
+	for( i = 3; i <= 24; i ++) {
 		SidebarClearLine(i);
+	}
 }
 
 void GenerateTransitionTable() {
@@ -111,20 +112,22 @@ void GenerateTransitionTable() {
 }
 
 // Move from a structure to another pointed at by a pointer.
-template<typename T, typename Q> void Move(T & structureOne, Q & ptrTwo,
-        size_t length) {
+template<typename T, typename Q> void Move(T & structureOne,
+    Q & ptrTwo,
+    size_t length) {
 	bcopy(&structureOne, ptrTwo, length);
 }
 
-template<typename T, typename Q> void MoveP(T & structureOne, Q & structureTwo,
-        size_t length) {
-    bcopy(&structureOne, &structureTwo, length);
+template<typename T, typename Q> void MoveP(T & structureOne,
+    Q & structureTwo,
+    size_t length) {
+	bcopy(&structureOne, &structureTwo, length);
 }
 
 void BoardClose(boolean showTruncationNote) {
 	World.BoardData[World.Info.CurrentBoard] = Board.dump();
 	World.BoardLen[World.Info.CurrentBoard] =
-		World.BoardData[World.Info.CurrentBoard].size();
+	    World.BoardData[World.Info.CurrentBoard].size();
 }
 
 /* Set worldIsDamaged to true if the BoardOpen is from a world load and
@@ -132,17 +135,18 @@ the world metadata is wrong; this will make the corruption notification
 show up regardless of whether the board itself is damaged. */
 void BoardOpen(integer boardId, boolean worldIsDamaged) {
 
-	byte* ptr;
+	byte * ptr;
 	integer i, ix, iy;
 	TRleTile rle;
 	integer bytesRead;
 	boolean boardIsDamaged;
 
-	if (boardId > World.BoardCount)
+	if (boardId > World.BoardCount) {
 		boardId = World.Info.CurrentBoard;
+	}
 
 	std::string load_error = Board.load(World.BoardData[boardId],
-		boardId, World.BoardCount);
+	        boardId, World.BoardCount);
 
 	World.Info.CurrentBoard = boardId;
 
@@ -192,8 +196,9 @@ void WorldCreate() {
 	for( i = 1; i <= 7; i ++) {
 		World.Info.TakeKey(i);
 	}
-	for( i = 1; i <= 10; i ++)
+	for( i = 1; i <= 10; i ++) {
 		World.Info.Flags[i] = "";
+	}
 	BoardChange(0);
 	Board.Name = "Title screen";
 	LoadedGameFileName = "";
@@ -204,43 +209,45 @@ void TransitionDrawToFill(char chr_, integer color) {
 	integer i;
 
 	for( i = 1; i <= TransitionTableSize; i ++)
-		video.VideoWriteText(TransitionTable[i].X - 1, TransitionTable[i].Y - 1,
-		                     color,
-		                     chr_);
+		video.VideoWriteText(TransitionTable[i].X - 1,
+		    TransitionTable[i].Y - 1,
+		    color,
+		    chr_);
 }
 
 void BoardDrawTile(integer x, integer y) {
 	byte ch;
 
 	{
-		TTile& with = Board.Tiles[x][y];
+		TTile & with = Board.Tiles[x][y];
 		if (! Board.Info.IsDark
-		        || (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
-		        || (
-		            (World.Info.TorchTicks > 0)
-		            && ((sqr(Board.Stats[0].X - x) + sqr(Board.Stats[0].Y - y) * 2) <
-		                TORCH_DIST_SQR)
-		        ) || ForceDarknessOff) {
-			if (with.Element == E_EMPTY)
+		    || (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
+		    || (
+		        (World.Info.TorchTicks > 0)
+		        && ((sqr(Board.Stats[0].X - x) + sqr(Board.Stats[0].Y - y) * 2) <
+		            TORCH_DIST_SQR)
+		    ) || ForceDarknessOff) {
+			if (with.Element == E_EMPTY) {
 				video.VideoWriteText(x - 1, y - 1, 0xf, " ");
-			else if ((with.Element < E_TEXT_MIN)
-			         && ElementDefs[with.Element].HasDrawProc)  {
+			} else if ((with.Element < E_TEXT_MIN)
+			    && ElementDefs[with.Element].HasDrawProc)  {
 				ElementDefs[with.Element].DrawProc(x, y, ch);
 				video.VideoWriteText(x - 1, y - 1, with.Color, chr(ch));
 			} else if (with.Element < E_TEXT_MIN)
 				video.VideoWriteText(x - 1, y - 1, with.Color,
-				                     ElementDefs[with.Element].Character);
+				    ElementDefs[with.Element].Character);
 			else {
 				/* Text drawing */
-				if (with.Element == E_TEXT_WHITE)
+				if (with.Element == E_TEXT_WHITE) {
 					video.VideoWriteText(x - 1, y - 1, 0xf, chr(Board.Tiles[x][y].Color));
-				else if (VideoMonochrome)
-					video.VideoWriteText(x - 1, y - 1, ((with.Element - E_TEXT_MIN) + 1) * 16,
-					                     chr(Board.Tiles[x][y].Color));
+				} else if (VideoMonochrome)
+					video.VideoWriteText(x - 1, y - 1,
+					    ((with.Element - E_TEXT_MIN) + 1) * 16,
+					    chr(Board.Tiles[x][y].Color));
 				else
 					video.VideoWriteText(x - 1, y - 1,
-					                     (((with.Element - E_TEXT_MIN) + 1) * 16) + 0xf,
-					                     chr(Board.Tiles[x][y].Color));
+					    (((with.Element - E_TEXT_MIN) + 1) * 16) + 0xf,
+					    chr(Board.Tiles[x][y].Color));
 			}
 		} else {
 			/* Darkness */
@@ -269,13 +276,13 @@ void TransitionDrawToBoard() {
 	BoardDrawBorder();
 
 	for( i = 1; i <= TransitionTableSize; i ++) {
-		TCoord& with = TransitionTable[i];
+		TCoord & with = TransitionTable[i];
 		BoardDrawTile(with.X, with.Y);
 	}
 }
 
 void SidebarPromptCharacter(boolean editable, integer x, integer y,
-                            TString50 prompt, byte& value) {
+    TString50 prompt, byte & value) {
 	integer i, newValue;
 
 	SidebarClearLine(y);
@@ -287,15 +294,16 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 	do {
 		for( i = (value - 4); i <= (value + 4); i ++)
 			video.VideoWriteText(((x + i) - value) + 5, y + 2, 0x1e,
-			                     chr((i + 0x100) % 0x100));
+			    chr((i + 0x100) % 0x100));
 
 		if (editable)  {
 			// All of these can be replaced with a blocking read later.
 			// It'll only make things more responsive.
 			Delay(25);
 			InputUpdate();
-			if (InputKeyPressed == E_KEY_TAB)
+			if (InputKeyPressed == E_KEY_TAB) {
 				InputDeltaX = 9;
+			}
 
 			newValue = value + InputDeltaX;
 			if (value != newValue)  {
@@ -304,13 +312,14 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 			}
 		}
 	} while (!((InputKeyPressed == E_KEY_ENTER)
-	           || (InputKeyPressed == E_KEY_ESCAPE) || ! editable || InputShiftPressed));
+	        || (InputKeyPressed == E_KEY_ESCAPE) || ! editable
+	        || InputShiftPressed));
 
 	video.VideoWriteText(x + 5, y + 1, 0x1f, "\37");
 }
 
 void SidebarPromptSlider(boolean editable, integer x, integer y,
-                         string prompt, byte& value) {
+    string prompt, byte & value) {
 	integer newValue;
 	char startChar, endChar;
 
@@ -328,12 +337,13 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 	SidebarClearLine(y + 1);
 	SidebarClearLine(y + 2);
 	video.VideoWriteText(x, y + 2, 0x1e,
-	                     string(startChar) + "....:...." + endChar);
+	    string(startChar) + "....:...." + endChar);
 
 	do {
 		if (editable)  {
-			if (InputJoystickMoved)
+			if (InputJoystickMoved) {
 				Delay(45);
+			}
 			video.VideoWriteText(x + value + 1, y + 1, 0x9f, "\37");
 
 			InputUpdate();
@@ -349,13 +359,14 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 			}
 		}
 	} while (!((InputKeyPressed == E_KEY_ENTER)
-	           || (InputKeyPressed == E_KEY_ESCAPE) || ! editable || InputShiftPressed));
+	        || (InputKeyPressed == E_KEY_ESCAPE) || ! editable
+	        || InputShiftPressed));
 
 	video.VideoWriteText(x + value + 1, y + 1, 0x1f, "\37");
 }
 
 void SidebarPromptChoice(boolean editable, integer y, string prompt,
-                         string choiceStr, byte& result) {
+    string choiceStr, byte & result) {
 	integer i, j, choiceCount;
 	integer newResult;
 
@@ -367,15 +378,17 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 
 	choiceCount = 1;
 	for( i = 1; i <= length(choiceStr); i ++)
-		if (choiceStr[i] == ' ')
+		if (choiceStr[i] == ' ') {
 			choiceCount = choiceCount + 1;
+		}
 
 	do {
 		j = 0;
 		i = 1;
 		while ((j < result) && (i < length(choiceStr)))  {
-			if (choiceStr[i] == ' ')
+			if (choiceStr[i] == ' ') {
 				j = j + 1;
+			}
 			i = i + 1;
 		}
 
@@ -386,36 +399,40 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 
 			newResult = result + InputDeltaX;
 			if ((result != newResult) && (newResult >= 0)
-			        && (newResult <= (choiceCount - 1)))  {
+			    && (newResult <= (choiceCount - 1)))  {
 				result = newResult;
 				SidebarClearLine(y + 1);
 			}
 		}
 	} while (!((InputKeyPressed == E_KEY_ENTER)
-	           || (InputKeyPressed == E_KEY_ESCAPE) || ! editable || InputShiftPressed));
+	        || (InputKeyPressed == E_KEY_ESCAPE) || ! editable
+	        || InputShiftPressed));
 
 	video.VideoWriteText(62 + i, y + 1, 0x1f, "\37");
 }
 
-void SidebarPromptDirection(boolean editable, integer y, string prompt,
-                            integer& deltaX, integer& deltaY) {
+void SidebarPromptDirection(boolean editable, integer y,
+    string prompt,
+    integer & deltaX, integer & deltaY) {
 	byte choice;
 
-	if (deltaY == -1)
+	if (deltaY == -1) {
 		choice = 0;
-	else if (deltaY == 1)
+	} else if (deltaY == 1) {
 		choice = 1;
-	else if (deltaX == -1)
+	} else if (deltaX == -1) {
 		choice = 2;
-	else
+	} else {
 		choice = 3;
+	}
 	SidebarPromptChoice(editable, y, prompt, "\30 \31 \33 \32", choice);
 	deltaX = NeighborDeltaX[choice];
 	deltaY = NeighborDeltaY[choice];
 }
 
-void PromptString(integer x, integer y, integer arrowColor, integer color,
-                  integer width, byte mode, TString50& buffer) {
+void PromptString(integer x, integer y, integer arrowColor,
+    integer color,
+    integer width, byte mode, TString50 & buffer) {
 	integer i;
 	string oldBuffer;
 	boolean firstKeyPress;
@@ -430,16 +447,17 @@ void PromptString(integer x, integer y, integer arrowColor, integer color,
 		}
 		video.VideoWriteText(x + width, y - 1, arrowColor, " ");
 		video.VideoWriteText(x + length(buffer), y - 1,
-		                     (arrowColor / 0x10) * 16 + 0xf,
-		                     "\37");
+		    (arrowColor / 0x10) * 16 + 0xf,
+		    "\37");
 		video.VideoWriteText(x, y, color, buffer);
 
 		InputReadWaitKey();
 
 		if ((length(buffer) < width) && (InputKeyPressed >= '\40')
-		        && (! InputSpecialKeyPressed))  {
-			if (firstKeyPress)
+		    && (! InputSpecialKeyPressed))  {
+			if (firstKeyPress) {
 				buffer = "";
+			}
 			switch (mode) {
 			case PROMPT_NUMERIC: {
 				if (set::of(range('0', '9'), eos).has(InputKeyPressed))  {
@@ -453,15 +471,15 @@ void PromptString(integer x, integer y, integer arrowColor, integer color,
 			break;
 			case PROMPT_ALPHANUM: {
 				if ((set::of(range('A', 'Z'), eos).has(keyUpCase(InputKeyPressed)))
-				        || (set::of(range('0', '9'), eos).has(InputKeyPressed))
-				        || (InputKeyPressed == '-')) {
+				    || (set::of(range('0', '9'), eos).has(InputKeyPressed))
+				    || (InputKeyPressed == '-')) {
 					buffer = buffer + (char)keyUpCase(InputKeyPressed);
 				}
 			}
 			break;
 			}
 		} else if ((InputKeyPressed == E_KEY_LEFT)
-		           || (InputKeyPressed == E_KEY_BACKSPACE))  {
+		    || (InputKeyPressed == E_KEY_BACKSPACE))  {
 			buffer = copy(buffer, 1, length(buffer) - 1);
 			/*IMP: Clear the whole line if Home is pressed.*/
 		} else if (InputKeyPressed == E_KEY_HOME)  {
@@ -470,7 +488,7 @@ void PromptString(integer x, integer y, integer arrowColor, integer color,
 
 		firstKeyPress = false;
 	} while (!((InputKeyPressed == E_KEY_ENTER)
-	           || (InputKeyPressed == E_KEY_ESCAPE)));
+	        || (InputKeyPressed == E_KEY_ESCAPE)));
 	if (InputKeyPressed == E_KEY_ESCAPE)  {
 		buffer = oldBuffer;
 	}
@@ -487,11 +505,12 @@ boolean SidebarPromptYesNo(string message, boolean defaultReturn) {
 	do {
 		InputReadWaitKey();
 	} while (!(set::of(E_KEY_ESCAPE, 'N', 'Y',
-	                   eos).has(keyUpCase(InputKeyPressed))));
-	if (keyUpCase(InputKeyPressed) == 'Y')
+	            eos).has(keyUpCase(InputKeyPressed))));
+	if (keyUpCase(InputKeyPressed) == 'Y') {
 		defaultReturn = true;
-	else
+	} else {
 		defaultReturn = false;
+	}
 
 	SidebarClearLine(5);
 	SidebarPromptYesNo_result = defaultReturn;
@@ -499,7 +518,7 @@ boolean SidebarPromptYesNo(string message, boolean defaultReturn) {
 }
 
 void SidebarPromptString(string prompt, TString50 extension,
-                         TString50& filename, byte promptMode) {
+    TString50 & filename, byte promptMode) {
 	SidebarClearLine(3);
 	SidebarClearLine(4);
 	SidebarClearLine(5);
@@ -518,11 +537,13 @@ void PauseOnError() {
 	Delay(2000);
 }
 
+bool is_IO_error() { return errno != 0; }
+
 boolean DisplayIOError() {
 	varying_string<50> errorNumStr;
 	TTextWindowState textWindow;
 
-	if (errno == 0)  {
+	if (!is_IO_error())  {
 		return false;		// no error
 	}
 
@@ -556,13 +577,18 @@ void DisplayTruncationNote() {
 	TextWindowInitState(textWindow);
 	TextWindowAppend(textWindow, "$Warning:");
 	TextWindowAppend(textWindow, "");
-	TextWindowAppend(textWindow, "A board that was just saved was too large");
-	TextWindowAppend(textWindow, "and some data had to be cut. This might");
-	TextWindowAppend(textWindow, "lead to data loss. If you haven't saved");
-	TextWindowAppend(textWindow, "yet, do so under another name and make");
+	TextWindowAppend(textWindow,
+		"A board that was just saved was too large");
+	TextWindowAppend(textWindow,
+	    "and some data had to be cut. This might");
+	TextWindowAppend(textWindow,
+	    "lead to data loss. If you haven't saved");
+	TextWindowAppend(textWindow,
+	    "yet, do so under another name and make");
 	TextWindowAppend(textWindow, "the board smaller!");
 	TextWindowAppend(textWindow, "");
-	TextWindowAppend(textWindow, "If you're just playing, tell the author");
+	TextWindowAppend(textWindow,
+	    "If you're just playing, tell the author");
 	TextWindowAppend(textWindow, "of the world that you're playing.");
 
 	TextWindowDrawOpen(textWindow);
@@ -578,7 +604,8 @@ void DisplayCorruptionNote(std::string corruption_type) {
 	TextWindowInitState(textWindow);
 	TextWindowAppend(textWindow, "$Warning:");
 	TextWindowAppend(textWindow, "");
-	TextWindowAppend(textWindow, "The file or board that was just loaded");
+	TextWindowAppend(textWindow,
+	    "The file or board that was just loaded");
 	TextWindowAppend(textWindow, "contained some damaged information.");
 	TextWindowAppend(textWindow, "This might be caused by a bad file");
 	TextWindowAppend(textWindow, "or disk corruption. ZZT has tried");
@@ -618,8 +645,52 @@ static integer loadProgress;
 
 static void SidebarAnimateLoading() {
 	video.VideoWriteText(69, 5, ProgressAnimColors[loadProgress],
-	                     ProgressAnimStrings[loadProgress]);
+	    ProgressAnimStrings[loadProgress]);
 	loadProgress = (loadProgress + 1) % 8;
+}
+
+// Returns true if loading went okay, false otherwise.
+bool load_board_from_file(std::istream & f, bool is_final_board,
+	std::vector<unsigned char> & out_packed_board) {
+
+	short board_len = 0, actually_read;
+	bool successful_read = true;
+
+	load_lsb_from_file(f, board_len);
+
+	/* Sanity check. If the board length is less than zero, stop here. */
+	if (is_IO_error() || board_len < 0)  {
+		board_len = 0;
+		// TODO? Not do this so that the board already at this position
+		// is untouched if loading fails, e.g. when importing a .BRD?
+		// But then we need some other way to signal board_len == 0.
+		out_packed_board.resize(0);
+		return false;
+	} else {
+		/* If it's the last board, get everything we can.
+			This recovers the last Super Lock-corrupted board.
+			actuallyRead below will adjust the board length back
+			if we're dealing with an ordinary world. */
+		if (is_final_board) {
+			board_len = MAX_BOARD_LEN;
+		}
+
+		out_packed_board.resize(board_len);
+		f.read((char *)out_packed_board.data(), board_len);
+		actually_read = f.gcount();
+
+		/* SANITY: If reading the whole board would lead to an
+			overflow down the line, pretend we only read the
+			MAX_BOARD_LEN first. */
+		if (actually_read > MAX_BOARD_LEN)  {
+			actually_read = MAX_BOARD_LEN;
+			successful_read = false;
+		}
+
+		out_packed_board.resize(actually_read);
+	}
+
+	return successful_read;
 }
 
 boolean WorldLoad(std::string filename, std::string extension) {
@@ -641,7 +712,9 @@ boolean WorldLoad(std::string filename, std::string extension) {
 	SidebarClearLine(5);
 	video.VideoWriteText(62, 5, 0x1f, "Loading.....");
 
-	if (filename + extension == "")  return WorldLoad_result;
+	if (filename + extension == "")  {
+		return WorldLoad_result;
+	}
 
 	std::string full_filename = std::string(filename + extension);
 	std::ifstream f = OpenForRead(full_filename);
@@ -693,70 +766,40 @@ boolean WorldLoad(std::string filename, std::string extension) {
 			/* Don't accept CurrentBoard values that are too large or
 			small. */
 			if (World.Info.CurrentBoard > World.BoardCount ||
-				World.Info.CurrentBoard < 0)  {
+			    World.Info.CurrentBoard < 0)  {
 
 				World.Info.CurrentBoard = Max(0, Min(World.BoardCount,
-				                                     World.Info.CurrentBoard));
+				            World.Info.CurrentBoard));
 				worldIsDamaged = true;
 			}
 
 			for( boardId = 0; boardId <= World.BoardCount; boardId ++) {
 				SidebarAnimateLoading();
 
-				if (boardId > World.BoardCount)  continue;
+				if (boardId > World.BoardCount)  {
+					continue;
+				}
 
-                // XXX: Problem with endian assumptions and assumption
-                // that the output is 16 bits.
-                char thisBoardLenBuf[2];
-                unsigned short thisBoardLen = 0;
-                f.read(thisBoardLenBuf, 2);
-                load_lsb_element(thisBoardLenBuf, thisBoardLen);
+				bool is_final_board = (boardId == World.BoardCount);
 
-                World.BoardLen[boardId] = thisBoardLen;
+				bool successful_board_read = load_board_from_file(
+					f, is_final_board, World.BoardData[boardId]);
 
-				/* Sanity check. Abort at this position so that any
-				boards before the corrupted one can still be
-							  recovered.*/
-				if ((DisplayIOError()) || (World.BoardLen[boardId] < 0))  {
-					World.BoardLen[boardId] = 0;
-					worldIsDamaged = true;
-					if (boardId == 0)  {
+				World.BoardLen[boardId] = World.BoardData[boardId].size();
+				worldIsDamaged |= !successful_board_read;
+
+				// Display IO errors if any occurred during the board read.
+				DisplayIOError();
+
+				// If the board is empty, something went wrong,
+				if (World.BoardLen[boardId] == 0) {
+					if (boardId == 0) {
 						WorldUnload();
 						return WorldLoad_result;
 					}
 					World.BoardCount = boardId - 1;
 					/* No more boards to be had, so break. */
 					break;
-				} else {
-					/* If it's the last board, get everything we can.
-						This recovers the last Super Lock-corrupted board.
-						actuallyRead below will adjust the board length back
-						if we're dealing with an ordinary world. */
-					if (boardId == World.BoardCount)
-						World.BoardLen[boardId] = MAX_BOARD_LEN;
-					World.BoardData[boardId].resize(World.BoardLen[boardId]);
-					f.read((char *)World.BoardData[boardId].data(),
-						World.BoardLen[boardId]);
-					actuallyRead = f.gcount();
-
-					/* SANITY: If reading the whole board would lead to an
-						overflow down the line, pretend we only read the
-						MAX_BOARD_LEN first. */
-					if (actuallyRead > MAX_BOARD_LEN)  {
-						actuallyRead = Min(actuallyRead, MAX_BOARD_LEN);
-						worldIsDamaged = true;
-					}
-
-					World.BoardData[boardId].resize(actuallyRead);
-
-					/* SANITY: reallocate and update board len if
-						there's a mismatch between how much we were told
-						we could read, and how much we actually read.
-						This also cuts down very large boards that we can't
-						represent in memory anyway (size > 20k). */
-					if (actuallyRead != World.BoardLen[boardId])  {
-						World.BoardLen[boardId] = actuallyRead;
-					}
 				}
 			}
 
@@ -766,13 +809,14 @@ boolean WorldLoad(std::string filename, std::string extension) {
 				or too high, set it to zero. (Maybe instead set it to the
 				actual number of boards read?) */
 			if ((World.Info.CurrentBoard < 0) ||
-				(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount)))
+			    (World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount))) {
 				World.Info.CurrentBoard = 0;
+			}
 
 			BoardOpen(World.Info.CurrentBoard, worldIsDamaged);
 			LoadedGameFileName = filename.c_str();
 
-            // XXX: Once we add in editor.cxx
+			// XXX: Once we add in editor.cxx
 			//HighScoresLoad();
 
 			SidebarClearLine(5);
@@ -785,7 +829,7 @@ void WorldSave(TString50 filename, TString50 extension) {
 	untyped_file f;
 	integer i;
 	integer unk1;
-	TIoTmpBuf* ptr;
+	TIoTmpBuf * ptr;
 	integer version;
 
 
@@ -795,9 +839,9 @@ void WorldSave(TString50 filename, TString50 extension) {
 	std::string full_filename = std::string(filename + extension);
 	std::ofstream out_file = OpenForWrite(full_filename);
 
-    // TODO IMP? Perhaps write to a temporary filename and then move it over
-    // the original to create some kind of atomicity?
-    // https://en.cppreference.com/w/cpp/io/c/tmpnam etc.
+	// TODO IMP? Perhaps write to a temporary filename and then move it over
+	// the original to create some kind of atomicity?
+	// https://en.cppreference.com/w/cpp/io/c/tmpnam etc.
 
 	if (! DisplayIOError())  {
 		std::vector<unsigned char> world_header;
@@ -810,17 +854,25 @@ void WorldSave(TString50 filename, TString50 extension) {
 		word actually_written;
 		out_file.write((const char *)world_header.data(), 512);
 
-		if (DisplayIOError())  goto LOnError;
+		if (DisplayIOError())  {
+			goto LOnError;
+		}
 
 		for( i = 0; i <= World.BoardCount; i ++) {
-            unsigned short board_len = World.BoardLen[i];
-            out_file.write((char *)&board_len, 2);
-			if (DisplayIOError())  goto LOnError;
+			// TODO: Replace with a serialization procedure that's
+			// machine endian agnostic.
+			unsigned short board_len = World.BoardLen[i];
+			out_file.write((char *)&board_len, 2);
+			if (DisplayIOError())  {
+				goto LOnError;
+			}
 
 			out_file.write((const char *)World.BoardData[i].data(),
-				World.BoardData[i].size());
+			    World.BoardData[i].size());
 
-			if (DisplayIOError())  goto LOnError;
+			if (DisplayIOError())  {
+				goto LOnError;
+			}
 		}
 
 		out_file.close();
@@ -834,20 +886,22 @@ LOnError:
 	out_file.close();
 	std::remove(full_filename.c_str()); // Delete the corrupted file.
 	// IMP? Give error message? But the above already does.
-    BoardOpen(World.Info.CurrentBoard, false);
+	BoardOpen(World.Info.CurrentBoard, false);
 	SidebarClearLine(5);
 }
 
-void GameWorldSave(TString50 prompt, TString50& filename,
-                   TString50 extension) {
+void GameWorldSave(TString50 prompt, TString50 & filename,
+    TString50 extension) {
 	TString50 newFilename;
 
 	newFilename = filename;
 	SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
-	if ((InputKeyPressed != E_KEY_ESCAPE) && (length(newFilename) != 0))  {
+	if ((InputKeyPressed != E_KEY_ESCAPE)
+	    && (length(newFilename) != 0))  {
 		filename = newFilename;
-		if (extension == ".ZZT")
+		if (extension == ".ZZT") {
 			World.Info.Name = filename;
+		}
 		WorldSave(filename, extension);
 	}
 }
@@ -860,33 +914,35 @@ boolean GameWorldLoad(TString50 extension) {
 
 	boolean GameWorldLoad_result;
 	TextWindowInitState(textWindow);
-	if (extension == ".ZZT")
+	if (extension == ".ZZT") {
 		textWindow.Title = "ZZT Worlds";
-	else
+	} else {
 		textWindow.Title = "Saved Games";
+	}
 	GameWorldLoad_result = false;
 	textWindow.Selectable = true;
 
-    // https://stackoverflow.com/questions/612097
+	// https://stackoverflow.com/questions/612097
 
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir (".")) != NULL) {
-        /* print all the files and directories within directory */
-        while ((ent = readdir (dir)) != NULL) {
-        	std::string filename = ent->d_name;
+	DIR * dir;
+	struct dirent * ent;
+	if ((dir = opendir (".")) != NULL) {
+		/* print all the files and directories within directory */
+		while ((ent = readdir (dir)) != NULL) {
+			std::string filename = ent->d_name;
 			// If it doesn't have the right extension, skip.
 			// TODO: Make case-insensitive. But the way extensions are
 			// handled currently makes that a pain.
-        	if (filename.find(extension) == std::string::npos)
-        		continue;
+			if (filename.find(extension) == std::string::npos) {
+				continue;
+			}
 
-        	// Strip the extension
-        	filename = filename.substr(0, filename.find(extension));
-            TextWindowAppend(textWindow, filename.c_str());
-        }
-        closedir (dir);
-    }
+			// Strip the extension
+			filename = filename.substr(0, filename.find(extension));
+			TextWindowAppend(textWindow, filename.c_str());
+		}
+		closedir (dir);
+	}
 
 	TextWindowSort(textWindow); /* Sort the file names. */
 	TextWindowAppend(textWindow, "Exit");
@@ -895,13 +951,15 @@ boolean GameWorldLoad(TString50 extension) {
 	TextWindowSelect(textWindow, false, false);
 	TextWindowDrawClose(textWindow);
 
-	if ((textWindow.LinePos < textWindow.LineCount) && ! TextWindowRejected)  {
+	if ((textWindow.LinePos < textWindow.LineCount)
+	    && ! TextWindowRejected)  {
 		entryName = *textWindow.Lines[textWindow.LinePos];
-		if (pos(" ", entryName) != 0)
+		if (pos(" ", entryName) != 0) {
 			entryName = copy(entryName, 1, pos(" ", entryName) - 1);
+		}
 
 		GameWorldLoad_result = WorldLoad(std::string(entryName),
-			std::string(extension));
+		        std::string(extension));
 		TransitionDrawToFill('\333', 0x44);
 	}
 
@@ -909,12 +967,13 @@ boolean GameWorldLoad(TString50 extension) {
 	return GameWorldLoad_result;
 }
 
-void CopyStatDataToTextWindow(integer statId, TTextWindowState& state) {
+void CopyStatDataToTextWindow(integer statId,
+    TTextWindowState & state) {
 	string dataStr;
 	char dataChr;
 	integer i;
 
-	TStat& with = Board.Stats[statId];
+	TStat & with = Board.Stats[statId];
 	TextWindowInitState(state);
 	dataStr = "";
 
@@ -932,18 +991,22 @@ void CopyStatDataToTextWindow(integer statId, TTextWindowState& state) {
 }
 
 void AddStat(integer tx, integer ty, byte element, integer color,
-             integer tcycle, TStat template_) {
+    integer tcycle, TStat template_) {
 	/* First of all: check if we have space. If not, no can do! */
 	if (World.BoardLen[World.Info.CurrentBoard] +
-		template_.packed_size() > MAX_BOARD_LEN) {
+	    template_.packed_size() > MAX_BOARD_LEN) {
 		return;
 	}
 
 	/* Can't put anything on top of the player. */
-	if ((tx == Board.Stats[0].X) && (ty == Board.Stats[0].Y)) { return; }
+	if ((tx == Board.Stats[0].X) && (ty == Board.Stats[0].Y)) {
+		return;
+	}
 
 	// Can't make more than MAX_STAT stats.
-	if (Board.StatCount >= MAX_STAT) { return; }
+	if (Board.StatCount >= MAX_STAT) {
+		return;
+	}
 
 	Board.StatCount = Board.StatCount + 1;
 	Board.Stats[Board.StatCount] = template_;
@@ -952,7 +1015,7 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 	// *want* because we'll do a deep copy, but that's not always the
 	// case! Note to self if/when I change this.
 	World.BoardLen[World.Info.CurrentBoard] =
-		World.BoardLen[World.Info.CurrentBoard] + template_.packed_size();
+	    World.BoardLen[World.Info.CurrentBoard] + template_.packed_size();
 
 	TStat * new_stat = &Board.Stats[Board.StatCount];
 
@@ -965,18 +1028,20 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 	// AddStat always does a deep copy.
 	if (template_.DataLen > 0) {
 		new_stat->data = std::shared_ptr<unsigned char[]>(
-			new unsigned char[template_.DataLen]);
+		        new unsigned char[template_.DataLen]);
 
 		std::copy(template_.data.get(),
-			template_.data.get() + template_.DataLen,
-			new_stat->data.get());
+		    template_.data.get() + template_.DataLen,
+		    new_stat->data.get());
 	}
 
 	if (ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop)
-		Board.Tiles[tx][ty].Color = (color & 0xf) + (Board.Tiles[tx][ty].Color &
-		                            0x70);
-	else
+		Board.Tiles[tx][ty].Color = (color & 0xf) + (Board.Tiles[tx][ty].Color
+		        &
+		        0x70);
+	else {
 		Board.Tiles[tx][ty].Color = color;
+	}
 	Board.Tiles[tx][ty].Element = element;
 
 	if (CoordInsideViewport(tx, ty)) {
@@ -991,33 +1056,38 @@ void RemoveStat(integer statId) {
 
 	Board.Stats[statId].data = NULL;	// deallocates if necessary
 
-	TStat& with = Board.Stats[statId];
+	TStat & with = Board.Stats[statId];
 
-	if (statId < CurrentStatTicked)
+	if (statId < CurrentStatTicked) {
 		CurrentStatTicked = CurrentStatTicked - 1;
+	}
 
 	Board.Tiles[with.X][with.Y] = with.Under;
-	if (with.Y > 0)
+	if (with.Y > 0) {
 		BoardDrawTile(with.X, with.Y);
+	}
 
 	for( i = 1; i <= Board.StatCount; i ++) {
 		if (Board.Stats[i].Follower >= statId)  {
-			if (Board.Stats[i].Follower == statId)
+			if (Board.Stats[i].Follower == statId) {
 				Board.Stats[i].Follower = -1;
-			else
+			} else {
 				Board.Stats[i].Follower = Board.Stats[i].Follower - 1;
+			}
 		}
 
 		if (Board.Stats[i].Leader >= statId)  {
-			if (Board.Stats[i].Leader == statId)
+			if (Board.Stats[i].Leader == statId) {
 				Board.Stats[i].Leader = -1;
-			else
+			} else {
 				Board.Stats[i].Leader = Board.Stats[i].Leader - 1;
+			}
 		}
 	}
 
-	for( i = (statId + 1); i <= Board.StatCount; i ++)
+	for( i = (statId + 1); i <= Board.StatCount; i ++) {
 		Board.Stats[i - 1] = Board.Stats[i];
+	}
 	Board.StatCount = Board.StatCount - 1;
 }
 
@@ -1028,12 +1098,13 @@ integer GetStatIdAt(integer x, integer y) {
 	do {
 		i = i + 1;
 	} while (!(((Board.Stats[i].X == x) && (Board.Stats[i].Y == y))
-	           || (i > Board.StatCount)));
+	        || (i > Board.StatCount)));
 
-	if (i > Board.StatCount)
+	if (i > Board.StatCount) {
 		return -1;
-	else
+	} else {
 		return i;
+	}
 }
 
 boolean BoardPrepareTileForPlacement(integer x, integer y) {
@@ -1046,8 +1117,9 @@ boolean BoardPrepareTileForPlacement(integer x, integer y) {
 		RemoveStat(statId);
 		result = true;
 	} else if (statId < 0)  {
-		if (! ElementDefs[Board.Tiles[x][y].Element].PlaceableOnTop)
+		if (! ElementDefs[Board.Tiles[x][y].Element].PlaceableOnTop) {
 			Board.Tiles[x][y].Element = E_EMPTY;
+		}
 		result = true;
 	} else {       /* statId = 0 (player) cannot be modified */
 		result = false;
@@ -1064,19 +1136,21 @@ void MoveStat(integer statId, integer newX, integer newY) {
 	integer oldBgColor;
 
 	{
-		TStat& with = Board.Stats[statId];
+		TStat & with = Board.Stats[statId];
 		oldBgColor = Board.Tiles[newX][newY].Color & 0xf0;
 
 		iUnder = Board.Stats[statId].Under;
 		Board.Stats[statId].Under = Board.Tiles[newX][newY];
 
-		if (Board.Tiles[with.X][with.Y].Element == E_PLAYER)
+		if (Board.Tiles[with.X][with.Y].Element == E_PLAYER) {
 			Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color;
-		else if (Board.Tiles[newX][newY].Element == E_EMPTY)
-			Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color & 0xf;
+		} else if (Board.Tiles[newX][newY].Element == E_EMPTY)
+			Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color &
+			    0xf;
 		else
-			Board.Tiles[newX][newY].Color = (Board.Tiles[with.X][with.Y].Color & 0xf)
-			                                + (Board.Tiles[newX][newY].Color & 0x70);
+			Board.Tiles[newX][newY].Color = (Board.Tiles[with.X][with.Y].Color &
+			        0xf)
+			    + (Board.Tiles[newX][newY].Color & 0x70);
 
 		Board.Tiles[newX][newY].Element = Board.Tiles[with.X][with.Y].Element;
 		Board.Tiles[with.X][with.Y] = iUnder;
@@ -1089,15 +1163,19 @@ void MoveStat(integer statId, integer newX, integer newY) {
 		BoardDrawTile(with.X, with.Y);
 		BoardDrawTile(oldX, oldY);
 
-		if ((statId == 0) && Board.Info.IsDark && (World.Info.TorchTicks > 0))  {
+		if ((statId == 0) && Board.Info.IsDark
+		    && (World.Info.TorchTicks > 0))  {
 			if ((sqr(oldX-with.X) + sqr(oldY-with.Y)) == 1)  {
-				for( ix = (with.X - TORCH_DX - 3); ix <= (with.X + TORCH_DX + 3); ix ++)
+				for( ix = (with.X - TORCH_DX - 3); ix <= (with.X + TORCH_DX + 3);
+				    ix ++)
 					if ((ix >= 1) && (ix <= BOARD_WIDTH))
-						for( iy = (with.Y - TORCH_DY - 3); iy <= (with.Y + TORCH_DY + 3); iy ++)
+						for( iy = (with.Y - TORCH_DY - 3); iy <= (with.Y + TORCH_DY + 3);
+						    iy ++)
 							if ((iy >= 1) && (iy <= BOARD_HEIGHT))
 								if ((((sqr(ix-oldX))+(sqr(iy-oldY)*2)) < TORCH_DIST_SQR) ^
-								        (((sqr(ix-newX))+(sqr(iy-newY)*2)) < TORCH_DIST_SQR))
+								    (((sqr(ix-newX))+(sqr(iy-newY)*2)) < TORCH_DIST_SQR)) {
 									BoardDrawTile(ix, iy);
+								}
 			} else {
 				DrawPlayerSurroundings(oldX, oldY, 0);
 				DrawPlayerSurroundings(with.X, with.Y, 0);
@@ -1107,7 +1185,7 @@ void MoveStat(integer statId, integer newX, integer newY) {
 	}
 }
 
-void PopupPromptString(string question, TString50& buffer) {
+void PopupPromptString(string question, TString50 & buffer) {
 	integer x, y;
 
 	video.VideoWriteText(3, 18, 0x4f, TextWindowStrTop);
@@ -1117,32 +1195,44 @@ void PopupPromptString(string question, TString50& buffer) {
 	video.VideoWriteText(3, 22, 0x4f, TextWindowStrText);
 	video.VideoWriteText(3, 23, 0x4f, TextWindowStrBottom);
 	video.VideoWriteText(4 + (TextWindowWidth - length(question)) / 2, 19,
-	                     0x4f,
-	                     question);
+	    0x4f,
+	    question);
 	buffer = "";
-	PromptString(10, 22, 0x4f, 0x4e, TextWindowWidth - 16, PROMPT_ANY, buffer);
+	PromptString(10, 22, 0x4f, 0x4e, TextWindowWidth - 16, PROMPT_ANY,
+	    buffer);
 	for( y = 18; y <= 23; y ++)
-		for( x = 3; x <= (TextWindowWidth + 3); x ++)
+		for( x = 3; x <= (TextWindowWidth + 3); x ++) {
 			BoardDrawTile(x + 1, y + 1);
+		}
+}
+
+void popup_prompt_string(const std::string question,
+	std::string & buffer) {
+
+	TString50 buf;
+	PopupPromptString(question.c_str(), buf);
+	buffer = buf;
 }
 
 integer Signum(integer val) {
 	integer Signum_result;
-	if (val > 0)
+	if (val > 0) {
 		Signum_result = 1;
-	else if (val < 0)
+	} else if (val < 0) {
 		Signum_result = -1;
-	else
+	} else {
 		Signum_result = 0;
+	}
 	return Signum_result;
 }
 
 integer Difference(integer a, integer b) {
 	integer Difference_result;
-	if ((a - b) >= 0)
+	if ((a - b) >= 0) {
 		Difference_result = a - b;
-	else
+	} else {
 		Difference_result = b - a;
+	}
 	return Difference_result;
 }
 
@@ -1159,8 +1249,9 @@ void GameUpdateSidebar() {
 			SidebarClearLine(6);
 		}
 
-		if (World.Info.Health < 0)
+		if (World.Info.Health < 0) {
 			World.Info.Health = 0;
+		}
 
 		str(World.Info.Health, numStr);
 		video.VideoWriteText(72, 7, 0x1e, numStr + ' ');
@@ -1173,28 +1264,32 @@ void GameUpdateSidebar() {
 		str(World.Info.Score, numStr);
 		video.VideoWriteText(72, 11, 0x1e, numStr + ' ');
 
-		if (World.Info.TorchTicks == 0)
+		if (World.Info.TorchTicks == 0) {
 			video.VideoWriteText(75, 9, 0x16, "    ");
-		else {
+		} else {
 			for( i = 2; i <= 5; i ++) {
-				if (i <= ((World.Info.TorchTicks * 5) / TORCH_DURATION))
+				if (i <= ((World.Info.TorchTicks * 5) / TORCH_DURATION)) {
 					video.VideoWriteText(73 + i, 9, 0x16, "\261");
-				else
+				} else {
 					video.VideoWriteText(73 + i, 9, 0x16, "\260");
+				}
 			}
 		}
 
 		for( i = 1; i <= 7; i ++) {
 			if (World.Info.HasKey(i))
-				video.VideoWriteText(71 + i, 12, 0x18 + i, ElementDefs[E_KEY].Character);
-			else
+				video.VideoWriteText(71 + i, 12, 0x18 + i,
+				    ElementDefs[E_KEY].Character);
+			else {
 				video.VideoWriteText(71 + i, 12, 0x1f, " ");
+			}
 		}
 
-		if (SoundEnabled)
+		if (SoundEnabled) {
 			video.VideoWriteText(65, 15, 0x1f, " Be quiet");
-		else
+		} else {
 			video.VideoWriteText(65, 15, 0x1f, " Be noisy");
+		}
 
 		if (DebugEnabled)  {
 			/* TODO: Replace with some interesting stat
@@ -1214,7 +1309,8 @@ void DisplayMessage(integer time, string message) {
 	if (length(message) != 0)  {
 		AddStat(0, 0, E_MESSAGE_TIMER, 0, 1, StatTemplateDefault);
 		/*IMP: P2 is a byte, so it can hold a max value of 255.*/
-		Board.Stats[Board.StatCount].P2 = Min(255, time / (TickTimeDuration + 1));
+		Board.Stats[Board.StatCount].P2 = Min(255,
+		        time / (TickTimeDuration + 1));
 		Board.Info.Message = message;
 	}
 }
@@ -1223,7 +1319,7 @@ void DamageStat(integer attackerStatId) {
 	integer oldX, oldY;
 
 	{
-		TStat& with = Board.Stats[attackerStatId];
+		TStat & with = Board.Stats[attackerStatId];
 		if (attackerStatId == 0)  {
 			if (World.Info.Health > 0)  {
 				World.Info.Health = World.Info.Health - 10;
@@ -1231,7 +1327,8 @@ void DamageStat(integer attackerStatId) {
 				GameUpdateSidebar();
 				DisplayMessage(100, "Ouch!");
 
-				Board.Tiles[with.X][with.Y].Color = 0x70 + (ElementDefs[4].Color % 0x10);
+				Board.Tiles[with.X][with.Y].Color = 0x70 + (ElementDefs[4].Color %
+				        0x10);
 
 				if (World.Info.Health > 0)  {
 					World.Info.BoardTimeSec = 0;
@@ -1253,7 +1350,7 @@ void DamageStat(integer attackerStatId) {
 					SoundQueue(4, "\20\1\40\1\23\1\43\1");
 				} else {
 					SoundQueue(5,
-					           "\40\3\43\3\47\3\60\3\47\3\52\3\62\3\67\3\65\3\70\3\100\3\105\3\20\n");
+					    "\40\3\43\3\47\3\60\3\47\3\52\3\62\3\67\3\65\3\70\3\100\3\105\3\20\n");
 				}
 			}
 		} else {
@@ -1283,17 +1380,18 @@ void BoardDamageTile(integer x, integer y) {
 void BoardAttack(integer attackerStatId, integer x, integer y) {
 	if ((attackerStatId == 0) && (World.Info.EnergizerTicks > 0))  {
 		World.Info.Score = ElementDefs[Board.Tiles[x][y].Element].ScoreValue +
-		                   World.Info.Score;
+		    World.Info.Score;
 		GameUpdateSidebar();
 	} else {
 		DamageStat(attackerStatId);
 	}
 
-	if ((attackerStatId > 0) && (attackerStatId <= CurrentStatTicked))
+	if ((attackerStatId > 0) && (attackerStatId <= CurrentStatTicked)) {
 		CurrentStatTicked = CurrentStatTicked - 1;
+	}
 
 	if ((Board.Tiles[x][y].Element == E_PLAYER)
-	        && (World.Info.EnergizerTicks > 0))  {
+	    && (World.Info.EnergizerTicks > 0))  {
 		World.Info.Score =
 		    ElementDefs[Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element]
 		    .ScoreValue + World.Info.Score;
@@ -1304,28 +1402,33 @@ void BoardAttack(integer attackerStatId, integer x, integer y) {
 	}
 }
 
-boolean BoardShoot(byte element, integer tx, integer ty, integer deltaX,
-                   integer deltaY, integer source) {
+boolean BoardShoot(byte element, integer tx, integer ty,
+    integer deltaX,
+    integer deltaY, integer source) {
 	boolean BoardShoot_result;
-	if (ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Walkable
-	        || (Board.Tiles[tx + deltaX][ty + deltaY].Element == E_WATER)) {
-		AddStat(tx + deltaX, ty + deltaY, element, ElementDefs[element].Color, 1,
-		        StatTemplateDefault);
+	if (ElementDefs[Board.Tiles[tx + deltaX][ty +
+	                           deltaY].Element].Walkable
+	    || (Board.Tiles[tx + deltaX][ty + deltaY].Element == E_WATER)) {
+		AddStat(tx + deltaX, ty + deltaY, element, ElementDefs[element].Color,
+		    1,
+		    StatTemplateDefault);
 		{
-			TStat& with = Board.Stats[Board.StatCount];
+			TStat & with = Board.Stats[Board.StatCount];
 			with.P1 = source;
 			with.StepX = deltaX;
 			with.StepY = deltaY;
 			with.P2 = 100;
 		}
 		BoardShoot_result = true;
-	} else if ((Board.Tiles[tx + deltaX][ty + deltaY].Element == E_BREAKABLE)
-	           || (
-	               ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Destructible
-	               && ((Board.Tiles[tx + deltaX][ty + deltaY].Element == E_PLAYER) ==
-	                   (boolean)(source))
-	               && (World.Info.EnergizerTicks <= 0)
-	           )) {
+	} else if ((Board.Tiles[tx + deltaX][ty + deltaY].Element ==
+	        E_BREAKABLE)
+	    || (
+	        ElementDefs[Board.Tiles[tx + deltaX][ty +
+	                               deltaY].Element].Destructible
+	        && ((Board.Tiles[tx + deltaX][ty + deltaY].Element == E_PLAYER) ==
+	            (boolean)(source))
+	        && (World.Info.EnergizerTicks <= 0)
+	    )) {
 		BoardDamageTile(tx + deltaX, ty + deltaY);
 		SoundQueue(2, "\20\1");
 		BoardShoot_result = true;
@@ -1335,25 +1438,28 @@ boolean BoardShoot(byte element, integer tx, integer ty, integer deltaX,
 	return BoardShoot_result;
 }
 
-void CalcDirectionRnd(integer& deltaX, integer& deltaY) {
+void CalcDirectionRnd(integer & deltaX, integer & deltaY) {
 	deltaX = Random(3) - 1;
 
-	if (deltaX == 0)
+	if (deltaX == 0) {
 		deltaY = Random(2) * 2 - 1;
-	else
+	} else {
 		deltaY = 0;
+	}
 }
 
-void CalcDirectionSeek(integer x, integer y, integer& deltaX,
-                       integer& deltaY) {
+void CalcDirectionSeek(integer x, integer y, integer & deltaX,
+    integer & deltaY) {
 	deltaX = 0;
 	deltaY = 0;
 
-	if ((Random(2) < 1) || (Board.Stats[0].Y == y))
+	if ((Random(2) < 1) || (Board.Stats[0].Y == y)) {
 		deltaX = Signum(Board.Stats[0].X - x);
+	}
 
-	if (deltaX == 0)
+	if (deltaX == 0) {
 		deltaY = Signum(Board.Stats[0].Y - y);
+	}
 
 	if (World.Info.EnergizerTicks > 0)  {
 		deltaX = -deltaX;
@@ -1394,7 +1500,7 @@ void BoardPassageTeleport(integer x, integer y) {
 	for( ix = 1; ix <= BOARD_WIDTH; ix ++)
 		for( iy = 1; iy <= BOARD_HEIGHT; iy ++)
 			if ((Board.Tiles[ix][iy].Element == E_PASSAGE)
-			        && (Board.Tiles[ix][iy].Color == col))  {
+			    && (Board.Tiles[ix][iy].Color == col))  {
 				newX = ix;
 				newY = iy;
 			}
@@ -1404,7 +1510,7 @@ void BoardPassageTeleport(integer x, integer y) {
 
 	GamePaused = true;
 	SoundQueue(4,
-	           "\60\1\64\1\67\1\61\1\65\1\70\1\62\1\66\1\71\1\63\1\67\1\72\1\64\1\70\1\100\1");
+	    "\60\1\64\1\67\1\61\1\65\1\70\1\62\1\66\1\71\1\63\1\67\1\72\1\64\1\70\1\100\1");
 	TransitionDrawBoardChange();
 	BoardEnter();
 }
@@ -1419,46 +1525,50 @@ void GameDebugPrompt() {
 	SidebarClearLine(5);
 
 	PromptString(63, 5, 0x1e, 0xf, 11, PROMPT_ANY, input);
-	for( i = 1; i <= length(input); i ++)
+	for( i = 1; i <= length(input); i ++) {
 		input[i] = upcase(input[i]);
+	}
 
 	toggle = true;
 	if ((input[1] == '+') || (input[1] == '-'))  {
-		if (input[1] == '-')
+		if (input[1] == '-') {
 			toggle = false;
+		}
 		input = copy(input, 2, length(input) - 1);
 
-		if (toggle == true)
+		if (toggle == true) {
 			WorldSetFlag(input);
-		else
+		} else {
 			WorldClearFlag(input);
+		}
 	}
 
 	DebugEnabled = WorldGetFlagPosition("DEBUG") >= 0;
 
-	if (input == "HEALTH")
+	if (input == "HEALTH") {
 		World.Info.Health = World.Info.Health + 50;
-	else if (input == "AMMO")
+	} else if (input == "AMMO") {
 		World.Info.Ammo = World.Info.Ammo + 5;
-	else if (input == "KEYS")
-		for( i = 1; i <= 7; i ++) World.Info.GiveKey(i);
-	else if (input == "TORCHES")
+	} else if (input == "KEYS")
+		for( i = 1; i <= 7; i ++) {
+			World.Info.GiveKey(i);
+		} else if (input == "TORCHES") {
 		World.Info.Torches = World.Info.Torches + 3;
-	else if (input == "TIME")
+	} else if (input == "TIME") {
 		World.Info.BoardTimeSec = World.Info.BoardTimeSec - 30;
-	else if (input == "GEMS")
+	} else if (input == "GEMS") {
 		World.Info.Gems = World.Info.Gems + 5;
-	else if (input == "DARK")  {
+	} else if (input == "DARK")  {
 		Board.Info.IsDark = toggle;
 		TransitionDrawToBoard();
 	} else if (input == "ZAP")  {
 		for( i = 0; i <= 3; i ++) {
 			BoardDamageTile(Board.Stats[0].X + NeighborDeltaX[i],
-			                Board.Stats[0].Y + NeighborDeltaY[i]);
+			    Board.Stats[0].Y + NeighborDeltaY[i]);
 			Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y +
-			        NeighborDeltaY[i]].Element = E_EMPTY;
+			    NeighborDeltaY[i]].Element = E_EMPTY;
 			BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i],
-			              Board.Stats[0].Y + NeighborDeltaY[i]);
+			    Board.Stats[0].Y + NeighborDeltaY[i]);
 		}
 	}
 
@@ -1515,10 +1625,11 @@ static void GameDrawSidebar() {
 		video.VideoWriteText(62, 7, 0x30, " W ");
 		video.VideoWriteText(65, 7, 0x1e, " World:");
 
-		if (World.Info.Name.size() != 0)
+		if (World.Info.Name.size() != 0) {
 			video.VideoWriteText(69, 8, 0x1f, World.Info.Name);
-		else
+		} else {
 			video.VideoWriteText(69, 8, 0x1f, "Untitled");
+		}
 
 		video.VideoWriteText(62, 11, 0x70, " P ");
 		video.VideoWriteText(65, 11, 0x1f, " Play");
@@ -1550,14 +1661,18 @@ void GamePlayLoop(boolean boardChanged) {
 		if (length(StartupWorldFileName) != 0)  {
 			SidebarClearLine(8);
 			video.VideoWriteText(69, 8, 0x1f, StartupWorldFileName);
-			if (! WorldLoad(std::string(StartupWorldFileName), ".ZZT"))  WorldCreate();
+			if (! WorldLoad(std::string(StartupWorldFileName),
+			        ".ZZT"))  {
+				WorldCreate();
+			}
 		}
 		ReturnBoardId = World.Info.CurrentBoard;
 		BoardChange(0);
 		JustStarted = false;
 	}
 
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = GameStateElement;
+	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element =
+	    GameStateElement;
 	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
 	    ElementDefs[GameStateElement].Color;
 
@@ -1566,8 +1681,9 @@ void GamePlayLoop(boolean boardChanged) {
 		video.VideoWriteText(62, 5, 0x1b, "Pick a command:");
 	}
 
-	if (boardChanged)
+	if (boardChanged) {
 		TransitionDrawBoardChange();
+	}
 
 	TickTimeDuration = TickSpeed * 2;
 	GamePlayExitRequested = false;
@@ -1580,17 +1696,21 @@ void GamePlayLoop(boolean boardChanged) {
 
 	do {
 		if (GamePaused)  {
-			if (SoundHasTimeElapsed(TickTimeCounter, 25))
+			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
 				pauseBlink = ! pauseBlink;
+			}
 
 			if (pauseBlink)  {
 				video.VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
-				                     ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
+				    ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 			} else {
-				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element == E_PLAYER)
-					video.VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf, " ");
-				else
+				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
+				    E_PLAYER)
+					video.VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf,
+					    " ");
+				else {
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
+				}
 			}
 
 			video.VideoWriteText(64, 5, 0x1f, "Pausing...");
@@ -1598,22 +1718,25 @@ void GamePlayLoop(boolean boardChanged) {
 
 			if (InputKeyPressed == E_KEY_ESCAPE) {
 				GamePromptEndPlay();
-            }
+			}
 
 			if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
-				ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y +
-				                                         InputDeltaY].Element].TouchProc(
-				                Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0,
-				                InputDeltaX, InputDeltaY);
+				ElementDefs[Board.Tiles[Board.Stats[0].X +
+				                                     InputDeltaX][Board.Stats[0].Y +
+				                                     InputDeltaY].Element].TouchProc(
+				            Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0,
+				            InputDeltaX, InputDeltaY);
 			}
 
 			if (((InputDeltaX != 0) || (InputDeltaY != 0))
-			        && ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y
-			                                                    + InputDeltaY].Element].Walkable) {
+			    && ElementDefs[Board.Tiles[Board.Stats[0].X +
+			                                         InputDeltaX][Board.Stats[0].Y
+			                                         + InputDeltaY].Element].Walkable) {
 				/* Move player */
-				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element == E_PLAYER)
+				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
+				    E_PLAYER)
 					MoveStat(0, Board.Stats[0].X + InputDeltaX,
-					         Board.Stats[0].Y + InputDeltaY);
+					    Board.Stats[0].Y + InputDeltaY);
 				else {
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 					Board.Stats[0].X = Board.Stats[0].X + InputDeltaX;
@@ -1624,7 +1747,7 @@ void GamePlayLoop(boolean boardChanged) {
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 					DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
 					DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX,
-					                       Board.Stats[0].Y - InputDeltaY, 0);
+					    Board.Stats[0].Y - InputDeltaY, 0);
 				}
 
 				/* Unpause */
@@ -1638,9 +1761,9 @@ void GamePlayLoop(boolean boardChanged) {
 		} else {       /* not GamePaused */
 			if (CurrentStatTicked <= Board.StatCount)  {
 				{
-					TStat& with = Board.Stats[CurrentStatTicked];
+					TStat & with = Board.Stats[CurrentStatTicked];
 					if ((with.Cycle != 0)
-					        && ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle)))
+					    && ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle)))
 						ElementDefs[Board.Tiles[with.X][with.Y].Element].TickProc(
 						    CurrentStatTicked);
 
@@ -1649,43 +1772,47 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 		}
 
-		if ((CurrentStatTicked > Board.StatCount) && ! GamePlayExitRequested)  {
+		if ((CurrentStatTicked > Board.StatCount)
+		    && ! GamePlayExitRequested)  {
 			/* all stats ticked */
 			if (SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration))  {
 				/* next cycle */
 				CurrentTick = CurrentTick + 1;
-				if (CurrentTick > 420)
+				if (CurrentTick > 420) {
 					CurrentTick = 1;
+				}
 				CurrentStatTicked = 0;
 
 				InputUpdate();
 			}
 		}
 
-        // Imported from fuzz branch for easier debugging:
+		// Imported from fuzz branch for easier debugging:
 
-        /* Crash if the invariant that the player (or monitor) must exist
-            and be at the X,Y given by stat 0 is violated. We have to check
-            for both player and monitor no matter what the GameStateElement
-            is in order to support Chronos' Forced Play hack. */
-        if (!ValidCoord(Board.Stats[0].X, Board.Stats[0].Y)) {
-            throw std::logic_error("game.cxx: Player or Monitor is off-board."
-                " This should never happen.");
-        }
+		/* Crash if the invariant that the player (or monitor) must exist
+		    and be at the X,Y given by stat 0 is violated. We have to check
+		    for both player and monitor no matter what the GameStateElement
+		    is in order to support Chronos' Forced Play hack. */
+		if (!ValidCoord(Board.Stats[0].X, Board.Stats[0].Y)) {
+			throw std::logic_error("game.cxx: Player or Monitor is off-board."
+			    " This should never happen.");
+		}
 
-        byte playerTileElem = Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
-        if (playerTileElem != E_PLAYER && playerTileElem != E_MONITOR) {
-            throw std::logic_error("game.cxx: Board has no Player or Monitor."
-                " This should never happen.");
-        }
+		byte playerTileElem =
+		    Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+		if (playerTileElem != E_PLAYER && playerTileElem != E_MONITOR) {
+			throw std::logic_error("game.cxx: Board has no Player or Monitor."
+			    " This should never happen.");
+		}
 
-	} while (!((exitLoop || GamePlayExitRequested) && GamePlayExitRequested));
+	} while (!((exitLoop || GamePlayExitRequested)
+	        && GamePlayExitRequested));
 
 	SoundClearQueue();
 
 	if (GameStateElement == E_PLAYER)  {
-        // XXX: Once we add in editor.cxx
-        // Should high score routines be in editor anyway?
+		// XXX: Once we add in editor.cxx
+		// Should high score routines be in editor anyway?
 		/*if (World.Info.Health <= 0)  {
 			HighScoresAdd(World.Info.Score);
 		}*/
@@ -1742,13 +1869,13 @@ void GameTitleLoop() {
 				GameAboutScreen();
 			}
 			break;
-            // XXX: Once we add in editor.cxx
-			/*case 'E': if (EditorEnabled)  {
+			// XXX: Once we add in editor.cxx
+			case 'E': if (EditorEnabled)  {
 					EditorLoop();
 					ReturnBoardId = World.Info.CurrentBoard;
 					boardChanged = true;
 				}
-				break;*/
+				break;
 			case 'S': {
 				SidebarPromptSlider(true, 66, 21, "Game speed:;FS", TickSpeed);
 				InputKeyPressed = '\0';
@@ -1762,11 +1889,11 @@ void GameTitleLoop() {
 				}
 			}
 			break;
-            // XXX: Once we add in editor.cxx
-			/*case 'H': {
-				HighScoresLoad();
-				HighScoresDisplay(1);
-			}*/
+				// XXX: Once we add in editor.cxx
+				/*case 'H': {
+					HighScoresLoad();
+					HighScoresDisplay(1);
+				}*/
 			break;
 			case '|': {
 				GameDebugPrompt();
@@ -1820,10 +1947,11 @@ void GamePrintRegisterMessage() {
 				} else {
 					f.read(scratch+1, s.size());
 					s = scratch;
-					if (s[0] != '@')
+					if (s[0] != '@') {
 						video.VideoWriteText(0, iy, color, s);
-					else
+					} else {
 						isReading = false;
+					}
 				}
 				iy += 1;
 			}
@@ -1841,7 +1969,7 @@ void GamePrintRegisterMessage() {
 }
 
 class unit_Game_initialize {
-public: unit_Game_initialize();
+  public: unit_Game_initialize();
 };
 static unit_Game_initialize Game_constructor;
 

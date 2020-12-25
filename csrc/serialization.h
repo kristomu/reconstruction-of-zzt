@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <fstream>
 
 // These functions help serializing and deserializing without having to deal
 // with unpacked vs packed structures, endian-ness or alignment violations.
@@ -126,4 +127,12 @@ template<typename T, typename Q> T load_array(T iterator, size_t elements,
 template<typename T, typename Q> T load_array(T iterator, Q & out_array) {
 
 	return load_array(iterator, out_array.size(), out_array);
+}
+
+template<typename Q> void load_lsb_from_file(std::istream & input,
+	Q & output) {
+
+	char temp_buffer[sizeof(output)];
+	input.read(temp_buffer, sizeof(output));
+	load_lsb_element(temp_buffer, output);
 }
