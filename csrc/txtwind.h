@@ -12,9 +12,9 @@ struct TTextWindowState {
 	integer LineCount;
 	integer LinePos;
 	array<1, MAX_TEXT_WINDOW_LINES,TTextWindowLine*> Lines;
-	asciiz Hyperlink;
+	string Hyperlink;
 	TTextWindowLine Title;
-	asciiz LoadedFilename;
+	string LoadedFilename;
 };
 
 struct TResourceDataHeader {
@@ -28,18 +28,17 @@ struct TResourceDataHeader {
 #define EXTERN
 #endif
 
-EXTERN TVideoBuffer ScreenCopy;
 EXTERN integer TextWindowX, TextWindowY;
 EXTERN integer TextWindowWidth, TextWindowHeight;
-EXTERN TVideoLine TextWindowStrInnerEmpty;
-EXTERN TVideoLine TextWindowStrText;
-EXTERN TVideoLine TextWindowStrInnerLine;
-EXTERN TVideoLine TextWindowStrTop;
-EXTERN TVideoLine TextWindowStrBottom;
-EXTERN TVideoLine TextWindowStrSep;
-EXTERN TVideoLine TextWindowStrInnerSep;
-EXTERN TVideoLine TextWindowStrInnerArrows;
-EXTERN boolean TextWindowRejected;
+EXTERN video_line text_window_str_inner_empty;
+EXTERN video_line text_window_str_text;
+EXTERN video_line text_window_str_inner_line;
+EXTERN video_line text_window_str_top;
+EXTERN video_line text_window_str_bottom;
+EXTERN video_line text_window_str_sep;
+EXTERN video_line text_window_str_inner_sep;
+EXTERN video_line text_window_str_inner_arrows;
+EXTERN bool TextWindowRejected;
 EXTERN std::string ResourceDataFileName;
 EXTERN TResourceDataHeader ResourceDataHeader;
 EXTERN string* OrderPrintId;

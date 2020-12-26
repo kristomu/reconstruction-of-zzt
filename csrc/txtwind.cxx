@@ -252,98 +252,98 @@ void TextWindowSelect(TTextWindowState& state, boolean hyperlinkAsSelect,
 
 
 
-	{
-		TextWindowRejected = false;
-		state.Hyperlink = "";
-		TextWindowDraw(state, false, viewingFile);
-		do {
-            InputReadWaitKey();
-			newLinePos = state.LinePos;
-			if (InputDeltaY != 0)  {
-				newLinePos = newLinePos + InputDeltaY;
-			} else if (InputShiftPressed || (InputKeyPressed == E_KEY_ENTER))  {
-				InputShiftAccepted = true;
-				/* IMP: Fix potential out-of-bounds access. */
-				if ((length(*state.Lines[state.LinePos]) > 0)
-				        && (((*state.Lines[state.LinePos])[1]) == '!'))  {
-					pointerStr = copy(*state.Lines[state.LinePos], 2,
-					                  length(*state.Lines[state.LinePos]) - 1);
+	TextWindowRejected = false;
+	state.Hyperlink = "";
+	TextWindowDraw(state, false, viewingFile);
+	do {
+        InputReadWaitKey();
+		newLinePos = state.LinePos;
+		if (InputDeltaY != 0)  {
+			newLinePos = newLinePos + InputDeltaY;
+		} else if (InputShiftPressed || (InputKeyPressed == E_KEY_ENTER))  {
+			InputShiftAccepted = true;
+			/* IMP: Fix potential out-of-bounds access. */
+			if ((length(*state.Lines[state.LinePos]) > 0)
+			        && (((*state.Lines[state.LinePos])[1]) == '!'))  {
+				pointerStr = copy(*state.Lines[state.LinePos], 2,
+				                  length(*state.Lines[state.LinePos]) - 1);
 
-					if (pos(";", pointerStr) > 0)  {
-						pointerStr = copy(pointerStr, 1, pos(";", pointerStr) - 1);
+				if (pos(";", pointerStr) > 0)  {
+					pointerStr = copy(pointerStr, 1, pos(";", pointerStr) - 1);
+				}
+
+				if (pointerStr[1] == '-')  {
+					Delete(pointerStr, 1, 1);
+					TextWindowFree(state);
+					TextWindowOpenFile(pointerStr.body, state);
+					if (state.LineCount == 0)
+						return;
+					else {
+						viewingFile = true;
+						newLinePos = state.LinePos;
+						TextWindowDraw(state, false, viewingFile);
+						InputKeyPressed = '\0';
+						InputShiftPressed = false;
 					}
-
-					if (pointerStr[1] == '-')  {
-						Delete(pointerStr, 1, 1);
-						TextWindowFree(state);
-						TextWindowOpenFile(pointerStr.body, state);
-						if (state.LineCount == 0)
-							return;
-						else {
-							viewingFile = true;
-							newLinePos = state.LinePos;
-							TextWindowDraw(state, false, viewingFile);
-							InputKeyPressed = '\0';
-							InputShiftPressed = false;
-						}
+				} else {
+					if (hyperlinkAsSelect)  {
+						state.Hyperlink = pointerStr;
 					} else {
-						if (hyperlinkAsSelect)  {
-							state.Hyperlink = pointerStr;
-						} else {
-							pointerStr = string(':') + pointerStr;
-							for( iLine = 1; iLine <= state.LineCount; iLine ++) {
-								if (length(pointerStr) > length(*state.Lines[iLine]))  {
-									;
-								} else {
-									for( iChar = 1; iChar <= length(pointerStr); iChar ++) {
-										if (upcase(pointerStr[iChar]) != upcase((*state.Lines[iLine])[iChar]))
-											goto LLabelNotMatched;
-									}
-									newLinePos = iLine;
-									InputKeyPressed = '\0';
-									InputShiftPressed = false;
-									goto LLabelMatched;
-LLabelNotMatched:;
+						pointerStr = string(':') + pointerStr;
+						for( iLine = 1; iLine <= state.LineCount; iLine ++) {
+							if (length(pointerStr) > length(*state.Lines[iLine]))  {
+								;
+							} else {
+								for( iChar = 1; iChar <= length(pointerStr); iChar ++) {
+									if (upcase(pointerStr[iChar]) != upcase((*state.Lines[iLine])[iChar]))
+										goto LLabelNotMatched;
 								}
+								newLinePos = iLine;
+								InputKeyPressed = '\0';
+								InputShiftPressed = false;
+								goto LLabelMatched;
+LLabelNotMatched:;
 							}
 						}
 					}
 				}
-			} else {
-				if (InputKeyPressed == E_KEY_PAGE_UP)
-					newLinePos = state.LinePos - TextWindowHeight + 4;
-				else if (InputKeyPressed == E_KEY_PAGE_DOWN)
-					newLinePos = state.LinePos + TextWindowHeight - 4;
-				else if (InputKeyPressed == E_KEY_ALT_P)
-					TextWindowPrint(state);
 			}
+		} else {
+			if (InputKeyPressed == E_KEY_PAGE_UP)
+				newLinePos = state.LinePos - TextWindowHeight + 4;
+			else if (InputKeyPressed == E_KEY_PAGE_DOWN)
+				newLinePos = state.LinePos + TextWindowHeight - 4;
+			else if (InputKeyPressed == E_KEY_ALT_P)
+				TextWindowPrint(state);
+		}
 
 LLabelMatched:
-			if (newLinePos < 1)
-				newLinePos = 1;
-			else if (newLinePos > state.LineCount)
-				newLinePos = state.LineCount;
+		if (newLinePos < 1)
+			newLinePos = 1;
+		else if (newLinePos > state.LineCount)
+			newLinePos = state.LineCount;
 
-			if (newLinePos != state.LinePos)  {
-				state.LinePos = newLinePos;
-				TextWindowDraw(state, false, viewingFile);
-				/* IMP: Fix potential out-of-bounds access.*/
-				if ((length(*state.Lines[state.LinePos]) > 0)
-				        && (((*state.Lines[state.LinePos])[1]) == '!'))
-					if (hyperlinkAsSelect)
-						TextWindowDrawTitle(0x1e, "\256Press ENTER to select this\257");
-					else
-						TextWindowDrawTitle(0x1e, "\256Press ENTER for more info\257");
+		if (newLinePos != state.LinePos)  {
+			state.LinePos = newLinePos;
+			TextWindowDraw(state, false, viewingFile);
+			/* IMP: Fix potential out-of-bounds access.*/
+			if ((length(*state.Lines[state.LinePos]) > 0)
+			        && (((*state.Lines[state.LinePos])[1]) == '!')) {
+				if (hyperlinkAsSelect) {
+					TextWindowDrawTitle(0x1e, "\256Press ENTER to select this\257");
+				} else {
+					TextWindowDrawTitle(0x1e, "\256Press ENTER for more info\257");
+				}
 			}
-			if (InputJoystickMoved)  {
-				Delay(35);
-			}
-		} while (!((InputKeyPressed == E_KEY_ESCAPE)
-		           || (InputKeyPressed == E_KEY_ENTER) || InputShiftPressed));
-		if (InputKeyPressed == E_KEY_ESCAPE)  {
-			InputKeyPressed = '\0';
-			TextWindowRejected = true;
 		}
+		if (InputJoystickMoved)  {
+			Delay(35);
+		}
+	} while (!((InputKeyPressed == E_KEY_ESCAPE)
+	           || (InputKeyPressed == E_KEY_ENTER) || InputShiftPressed));
+	if (InputKeyPressed == E_KEY_ESCAPE)  {
+		InputKeyPressed = '\0';
+		TextWindowRejected = true;
 	}
 }
 

@@ -83,13 +83,13 @@ static std::shared_ptr<unsigned char[]> copiedData;
 static integer copiedDataLen;
 
 static TTile copiedTile;
+static byte copiedChr;
 
 static integer copiedX, copiedY;
 
 
 static void EditorDrawSidebar() {
     integer i;
-    byte copiedChr;
 
     SidebarClear();
     SidebarClearLine(1);
@@ -133,12 +133,8 @@ static void EditorDrawSidebar() {
     for( i = 1; i <= EditorPatternCount; i ++)
         video.VideoWriteText(61 + i, 22, 0xf, ElementDefs[EditorPatterns[i]].Character);
 
-    if (ElementDefs[copiedTile.Element].HasDrawProc)
-        ElementDefs[copiedTile.Element].DrawProc(copiedX, copiedY, copiedChr);
-    else
-        copiedChr = ord(ElementDefs[copiedTile.Element].Character);
     video.VideoWriteText(62 + EditorPatternCount, 22, copiedTile.Color,
-                   chr(copiedChr));
+                   copiedChr);
 
     video.VideoWriteText(61, 24, 0x1f, " Mode:");
 }
@@ -190,7 +186,19 @@ static void EditorDrawRefresh() {
     }
 }
 
-
+void updateCopiedCharacter() {
+    // Set character. This is necessary because, after changing a board,
+    // the copied object's DrawProc may try to get at the stat ID by
+    // coordinate. If there's no stat at those coordinates, that causes a
+    // big boom, and if there is something there, the character could be
+    // wrong (e.g. copying a down transporter to a board with a tiger at
+    // that position).
+    if (ElementDefs[copiedTile.Element].HasDrawProc) {
+        ElementDefs[copiedTile.Element].DrawProc(copiedX, copiedY, copiedChr);
+    } else {
+        copiedChr = ord(ElementDefs[copiedTile.Element].Character);
+    }
+}
 
 static void EditorSetAndCopyTile(byte x, byte y, byte element,
                                  byte color) {
@@ -201,6 +209,7 @@ static void EditorSetAndCopyTile(byte x, byte y, byte element,
     copiedHasStat = false;
     copiedX = x;
     copiedY = y;
+    updateCopiedCharacter();
 
     EditorDrawTileAndNeighborsAt(x, y);
 }
@@ -254,8 +263,8 @@ static void EditorPlaceTile(integer x, integer y) {
                    potential data, so no need to do that here.
                    Instead, we can just copy the pointer over. */
                 copiedStat.data = copiedData;
-                AddStat(x, y, copiedTile.Element, copiedTile.Color, copiedStat.Cycle,
-                        copiedStat);
+                AddStat(x, y, copiedTile.Element, copiedTile.Color,
+                    copiedStat.Cycle, copiedStat);
             }
         } else {
             if (EditorPrepareModifyTile(x, y))  {
@@ -515,6 +524,7 @@ static void EditorEditStatSettings(boolean selected, integer& statId,
                         copiedHasStat = false;
                         copiedTile.Element = 0;
                         copiedTile.Color = 0xf;
+                        updateCopiedCharacter();
                     }
                     World.EditorStatSettings[element].P3 = with.P3;
                 } else {
@@ -583,6 +593,7 @@ static void EditorEditStat(integer statId) {
             }
             copiedX = with.X;
             copiedY = with.Y;
+            updateCopiedCharacter();
         }
     }
 }
@@ -717,6 +728,7 @@ void EditorLoop() {
     copiedTile.Element = 0;
     copiedDataLen = 0;
     copiedTile.Color = 0xf;
+    copiedChr = ' ';
 
     if (World.Info.CurrentBoard != 0)
         BoardChange(World.Info.CurrentBoard);
@@ -1017,6 +1029,7 @@ void EditorLoop() {
                     copiedHasStat = false;
                     copiedTile = Board.Tiles[cursorX][cursorY];
                 }
+                updateCopiedCharacter();
             }
             break;
             case 'I': {

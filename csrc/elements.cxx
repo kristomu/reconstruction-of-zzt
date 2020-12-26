@@ -47,9 +47,9 @@
 
 #include "hardware.h"
 
-const string TransporterNSChars = "^~^-v_v-";
-const string TransporterEWChars = "(<(\263)>)\263";
-const string StarAnimChars = "\263/\304\\";
+const std::string TransporterNSChars = "^~^-v_v-";
+const std::string TransporterEWChars = "(<(\263)>)\263";
+const std::string StarAnimChars = "\263/\304\\";
 
 void ElementDefaultTick(integer statId) {
 	;

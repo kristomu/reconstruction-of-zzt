@@ -981,7 +981,7 @@ void CopyStatDataToTextWindow(integer statId,
 	from 0 when copying data. */
 	for( i = 0; i < with.DataLen; i ++) {
 		dataChr = with.data.get()[i];
-		if (dataChr == E_KEY_ENTER)  {
+		if (dataChr == '\r')  {
 			TextWindowAppend(state, dataStr);
 			dataStr = "";
 		} else {

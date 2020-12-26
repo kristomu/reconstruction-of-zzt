@@ -216,7 +216,7 @@ int main(int argc, const char* argv[]) {
             //new TIoTmpBuf;
 
             video.VideoHideCursor();
-            ClrScr;
+            ClrScr();
 
             TickSpeed = 4;
             DebugEnabled = false;

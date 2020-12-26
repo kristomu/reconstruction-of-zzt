@@ -192,15 +192,15 @@ dos_emulation::dos_emulation() {
 
 std::string dos_emulation::unicode(unsigned char dos_char) const {
 	if (dos_char < uchars.size() && uchars[dos_char].size() != 0)
-		return(uchars[dos_char]);
+		return (uchars[dos_char]);
 
 	std::string defstr = "Q";
 	defstr[0] = dos_char;
-	return(defstr);
+	return (defstr);
 }
 
 short curses_io::dos_color_to_curses(dos_color color) const {
-	switch(color) {
+	switch (color) {
 		case 0: return (COLOR_BLACK);
 		case 1: return (COLOR_BLUE);
 		case 2: return (COLOR_GREEN);
@@ -214,7 +214,7 @@ short curses_io::dos_color_to_curses(dos_color color) const {
 }
 
 int curses_io::linear(int x, int y, int xsize) const {
-	return(y * xsize + x);
+	return (y * xsize + x);
 }
 
 bool curses_io::prepare_colors() {
@@ -229,10 +229,10 @@ bool curses_io::prepare_colors() {
 	for (int fg = 0; fg < 8; ++fg)
 		for (int bg = 0; bg < 8; ++bg)
 			init_pair(linear(fg, bg, 8) + 1,
-					dos_color_to_curses((dos_color)fg),
-					dos_color_to_curses((dos_color)bg));
+			    dos_color_to_curses((dos_color)fg),
+			    dos_color_to_curses((dos_color)bg));
 
-	return(true);
+	return (true);
 }
 
 // Note that we lose the capacity to directly determine what modifier keys
@@ -241,19 +241,22 @@ bool curses_io::prepare_colors() {
 // or substitute your own cursing at curses at this point. (In any case,
 // this actually makes the terminal behave more like ZZT's: for instance,
 // CTRL+arrow keys no longer register as anything.)
-key_response curses_io::parse(wchar_t unparsed, bool special_ncurses) const {
+key_response curses_io::parse(wchar_t unparsed,
+    bool special_ncurses) const {
 
 	key_response response;
 
 	if (!special_ncurses) {
-		switch(unparsed) {
-			// ??? Seems to work...
-			case 25: return E_KEY_CTRL_Y;
+		switch (unparsed) {
+			case 25: return E_KEY_CTRL_Y;	// ??? Seems to work...
+			// I don't know why this doesn't register as a special key
+			// but wth.
+			case 8: return E_KEY_BACKSPACE;
 			default: return unparsed;
 		}
 	}
 
-	switch(unparsed) {
+	switch (unparsed) {
 		case KEY_UP: return E_KEY_UP;
 		case KEY_DOWN: return E_KEY_DOWN;
 		case KEY_RIGHT: return E_KEY_RIGHT;
@@ -333,7 +336,7 @@ curses_io::curses_io() {
 	keypad(window, true);
 
 	if (window == NULL) {
-		throw(NCURSES_INIT_FAILURE);
+		throw (NCURSES_INIT_FAILURE);
 	}
 
 	nodelay(window, true);
@@ -397,19 +400,20 @@ bool curses_io::print(const std::string to_print) const {
 }
 
 bool curses_io::print(int x, int y, const char * str) const {
-	return(print(x, y, str, strlen(str)));
+	return (print(x, y, str, strlen(str)));
 }
 
-bool curses_io::print(int x, int y, const char * str, size_t maxlen) const {
+bool curses_io::print(int x, int y, const char * str,
+    size_t maxlen) const {
 	bool done = true;
 	for (int counter = 0; counter < std::min(strlen(str), maxlen); ++counter)
 		done &= print_ch(x + counter, y, str[counter]);
 
-	return(done);
+	return (done);
 }
 
 bool curses_io::print(int x, int y, std::string str) const {
-	return(print(x, y, str.c_str(), str.size()));
+	return (print(x, y, str.c_str(), str.size()));
 }
 
 bool curses_io::print_ch(int x, int y, unsigned char to_print) const {
@@ -422,7 +426,7 @@ bool curses_io::print_ch(int x, int y, unsigned char to_print) const {
 }
 
 bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
-		unsigned char to_print) const {
+    unsigned char to_print) const {
 
 	// Set our color pair to the desired color (might want to use preset
 	// color pairs later).
@@ -431,34 +435,34 @@ bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
 
 	use_color(fg, bg);
 	bool worked = print_ch(x, y, to_print);
-	return(worked);
+	return (worked);
 }
 
 bool curses_io::print_ch(int x, int y, char packed_color,
-	unsigned char to_print) const {
+    unsigned char to_print) const {
 
 	return print_ch(x, y, (dos_color)(packed_color & 0xF),
-		(dos_color)(packed_color >> 4), to_print);
+	        (dos_color)(packed_color >> 4), to_print);
 }
 
 bool curses_io::print_col(int x, int y, dos_color fg, dos_color bg,
-	std::string str) const {
+    std::string str) const {
 
 	use_color(fg, bg);
 	return (print(x, y, str));
 }
 
 bool curses_io::print_ext(int x, int y, dos_color fg, dos_color bg,
-		const std::vector<short> & ext) const {
+    const std::vector<short> & ext) const {
 
 	use_color(fg, bg);
 
 	bool retval = true;
 
 	for (int counter = 0; counter < ext.size(); ++counter)
-		 retval &= mvwaddch(window, y, x+counter, ext[counter]);
+		retval &= mvwaddch(window, y, x+counter, ext[counter]);
 
-	return(retval);
+	return (retval);
 }
 
 // Keyboard input.
@@ -519,20 +523,20 @@ key_response curses_io::read_key() {
 			if (first) {
 				if (was_blocking) {
 					throw std::logic_error("Curses has desynchronized. "
-						"Something is wrong with the code, perhaps missing"
-						" initialization of TxtWind?");
+					    "Something is wrong with the code, perhaps missing"
+					    " initialization of TxtWind?");
 				}
 
 				if (ignore_lack_of_keys) {
 					return E_KEY_NONE;
 				} else {
 					throw std::runtime_error(
-						"Tried to read key with no key available.");
+					    "Tried to read key with no key available.");
 				}
 			}
 		} else {
 			keys_read.push_back(parse(next_key,
-				key_or_err == KEY_CODE_YES));
+			        key_or_err == KEY_CODE_YES));
 		}
 		// If the function is called from a blocking key read,
 		// we must turn nonblocking on for subsequent keys.
