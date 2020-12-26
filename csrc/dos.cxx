@@ -50,23 +50,23 @@
 
 extern word DosVersion();
 
-extern void Intr(byte IntNo, Registers& Regs);
+extern void Intr(byte IntNo, Registers & Regs);
 
-extern void MsDos(Registers& Regs);
+extern void MsDos(Registers & Regs);
 
-extern void GetDate(word& Year,word& Month,word& Day,word& DayOfWeek);
+extern void GetDate(word & Year,word & Month,word & Day,word & DayOfWeek);
 
 extern void SetDate(word Year,word Month,word Day);
 
-extern void GetTime(word& Hour,word& Minute,word& Second,word& Sec100);
+extern void GetTime(word & Hour,word & Minute,word & Second,word & Sec100);
 
 extern void SetTime(word Hour,word Minute,word Second,word Sec100);
 
-extern void GetCBreak(boolean& break_);
+extern void GetCBreak(boolean & break_);
 
 extern void SetCBreak(boolean break_);
 
-extern void GetVerify(boolean& Verify);
+extern void GetVerify(boolean & Verify);
 
 extern void SetVerify(boolean Verify);
 
@@ -74,24 +74,24 @@ extern longint DiskFree(byte Drive);
 
 extern longint DiskSize(byte Drive);
 
-extern void GetFAttr(void* F, word& Attr);
+extern void GetFAttr(void* F, word & Attr);
 
 extern void SetFAttr(void* F, word Attr);
 
-extern void GetFTime(void* F, longint& Time);
+extern void GetFTime(void* F, longint & Time);
 
 extern void SetFTime(void* F, longint Time);
 
-extern void FindFirst(PathStr Path, word Attr, SearchRec& F);
+extern void FindFirst(PathStr Path, word Attr, SearchRec & F);
 
 
-extern void FindNext(SearchRec& F);
+extern void FindNext(SearchRec & F);
 
-extern void UnpackTime(longint P, DateTime& T);
+extern void UnpackTime(longint P, DateTime & T);
 
-extern void PackTime(DateTime& T, longint& P);
+extern void PackTime(DateTime & T, longint & P);
 
-extern void GetIntVec(byte IntNo, pointer& Vector);
+extern void GetIntVec(byte IntNo, pointer & Vector);
 
 extern void SetIntVec(byte IntNo, pointer Vector);
 
@@ -99,8 +99,8 @@ extern PathStr FSearch(PathStr Path, string DirList);
 
 extern PathStr FExpand(PathStr Path);
 
-extern void FSplit(PathStr Path, DirStr& Dir,
-                   NameStr& Name, ExtStr& Ext);
+extern void FSplit(PathStr Path, DirStr & Dir,
+	NameStr & Name, ExtStr & Ext);
 
 extern integer EnvCount();
 

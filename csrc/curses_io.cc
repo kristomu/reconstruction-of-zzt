@@ -48,8 +48,9 @@ dos_emulation::dos_emulation() {
 	uchars.push_back("\u25BC");
 
 	// then come the alphanumerics, which are plain.
-	for (int counter = 0x20; counter <= 0x7E; ++counter)
+	for (int counter = 0x20; counter <= 0x7E; ++counter) {
 		uchars.push_back("");
+	}
 
 	uchars.push_back("\u2302"); // Energizer, 0x7F.
 
@@ -191,8 +192,9 @@ dos_emulation::dos_emulation() {
 }
 
 std::string dos_emulation::unicode(unsigned char dos_char) const {
-	if (dos_char < uchars.size() && uchars[dos_char].size() != 0)
+	if (dos_char < uchars.size() && uchars[dos_char].size() != 0) {
 		return (uchars[dos_char]);
+	}
 
 	std::string defstr = "Q";
 	defstr[0] = dos_char;
@@ -229,8 +231,8 @@ bool curses_io::prepare_colors() {
 	for (int fg = 0; fg < 8; ++fg)
 		for (int bg = 0; bg < 8; ++bg)
 			init_pair(linear(fg, bg, 8) + 1,
-			    dos_color_to_curses((dos_color)fg),
-			    dos_color_to_curses((dos_color)bg));
+				dos_color_to_curses((dos_color)fg),
+				dos_color_to_curses((dos_color)bg));
 
 	return (true);
 }
@@ -242,7 +244,7 @@ bool curses_io::prepare_colors() {
 // this actually makes the terminal behave more like ZZT's: for instance,
 // CTRL+arrow keys no longer register as anything.)
 key_response curses_io::parse(wchar_t unparsed,
-    bool special_ncurses) const {
+	bool special_ncurses) const {
 
 	key_response response;
 
@@ -300,10 +302,12 @@ void curses_io::use_color(dos_color fg, dos_color bg) const {
 
 	int fg_high = 0, bg_high = 0;
 
-	if (fg > 7)
+	if (fg > 7) {
 		fg_high = A_BOLD;
-	if (bg > 7)
+	}
+	if (bg > 7) {
 		bg_high = A_BLINK;
+	}
 
 	if (black_and_white) {
 		if (fg > 7) {
@@ -404,10 +408,11 @@ bool curses_io::print(int x, int y, const char * str) const {
 }
 
 bool curses_io::print(int x, int y, const char * str,
-    size_t maxlen) const {
+	size_t maxlen) const {
 	bool done = true;
-	for (int counter = 0; counter < std::min(strlen(str), maxlen); ++counter)
+	for (int counter = 0; counter < std::min(strlen(str), maxlen); ++counter) {
 		done &= print_ch(x + counter, y, str[counter]);
+	}
 
 	return (done);
 }
@@ -426,7 +431,7 @@ bool curses_io::print_ch(int x, int y, unsigned char to_print) const {
 }
 
 bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
-    unsigned char to_print) const {
+	unsigned char to_print) const {
 
 	// Set our color pair to the desired color (might want to use preset
 	// color pairs later).
@@ -439,28 +444,29 @@ bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
 }
 
 bool curses_io::print_ch(int x, int y, char packed_color,
-    unsigned char to_print) const {
+	unsigned char to_print) const {
 
 	return print_ch(x, y, (dos_color)(packed_color & 0xF),
-	        (dos_color)(packed_color >> 4), to_print);
+			(dos_color)(packed_color >> 4), to_print);
 }
 
 bool curses_io::print_col(int x, int y, dos_color fg, dos_color bg,
-    std::string str) const {
+	std::string str) const {
 
 	use_color(fg, bg);
 	return (print(x, y, str));
 }
 
 bool curses_io::print_ext(int x, int y, dos_color fg, dos_color bg,
-    const std::vector<short> & ext) const {
+	const std::vector<short> & ext) const {
 
 	use_color(fg, bg);
 
 	bool retval = true;
 
-	for (int counter = 0; counter < ext.size(); ++counter)
+	for (int counter = 0; counter < ext.size(); ++counter) {
 		retval &= mvwaddch(window, y, x+counter, ext[counter]);
+	}
 
 	return (retval);
 }
@@ -523,20 +529,20 @@ key_response curses_io::read_key() {
 			if (first) {
 				if (was_blocking) {
 					throw std::logic_error("Curses has desynchronized. "
-					    "Something is wrong with the code, perhaps missing"
-					    " initialization of TxtWind?");
+						"Something is wrong with the code, perhaps missing"
+						" initialization of TxtWind?");
 				}
 
 				if (ignore_lack_of_keys) {
 					return E_KEY_NONE;
 				} else {
 					throw std::runtime_error(
-					    "Tried to read key with no key available.");
+						"Tried to read key with no key available.");
 				}
 			}
 		} else {
 			keys_read.push_back(parse(next_key,
-			        key_or_err == KEY_CODE_YES));
+					key_or_err == KEY_CODE_YES));
 		}
 		// If the function is called from a blocking key read,
 		// we must turn nonblocking on for subsequent keys.

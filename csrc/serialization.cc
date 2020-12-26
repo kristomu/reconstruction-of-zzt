@@ -26,6 +26,9 @@ void append_pascal_string(const std::string & in_str, size_t max_length,
 	}
 }
 
-void append_zeroes(size_t how_many, std::vector<unsigned char> & append_to) {
-	for (size_t i = 0; i < how_many; ++i) { append_to.push_back(0); }
+void append_zeroes(size_t how_many,
+	std::vector<unsigned char> & append_to) {
+	for (size_t i = 0; i < how_many; ++i) {
+		append_to.push_back(0);
+	}
 }

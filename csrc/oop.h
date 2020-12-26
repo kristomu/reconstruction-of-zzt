@@ -7,6 +7,6 @@ integer WorldGetFlagPosition(TString50 name);
 void WorldSetFlag(TString50 name);
 void WorldClearFlag(TString50 name);
 boolean OopSend(integer statId, string sendLabel, boolean ignoreLock);
-void OopExecute(integer statId, integer& position, TString50 name);
+void OopExecute(integer statId, integer & position, TString50 name);
 
 #endif

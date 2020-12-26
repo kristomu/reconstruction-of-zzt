@@ -32,7 +32,7 @@ EXTERN array<0, 9,TDrumData> SoundDrumTable;
 
 void SoundQueue(integer priority, string pattern);
 void SoundClearQueue();
-boolean SoundHasTimeElapsed(integer& counter, integer duration);
+boolean SoundHasTimeElapsed(integer & counter, integer duration);
 void SoundUninstall();
 string SoundParse(string input);
 

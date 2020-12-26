@@ -43,204 +43,215 @@
 TWorld World;
 
 void ParseArguments() {
-    integer i;
-    string pArg;
+	integer i;
+	string pArg;
 
-    for( i = 1; i <= ParamCount; i ++) {
-        pArg = ParamStr(i);
-        if (pArg[1] == '/')  {
-            switch (upcase(pArg[2])) {
-            case 'T': {
-                // TBD: sounds.pas
-                /* SoundTimeCheckCounter = 0;
-                UseSystemTimeForElapsed = false;*/
-            }
-            break;
-            case 'R': ResetConfig = true; break;
-            }
-        } else {
-            StartupWorldFileName = pArg;
-            if ((length(StartupWorldFileName) > 4)
-                    && (StartupWorldFileName[length(StartupWorldFileName) - 3] == '.'))  {
-                StartupWorldFileName = copy(StartupWorldFileName, 1,
-                                            length(StartupWorldFileName) - 4);
-            }
-        }
-    }
+	for (i = 1; i <= ParamCount; i ++) {
+		pArg = ParamStr(i);
+		if (pArg[1] == '/')  {
+			switch (upcase(pArg[2])) {
+				case 'T': {
+					// TBD: sounds.pas
+					/* SoundTimeCheckCounter = 0;
+					UseSystemTimeForElapsed = false;*/
+				}
+				break;
+				case 'R': ResetConfig = true; break;
+			}
+		} else {
+			StartupWorldFileName = pArg;
+			if ((length(StartupWorldFileName) > 4)
+				&& (StartupWorldFileName[length(StartupWorldFileName) - 3] == '.'))  {
+				StartupWorldFileName = copy(StartupWorldFileName, 1,
+						length(StartupWorldFileName) - 4);
+			}
+		}
+	}
 }
 
 void GameConfigure() {
-    integer unk1;
-    boolean joystickEnabled, mouseEnabled;
-    integer bottomRow;
+	integer unk1;
+	boolean joystickEnabled, mouseEnabled;
+	integer bottomRow;
 
-    ParsingConfigFile = true;
-    EditorEnabled = true;
-    ConfigRegistration = "";
-    ConfigWorldFile = "";
-    GameVersion = "3.2";
+	ParsingConfigFile = true;
+	EditorEnabled = true;
+	ConfigRegistration = "";
+	ConfigWorldFile = "";
+	GameVersion = "3.2";
 
-    std::ifstream cfgFile = OpenForRead("zzt.cfg");
-    if (errno == 0)  {
-        cfgFile >> ConfigWorldFile;
-        cfgFile >> ConfigRegistration;
-    }
-    if (ConfigWorldFile[0] == '*')  {
-        EditorEnabled = false;
-        ConfigWorldFile = ConfigWorldFile.substr(1);
-    }
-    if (ConfigWorldFile.size() > 0)  {
-        StartupWorldFileName = ConfigWorldFile.c_str();
-    }
-    cfgFile.close();
+	std::ifstream cfgFile = OpenForRead("zzt.cfg");
+	if (errno == 0)  {
+		cfgFile >> ConfigWorldFile;
+		cfgFile >> ConfigRegistration;
+	}
+	if (ConfigWorldFile[0] == '*')  {
+		EditorEnabled = false;
+		ConfigWorldFile = ConfigWorldFile.substr(1);
+	}
+	if (ConfigWorldFile.size() > 0)  {
+		StartupWorldFileName = ConfigWorldFile.c_str();
+	}
+	cfgFile.close();
 
-    // TBD: inputs.pas
-    /*InputInitDevices();
-    joystickEnabled = InputJoystickEnabled;
-    mouseEnabled = InputMouseEnabled;*/
+	// TBD: inputs.pas
+	/*InputInitDevices();
+	joystickEnabled = InputJoystickEnabled;
+	mouseEnabled = InputMouseEnabled;*/
 
-    /* Define the bottom row of the 80x25 terminal layout, or
-    the bottom of the screen if it's smaller. */
-    bottomRow = WindMaxY - WindMinY;
-    if (bottomRow > 25)  bottomRow = 25;
+	/* Define the bottom row of the 80x25 terminal layout, or
+	the bottom of the screen if it's smaller. */
+	bottomRow = WindMaxY - WindMinY;
+	if (bottomRow > 25) {
+		bottomRow = 25;
+	}
 
-    ParsingConfigFile = false;
+	ParsingConfigFile = false;
 
-    Window(1, 1, 80, bottomRow+1);
+	Window(1, 1, 80, bottomRow+1);
 
-    TextBackground(Black);
-    ClrScr();
-    TextColor(White);
-    TextColor(White);
-    cursesWriteLn("");
-    cursesWriteLn("                                 <=-  ZZT  -=>");
-    TextColor(Yellow);
-    if (ConfigRegistration.size() == 0)
-        cursesWriteLn("                             Shareware version 3.2");
-    else
-        cursesWriteLn("                                  Version  3.2");
-    cursesWriteLn("                            Created by Tim Sweeney");
-    TextColor(LightGray);
-    if (bottomRow < 24)
-        cursesWriteLn("                        Best played in 80x25 or larger.");
-    GotoXY(1, 7);
-    TextColor(Blue);
-    cursesWriteLn("================================================================================");
-    GotoXY(1, bottomRow);
-    cursesWriteLn("================================================================================");
-    TextColor(White);
-    GotoXY(30, 7);
-    cursesWrite(" Game Configuration ");
-    GotoXY(1, bottomRow+1);
-    cursesWriteLn(" Copyright (c) 1991 Epic MegaGames                         Press ... to abort");
-    TextColor(Black);
-    TextBackground(LightGray);
-    GotoXY(66, bottomRow+1);
-    cursesWrite("ESC");
-    getch(); // hax
-    /*Window(1, 8, 80, bottomRow-2);
-    TextColor(Yellow);
-    TextBackground(Black);
-    ClrScr();
-    TextColor(Yellow);*/
-    // TBD: video.pas
-    GotoXY(1, 8);
-    TextColor(LightGreen);
-    TextBackground(Black);
-    if (! video.VideoConfigure())
-        GameTitleExitRequested = true;
+	TextBackground(Black);
+	ClrScr();
+	TextColor(White);
+	TextColor(White);
+	cursesWriteLn("");
+	cursesWriteLn("                                 <=-  ZZT  -=>");
+	TextColor(Yellow);
+	if (ConfigRegistration.size() == 0) {
+		cursesWriteLn("                             Shareware version 3.2");
+	} else {
+		cursesWriteLn("                                  Version  3.2");
+	}
+	cursesWriteLn("                            Created by Tim Sweeney");
+	TextColor(LightGray);
+	if (bottomRow < 24) {
+		cursesWriteLn("                        Best played in 80x25 or larger.");
+	}
+	GotoXY(1, 7);
+	TextColor(Blue);
+	cursesWriteLn("================================================================================");
+	GotoXY(1, bottomRow);
+	cursesWriteLn("================================================================================");
+	TextColor(White);
+	GotoXY(30, 7);
+	cursesWrite(" Game Configuration ");
+	GotoXY(1, bottomRow+1);
+	cursesWriteLn(" Copyright (c) 1991 Epic MegaGames                         Press ... to abort");
+	TextColor(Black);
+	TextBackground(LightGray);
+	GotoXY(66, bottomRow+1);
+	cursesWrite("ESC");
+	getch(); // hax
+	/*Window(1, 8, 80, bottomRow-2);
+	TextColor(Yellow);
+	TextBackground(Black);
+	ClrScr();
+	TextColor(Yellow);*/
+	// TBD: video.pas
+	GotoXY(1, 8);
+	TextColor(LightGreen);
+	TextBackground(Black);
+	if (! video.VideoConfigure()) {
+		GameTitleExitRequested = true;
+	}
 
-    Window(1, 1, 80, bottomRow+1);
+	Window(1, 1, 80, bottomRow+1);
+}
+
+void debug_ncurses_input() {
+	int col = 0;
+
+	do {
+		InputReadWaitKey();
+		video.VideoWriteText(10, 10, col + 0x09,
+			"Key read: " + itos(InputKeyPressed) + " delta " + itos(
+				InputDeltaX) + "," + itos(InputDeltaY));
+		//video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
+		++col;
+		col = col % 7;
+	} while (1 == 1);
 }
 
 int main(int argc, const char* argv[]) {
-    pio_initialize(argc, argv);
-    WorldFileDescCount = 7;
-    WorldFileDescKeys[1] = "TOWN";
-    WorldFileDescValues[1] = "TOWN       The Town of ZZT";
-    WorldFileDescKeys[2] = "DEMO";
-    WorldFileDescValues[2] = "DEMO       Demo of the ZZT World Editor";
-    WorldFileDescKeys[3] = "CAVES";
-    WorldFileDescValues[3] = "CAVES      The Caves of ZZT";
-    WorldFileDescKeys[4] = "DUNGEONS";
-    WorldFileDescValues[4] = "DUNGEONS   The Dungeons of ZZT";
-    WorldFileDescKeys[5] = "CITY";
-    WorldFileDescValues[5] = "CITY       Underground City of ZZT";
-    WorldFileDescKeys[6] = "BEST";
-    WorldFileDescValues[6] = "BEST       The Best of ZZT";
-    WorldFileDescKeys[7] = "TOUR";
-    WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
+	pio_initialize(argc, argv);
+	WorldFileDescCount = 7;
+	WorldFileDescKeys[1] = "TOWN";
+	WorldFileDescValues[1] = "TOWN       The Town of ZZT";
+	WorldFileDescKeys[2] = "DEMO";
+	WorldFileDescValues[2] = "DEMO       Demo of the ZZT World Editor";
+	WorldFileDescKeys[3] = "CAVES";
+	WorldFileDescValues[3] = "CAVES      The Caves of ZZT";
+	WorldFileDescKeys[4] = "DUNGEONS";
+	WorldFileDescValues[4] = "DUNGEONS   The Dungeons of ZZT";
+	WorldFileDescKeys[5] = "CITY";
+	WorldFileDescValues[5] = "CITY       Underground City of ZZT";
+	WorldFileDescKeys[6] = "BEST";
+	WorldFileDescValues[6] = "BEST       The Best of ZZT";
+	WorldFileDescKeys[7] = "TOUR";
+	WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
 
-    initCurses();
-    video.VideoInstall(80, Blue, display);
+	initCurses();
+	video.VideoInstall(80, Blue, display);
 
-    Randomize();
-    SetCBreak(false);
-    SetupCodepointToCP437();
+	Randomize();
+	SetCBreak(false);
+	SetupCodepointToCP437();
 
-    // Back up the text attributes. This shouldn't be necessary because
-    // curses cleans up after itself.
-    //InitialTextAttr = TextAttr;
+	// Back up the text attributes. This shouldn't be necessary because
+	// curses cleans up after itself.
+	//InitialTextAttr = TextAttr;
 
-    StartupWorldFileName = "TOWN";
-    ResourceDataFileName = "ZZT.DAT";
-    ResetConfig = false;
-    GameTitleExitRequested = false;
-    GameConfigure();
-    ParseArguments();
-    TextWindowInit(5, 3, 50, 18);
+	StartupWorldFileName = "TOWN";
+	ResourceDataFileName = "ZZT.DAT";
+	ResetConfig = false;
+	GameTitleExitRequested = false;
+	GameConfigure();
+	ParseArguments();
+	TextWindowInit(5, 3, 50, 18);
 
-    /*int col = 0;
+	/*debug_ncurses_input();*/
 
-    do {
-        InputReadWaitKey();
-        video.VideoWriteText(10, 10, col + 0x09, "Key read: " + itos(InputKeyPressed) + " delta " + itos(InputDeltaX) + "," + itos(InputDeltaY));
-        //video.VideoWriteText(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
-        ++col;
-        col = col % 7;
-    } while (1 == 1);*/
+	if (!GameTitleExitRequested)  {
+		TTextWindowState textWindow;
 
-    if (! GameTitleExitRequested)  {
-            TTextWindowState textWindow;
+		// XXX: Fix
+		//OrderPrintId = &GameVersion;
+		IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+		//new TIoTmpBuf;
 
-            // XXX: Fix
-            //OrderPrintId = &GameVersion;
-            IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
-            //new TIoTmpBuf;
+		video.VideoHideCursor();
+		ClrScr();
 
-            video.VideoHideCursor();
-            ClrScr();
+		TickSpeed = 4;
+		DebugEnabled = false;
+		SavedGameFileName = "SAVED";
+		SavedBoardFileName = "TEMP";
+		GenerateTransitionTable();
+		WorldCreate();
 
-            TickSpeed = 4;
-            DebugEnabled = false;
-            SavedGameFileName = "SAVED";
-            SavedBoardFileName = "TEMP";
-            GenerateTransitionTable();
-            WorldCreate();
+		GameTitleLoop();
 
-            GameTitleLoop();
+		//LEAKFIX: Remember to dispose of *everything* in use.
+		WorldUnload();
+		delete[] IoTmpBuf;
+	}
 
-            //LEAKFIX: Remember to dispose of *everything* in use.
-            WorldUnload();
-            delete[] IoTmpBuf;
-    }
+	SoundUninstall();
+	SoundClearQueue();
 
-    SoundUninstall();
-    SoundClearQueue();
+	/*VideoUninstall();
+	TextAttr = InitialTextAttr;
+	ClrScr();*/
 
-    /*VideoUninstall();
-    TextAttr = InitialTextAttr;
-    ClrScr();*/
+	if (ConfigRegistration.size() == 0)  {
+		GamePrintRegisterMessage();
+	} else {
+		cursesWriteLn("");
+		cursesWriteLn("  Registered version -- Thank you for playing ZZT.");
+		cursesWriteLn("");
+	}
 
-    if (ConfigRegistration.size() == 0)  {
-            GamePrintRegisterMessage();
-    } else {
-            cursesWriteLn("");
-            cursesWriteLn("  Registered version -- Thank you for playing ZZT.");
-            cursesWriteLn("");
-    }
-
-    video.VideoShowCursor();
-    uninitCurses();
-    return EXIT_SUCCESS;
+	video.VideoShowCursor();
+	uninitCurses();
+	return EXIT_SUCCESS;
 }

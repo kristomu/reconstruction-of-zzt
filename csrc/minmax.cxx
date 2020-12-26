@@ -32,17 +32,23 @@
 
 
 longint Min(longint x, longint y) {
-    longint Min_result;
-    if (x <= y)  Min_result = x;
-    else Min_result = y;
-    return Min_result;
+	longint Min_result;
+	if (x <= y) {
+		Min_result = x;
+	} else {
+		Min_result = y;
+	}
+	return Min_result;
 }
 
 longint Max(longint x, longint y) {
-    longint Max_result;
-    if (x >= y)  Max_result = x;
-    else Max_result = y;
-    return Max_result;
+	longint Max_result;
+	if (x >= y) {
+		Max_result = x;
+	} else {
+		Max_result = y;
+	}
+	return Max_result;
 }
 
 

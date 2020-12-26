@@ -8,7 +8,7 @@ void EditorLoop();
 void HighScoresLoad();
 void HighScoresSave();
 void HighScoresDisplay(integer linePos);
-void EditorOpenEditTextWindow(TTextWindowState& state);
+void EditorOpenEditTextWindow(TTextWindowState & state);
 void EditorEditHelpFile();
 void HighScoresAdd(integer score);
 TString50 EditorGetBoardName(integer boardId, boolean titleScreenIsNone);

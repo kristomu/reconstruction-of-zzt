@@ -15,25 +15,25 @@ const integer BOARD_HEIGHT = 25;
 const integer MAX_BOARD_LEN = 20000;
 
 const int BOARD_NORTH = 0,
-          BOARD_SOUTH = 1,
-          BOARD_WEST = 2,
-          BOARD_EAST = 3;
+		  BOARD_SOUTH = 1,
+		  BOARD_WEST = 2,
+		  BOARD_EAST = 3;
 
 class TTile {
-public:
-	element_t Element;
-	unsigned char Color;
+	public:
+		element_t Element;
+		unsigned char Color;
 
-	size_t packed_size() const;
-	void dump(std::vector<unsigned char> & out) const;
+		size_t packed_size() const;
+		void dump(std::vector<unsigned char> & out) const;
 
-	std::vector<unsigned char>::const_iterator load(
-		std::vector<unsigned char>::const_iterator ptr,
-		const std::vector<unsigned char>::const_iterator end);
+		std::vector<unsigned char>::const_iterator load(
+			std::vector<unsigned char>::const_iterator ptr,
+			const std::vector<unsigned char>::const_iterator end);
 
-	bool operator==(const TTile & x) {
-		return Element == x.Element && Color == x.Color;
-	}
+		bool operator==(const TTile & x) {
+			return Element == x.Element && Color == x.Color;
+		}
 };
 
 const TTile TileBorder = {E_NORMAL, Yellow};
@@ -98,34 +98,36 @@ const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT *
 	sizeof(TRleTile);
 
 class TBoard {
-private:
-	void adjust_board_stats();
+	private:
+		void adjust_board_stats();
 
-public:
-	std::string Name;
-	matrix<0, BOARD_WIDTH + 1,0, BOARD_HEIGHT + 1,TTile> Tiles;
-	short StatCount;
-	array<0, MAX_STAT + 1,TStat> Stats;
-	TBoardInfo Info;
+	public:
+		std::string Name;
+		matrix<0, BOARD_WIDTH + 1,0, BOARD_HEIGHT + 1,TTile> Tiles;
+		short StatCount;
+		array<0, MAX_STAT + 1,TStat> Stats;
+		TBoardInfo Info;
 
-	bool valid_coord(short x, short y) const;
+		bool valid_coord(short x, short y) const;
 
-	void create();
+		void create();
 
-	// Serialize
-	// BLUESKY: Make these const, because output shouldn't alter the
-	// board itself.
-	std::vector<unsigned char> dump() const;
+		// Serialize
+		// BLUESKY: Make these const, because output shouldn't alter the
+		// board itself.
+		std::vector<unsigned char> dump() const;
 
-	bool get_packed_size() const { return dump().size(); }
+		bool get_packed_size() const {
+			return dump().size();
+		}
 
-	// Dump in a way that respects MAX_BOARD_LEN
-	std::vector<unsigned char> dump_and_truncate(
-		std::string & out_load_error);
-	std::vector<unsigned char> dump_and_truncate();
+		// Dump in a way that respects MAX_BOARD_LEN
+		std::vector<unsigned char> dump_and_truncate(
+			std::string & out_load_error);
+		std::vector<unsigned char> dump_and_truncate();
 
-	// Deserialize
-	std::string load(const std::vector<unsigned char> & source,
-		int board_num, int number_of_boards);
-	std::string load(const std::vector<unsigned char> & source);
+		// Deserialize
+		std::string load(const std::vector<unsigned char> & source,
+			int board_num, int number_of_boards);
+		std::string load(const std::vector<unsigned char> & source);
 };

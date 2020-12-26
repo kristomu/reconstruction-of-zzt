@@ -60,7 +60,7 @@ size_t TStat::packed_size() const {
 	size_t space_for_data = 0;
 	if (DataLen > 0) {
 		space_for_data += DataLen;
-	 }
+	}
 
 	return sizeof(X) + sizeof(Y) + sizeof(StepX) + sizeof(StepY) +
 		sizeof(Cycle) + sizeof(P1) + sizeof(P2) + sizeof(P3) +
@@ -70,14 +70,14 @@ size_t TStat::packed_size() const {
 
 void TStat::dump(std::vector<unsigned char> & out) const {
 	// Dump the stats data.
-	append_array(std::vector<unsigned char>{X, Y}, out);
-	append_array(std::vector<short>{StepX, StepY, Cycle}, out);
-	append_array(std::vector<unsigned char>{P1, P2, P3}, out);
-	append_array(std::vector<short>{Follower, Leader}, out);
+	append_array(std::vector<unsigned char> {X, Y}, out);
+	append_array(std::vector<short> {StepX, StepY, Cycle}, out);
+	append_array(std::vector<unsigned char> {P1, P2, P3}, out);
+	append_array(std::vector<short> {Follower, Leader}, out);
 	Under.dump(out);
 	// Four bytes of padding.
 	append_zeroes(4, out);
-	append_array(std::vector<short>{DataPos, DataLen}, out);
+	append_array(std::vector<short> {DataPos, DataLen}, out);
 	// Dump eight zeroes - this is where the padding went in original
 	// ZZT and the pointer was put in FPC.
 	append_zeroes(8, out);
@@ -194,8 +194,8 @@ void TBoard::adjust_board_stats() {
 
 	/* SANITY: Process referential DataLen variables. */
 
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-		TStat& with = Board.Stats[ix];
+	for (ix = 0; ix <= Board.StatCount; ix ++) {
+		TStat & with = Board.Stats[ix];
 		/* Deal with aliased objects. The two problems we can get are
 		   objects pointing to objects that themselves point to other
 		   objects; and objects pointing to objects that don't exist. */
@@ -214,7 +214,7 @@ void TBoard::adjust_board_stats() {
 			   -0, which is the same as 0, and thus can't be detected as
 			   a reference to begin with. */
 			if ((ix == 0) || (-with.DataLen > Board.StatCount) ||
-			        (Board.Stats[-with.DataLen].DataLen < 0)) {
+				(Board.Stats[-with.DataLen].DataLen < 0)) {
 				with.DataLen = 0;
 			}
 
@@ -226,8 +226,9 @@ void TBoard::adjust_board_stats() {
 
 			// If it's still aliased (DataLen < 0), then we have a chain
 			// or a cycle. Break it.
-			if (with.DataLen < 0)
+			if (with.DataLen < 0) {
 				with.DataLen = 0;
+			}
 		}
 	}
 
@@ -237,25 +238,38 @@ void TBoard::adjust_board_stats() {
 	   range of the board area, and clamping these values helps
 	   avoid a ton of over/underflow problems whose fixes would
 	   otherwise clutter up the code... */
-	for( ix = 0; ix <= Board.StatCount; ix ++) {
-			TStat& with = Board.Stats[ix];
-			if (with.Follower > Board.StatCount) { with.Follower = 0; }
-			if (with.Leader > Board.StatCount)	{ with.Leader = 0; }
+	for (ix = 0; ix <= Board.StatCount; ix ++) {
+		TStat & with = Board.Stats[ix];
+		if (with.Follower > Board.StatCount) {
+			with.Follower = 0;
+		}
+		if (with.Leader > Board.StatCount)	{
+			with.Leader = 0;
+		}
 
-			if (with.StepX < -BOARD_WIDTH)	{ with.StepX = -BOARD_WIDTH; }
-			if (with.StepX > BOARD_WIDTH)	{ with.StepX = BOARD_WIDTH; }
+		if (with.StepX < -BOARD_WIDTH)	{
+			with.StepX = -BOARD_WIDTH;
+		}
+		if (with.StepX > BOARD_WIDTH)	{
+			with.StepX = BOARD_WIDTH;
+		}
 
-			if (with.StepY < -BOARD_HEIGHT)	{ with.StepY = -BOARD_HEIGHT; }
-			if (with.StepY > BOARD_HEIGHT)	{ with.StepY = BOARD_HEIGHT; }
+		if (with.StepY < -BOARD_HEIGHT)	{
+			with.StepY = -BOARD_HEIGHT;
+		}
+		if (with.StepY > BOARD_HEIGHT)	{
+			with.StepY = BOARD_HEIGHT;
+		}
 	}
 
 	/* SANITY: If there's neither a player nor a monitor at the position
 	   indicated by stats 0, place a player there to keep the invariant
 	   that one should always exist on every board. */
-		TStat& with = Board.Stats[0];
-		if ((Board.Tiles[with.X][with.Y].Element != E_PLAYER) &&
-			(Board.Tiles[with.X][with.Y].Element != E_MONITOR))
-			Board.Tiles[with.X][with.Y].Element = E_PLAYER;
+	TStat & with = Board.Stats[0];
+	if ((Board.Tiles[with.X][with.Y].Element != E_PLAYER) &&
+		(Board.Tiles[with.X][with.Y].Element != E_MONITOR)) {
+		Board.Tiles[with.X][with.Y].Element = E_PLAYER;
+	}
 }
 
 // Create a yellow-border board with standard parameters
@@ -269,38 +283,39 @@ void TBoard::create() {
 	Info.ReenterWhenZapped = false;
 	Info.TimeLimitSec = 0;
 
-	for( i = 0; i < 4; i ++)
+	for (i = 0; i < 4; i ++) {
 		Info.NeighborBoards[i] = 0;
+	}
 
 	// BOARD_WIDTH and BOARD_HEIGHT gives the width and height of
 	// the part of the board that the player can see. This visible
 	// region is surrounded by board edges.
 
-	for( ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
+	for (ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
 		Tiles[ix][0] = TileBoardEdge;
 		Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
 	}
 
-	for( iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
+	for (iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
 		Tiles[0][iy] = TileBoardEdge;
 		Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
 	}
 
 	// Fill the interior with empties.
 
-	for( ix = 1; ix <= BOARD_WIDTH; ix ++)
-		for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
+	for (ix = 1; ix <= BOARD_WIDTH; ix ++)
+		for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
 			Tiles[ix][iy].Element = E_EMPTY;
 			Tiles[ix][iy].Color = 0;
 		}
 
 	// Then do the yellow border.
 
-	for( ix = 1; ix <= BOARD_WIDTH; ix ++) {
+	for (ix = 1; ix <= BOARD_WIDTH; ix ++) {
 		Tiles[ix][1] = TileBorder;
 		Tiles[ix][BOARD_HEIGHT] = TileBorder;
 	}
-	for( iy = 1; iy <= BOARD_HEIGHT; iy ++) {
+	for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
 		Tiles[1][iy] = TileBorder;
 		Tiles[BOARD_WIDTH][iy] = TileBorder;
 	}
@@ -310,7 +325,7 @@ void TBoard::create() {
 
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Element = E_PLAYER;
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Color =
-	    ElementDefs[E_PLAYER].Color;
+		ElementDefs[E_PLAYER].Color;
 	StatCount = 0;
 	Stats[0].X = BOARD_WIDTH / 2;
 	Stats[0].Y = BOARD_HEIGHT / 2;
@@ -371,7 +386,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 
 	// ---------------- Board name  ----------------
 	ptr = get_pascal_string(source.begin(), source.end(),
-		MAX_BOARD_NAME_LENGTH, true, Name, truncated);
+			MAX_BOARD_NAME_LENGTH, true, Name, truncated);
 
 	if (truncated) {
 		/* This board is damaged. */
@@ -473,7 +488,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	StatCount = std::max((short)0, std::min(StatCount, MAX_STAT));
 
 	for (ix = 0; ix <= StatCount; ++ix) {
-		TStat& with = Stats[ix];
+		TStat & with = Stats[ix];
 		with.DataLen = 0;
 
 		/* SANITY: Handle too few stats items for the stats count. */
@@ -540,14 +555,16 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		/* Only allocate if data length is still positive... */
 		if (with.DataLen > 0)  {
 			with.data = std::shared_ptr<unsigned char[]>(
-				new unsigned char[with.DataLen]);
+					new unsigned char[with.DataLen]);
 			std::copy(ptr, ptr + with.DataLen, with.data.get());
 
 			ptr += with.DataLen;
 		}
 
 		/* Otherwise, clear Data to avoid potential leaks later. */
-		if (with.DataLen == 0)  with.data = NULL;
+		if (with.DataLen == 0) {
+			with.data = NULL;
+		}
 	}
 
 	adjust_board_stats();
@@ -599,12 +616,12 @@ std::vector<unsigned char> TBoard::dump() const {
 	// Stats
 	append_lsb_element(StatCount, out);
 
-	for(int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
+	for (int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
 		TStat stat_to_dump = Stats[stat_idx];
 
 		// Clean up #BIND references so they all point to the first object.
 		if (stat_to_dump.DataLen > 0)  {
-			for(int primary = 1; primary < stat_idx; ++primary) {
+			for (int primary = 1; primary < stat_idx; ++primary) {
 				/* If two pointers share the same code (same pointer),
 				   link the latter to the former. */
 				if (Stats[primary].data == Stats[stat_idx].data)  {
@@ -649,5 +666,5 @@ std::vector<unsigned char> TBoard::dump_and_truncate(
 // For debugging/testing purposes.
 std::vector<unsigned char> TBoard::dump_and_truncate() {
 	std::string throwaway;
-	return(dump_and_truncate(throwaway));
+	return (dump_and_truncate(throwaway));
 }

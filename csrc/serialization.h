@@ -15,7 +15,7 @@ void append_pascal_string(const std::string & in_str, size_t max_length,
 	std::vector<unsigned char> & append_to);
 
 template<typename T> void append_lsb_element(T value,
-        std::vector<unsigned char> & append_to);
+	std::vector<unsigned char> & append_to);
 
 void append_zeroes(size_t how_many,
 	std::vector<unsigned char> & append_to);
@@ -60,7 +60,9 @@ template<typename T> T get_pascal_string(const T & ptr_start,
 		ptr++;
 	}
 
-	if (!padded) { return ptr; }
+	if (!padded) {
+		return ptr;
+	}
 
 	// Increment the pointer to skip the rest of the padding, if possible.
 	if (end - ptr < max_length - i) {

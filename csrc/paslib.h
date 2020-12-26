@@ -79,12 +79,12 @@ inline double        sqr(double x)         {
 }
 
 extern "C" void timestamp(integer* day,  integer* month, integer* year,
-                          integer* hour, integer* min,   integer* sec);
+	integer* hour, integer* min,   integer* sec);
 
 extern "C" real get_realtime();
 
-inline void timestamp(integer& day,  integer& month, integer& year,
-                      integer& hour, integer& min,   integer& sec) {
+inline void timestamp(integer & day,  integer & month, integer & year,
+	integer & hour, integer & min,   integer & sec) {
 	timestamp(&day, &month, &year, &hour, &min, &sec);
 }
 
@@ -96,7 +96,7 @@ inline void timestamp(integer& day,  integer& month, integer& year,
 #define sqr(x) ((x)*(x))
 
 void timestamp(integer* day,  integer* month, integer* year,
-               integer* hour, integer* min,   integer* sec);
+	integer* hour, integer* min,   integer* sec);
 
 real get_realtime();
 

@@ -1,7 +1,5 @@
 This is a C++ port! (Using a pascal-to-C translator and some manual coding)
 
-Editor doesn't work yet.
-
 Known bugs and missing functionality:
 - No sound or music.
 - Blinking sometimes fails to work; in particular, try to change the speed slider. (This one is strange because blinking works when I first initialize curses.)

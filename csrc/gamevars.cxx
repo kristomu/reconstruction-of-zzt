@@ -36,10 +36,10 @@ files incompatible as well.*/
 
 
 class unit_GameVars_initialize {
-public: unit_GameVars_initialize();
+	public: unit_GameVars_initialize();
 };
 static unit_GameVars_initialize GameVars_constructor;
 
 unit_GameVars_initialize::unit_GameVars_initialize() {
-    ;
+	;
 }

@@ -119,18 +119,18 @@ word DosVersion();
 /* Intr executes a specified software interrupt with a specified */
 /* Registers package.                                            */
 
-void Intr(byte IntNo, Registers& Regs);
+void Intr(byte IntNo, Registers & Regs);
 
 /* MsDos invokes the DOS function call handler with a specified  */
 /* Registers package.                                            */
 
-void MsDos(Registers& Regs);
+void MsDos(Registers & Regs);
 
 /* GetDate returns the current date set in the operating system. */
 /* Ranges of the values returned are: Year 1980-2099, Month      */
 /* 1-12, Day 1-31 and DayOfWeek 0-6 (0 corresponds to Sunday).   */
 
-void GetDate(word& Year,word& Month,word& Day,word& DayOfWeek);
+void GetDate(word & Year,word & Month,word & Day,word & DayOfWeek);
 
 /* SetDate sets the current date in the operating system. Valid  */
 /* parameter ranges are: Year 1980-2099, Month 1-12 and Day      */
@@ -142,7 +142,7 @@ void SetDate(word Year,word Month,word Day);
 /* Ranges of the values returned are: Hour 0-23, Minute 0-59,    */
 /* Second 0-59 and Sec100 (hundredths of seconds) 0-99.          */
 
-void GetTime(word& Hour,word& Minute,word& Second,word& Sec100);
+void GetTime(word & Hour,word & Minute,word & Second,word & Sec100);
 
 /* SetTime sets the time in the operating system. Valid          */
 /* parameter ranges are: Hour 0-23, Minute 0-59, Second 0-59 and */
@@ -156,7 +156,7 @@ void SetTime(word Hour,word Minute,word Second,word Sec100);
 /* to console, printer, or communication devices. When on        */
 /* (True), checks are made at every system call.                 */
 
-void GetCBreak(boolean& break_);
+void GetCBreak(boolean & break_);
 
 /* SetCBreak sets the state of Ctrl-Break checking in DOS.       */
 
@@ -166,7 +166,7 @@ void SetCBreak(boolean break_);
 /* off (False), disk writes are not verified. When on (True),    */
 /* all disk writes are verified to insure proper writing.        */
 
-void GetVerify(boolean& Verify);
+void GetVerify(boolean & Verify);
 
 /* SetVerify sets the state of the verify flag in DOS.           */
 
@@ -190,7 +190,7 @@ longint DiskSize(byte Drive);
 /* attribute masks defined as constants above. Errors are        */
 /* reported in DosError.                                         */
 
-void GetFAttr(void* F, word& Attr);
+void GetFAttr(void* F, word & Attr);
 
 /* SetFAttr sets the attributes of a file. F must be a file      */
 /* variable (typed, untyped or textfile) which has been assigned */
@@ -206,7 +206,7 @@ void SetFAttr(void* F, word Attr);
 /* unpacked throgh a call to UnpackTime. Errors are reported in  */
 /* DosError.                                                     */
 
-void GetFTime(void* F, longint& Time);
+void GetFTime(void* F, longint & Time);
 
 /* SetFTime sets the date and time a file was last written.      */
 /* F must be a file variable (typed, untyped or textfile) which  */
@@ -221,29 +221,29 @@ void SetFTime(void* F, longint Time);
 /* attributes. The result is returned in the specified search    */
 /* record. Errors (and no files found) are reported in DosError. */
 
-void FindFirst(PathStr Path, word Attr, SearchRec& F);
+void FindFirst(PathStr Path, word Attr, SearchRec & F);
 
 /* FindNext returs the next entry that matches the name and      */
 /* attributes specified in a previous call to FindFirst. The     */
 /* search record must be one passed to FindFirst. Errors (and no */
 /* more files) are reported in DosError.                         */
 
-void FindNext(SearchRec& F);
+void FindNext(SearchRec & F);
 
 /* UnpackTime converts a 4-byte packed date/time returned by     */
 /* FindFirst, FindNext or GetFTime into a DateTime record.       */
 
-void UnpackTime(longint P, DateTime& T);
+void UnpackTime(longint P, DateTime & T);
 
 /* PackTime converts a DateTime record into a 4-byte packed      */
 /* date/time used by SetFTime.                                   */
 
-void PackTime(DateTime& T, longint& P);
+void PackTime(DateTime & T, longint & P);
 
 /* GetIntVec returns the address stored in the specified         */
 /* interrupt vector.                                             */
 
-void GetIntVec(byte IntNo, pointer& Vector);
+void GetIntVec(byte IntNo, pointer & Vector);
 
 /* SetIntVec sets the address in the interrupt vector table for  */
 /* the specified interrupt.                                      */
@@ -274,8 +274,8 @@ PathStr FExpand(PathStr Path);
 /* Each of the component strings may possibly be empty, if Path  */
 /* contains no such component.                                   */
 
-void FSplit(PathStr Path, DirStr& Dir,
-            NameStr& Name, ExtStr& Ext);
+void FSplit(PathStr Path, DirStr & Dir,
+	NameStr & Name, ExtStr & Ext);
 
 /* EnvCount returns the number of strings contained in the DOS   */
 /* environment.                                                  */

@@ -45,19 +45,20 @@ EXTERN string* OrderPrintId;
 #undef EXTERN
 #define EXTERN extern
 
-void TextWindowInitState(TTextWindowState& state);
-void TextWindowDrawOpen(TTextWindowState& state);
-void TextWindowDrawClose(TTextWindowState& state);
-void TextWindowDraw(TTextWindowState& state, boolean withoutFormatting,
-                    boolean viewingFile);
-void TextWindowAppend(TTextWindowState& state, TTextWindowLine line);
-void TextWindowFree(TTextWindowState& state);
-void TextWindowSelect(TTextWindowState& state, boolean hyperlinkAsSelect,
-                      boolean viewingFile);
-void TextWindowSort(TTextWindowState& state);
-void TextWindowEdit(TTextWindowState& state);
-void TextWindowOpenFile(std::string filename, TTextWindowState& state);
-void TextWindowSaveFile(TTextWindowLine filename, TTextWindowState& state);
+void TextWindowInitState(TTextWindowState & state);
+void TextWindowDrawOpen(TTextWindowState & state);
+void TextWindowDrawClose(TTextWindowState & state);
+void TextWindowDraw(TTextWindowState & state, boolean withoutFormatting,
+	boolean viewingFile);
+void TextWindowAppend(TTextWindowState & state, TTextWindowLine line);
+void TextWindowFree(TTextWindowState & state);
+void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
+	boolean viewingFile);
+void TextWindowSort(TTextWindowState & state);
+void TextWindowEdit(TTextWindowState & state);
+void TextWindowOpenFile(std::string filename, TTextWindowState & state);
+void TextWindowSaveFile(TTextWindowLine filename,
+	TTextWindowState & state);
 void TextWindowDisplayFile(std::string filename, string title);
 void TextWindowInit(integer x, integer y, integer width, integer height);
 
