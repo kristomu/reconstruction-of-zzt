@@ -38,6 +38,9 @@
 #include "sounds.h"
 #include "fileops.h"
 #include "video.h"
+#include "world.h"
+
+TWorld World;
 
 void ParseArguments() {
     integer i;

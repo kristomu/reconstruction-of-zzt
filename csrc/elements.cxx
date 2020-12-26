@@ -36,7 +36,7 @@
 #include "gamevars.h"
 #include "board.h"
 
-/*#include "Crt.h"*/
+#include "world.h"
 #include "video.h"
 #include "sounds.h"
 #include "txtwind.h"

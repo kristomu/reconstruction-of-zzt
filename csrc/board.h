@@ -115,8 +115,14 @@ public:
 	// Serialize
 	// BLUESKY: Make these const, because output shouldn't alter the
 	// board itself.
-	std::vector<unsigned char> dump(std::string & out_load_error);
-	std::vector<unsigned char> dump();
+	std::vector<unsigned char> dump() const;
+
+	bool get_packed_size() const { return dump().size(); }
+
+	// Dump in a way that respects MAX_BOARD_LEN
+	std::vector<unsigned char> dump_and_truncate(
+		std::string & out_load_error);
+	std::vector<unsigned char> dump_and_truncate();
 
 	// Deserialize
 	std::string load(const std::vector<unsigned char> & source,

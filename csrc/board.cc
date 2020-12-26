@@ -563,12 +563,10 @@ std::string TBoard::load(const std::vector<unsigned char> & source) {
 	return load(source, 0, MAX_BOARD);
 }
 
-std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
+std::vector<unsigned char> TBoard::dump() const {
 
 	std::vector<unsigned char> out;
 	out.reserve(MAX_RLE_OVERFLOW);
-
-	out_load_error = "";
 
 	// Board name
 	append_pascal_string(Name, MAX_BOARD_NAME_LENGTH, out);
@@ -602,24 +600,31 @@ std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
 	append_lsb_element(StatCount, out);
 
 	for(int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
+		TStat stat_to_dump = Stats[stat_idx];
+
 		// Clean up #BIND references so they all point to the first object.
-		if (Stats[stat_idx].DataLen > 0)  {
+		if (stat_to_dump.DataLen > 0)  {
 			for(int primary = 1; primary < stat_idx; ++primary) {
 				/* If two pointers share the same code (same pointer),
 				   link the latter to the former. */
 				if (Stats[primary].data == Stats[stat_idx].data)  {
-					Stats[stat_idx].DataLen = -primary;
-					Stats[stat_idx].data = NULL;
+					stat_to_dump.DataLen = -primary;
+					stat_to_dump.data = NULL;
 					break;
 				}
 			}
 		}
 
-		Stats[stat_idx].dump(out);
+		stat_to_dump.dump(out);
 	}
 
-	/* Needs to be done elsewhere, since it relates to the world itself. */
-	//World.BoardLen[World.Info.CurrentBoard] = ptr - ptrStart;
+	return out;
+}
+
+std::vector<unsigned char> TBoard::dump_and_truncate(
+	std::string & out_load_error) {
+
+	std::vector<unsigned char> out = dump();
 
 	/* If we're using too much space, truncate the size, feed the
 		whole thing back through load() to fix the inevitable
@@ -635,14 +640,14 @@ std::vector<unsigned char> TBoard::dump(std::string & out_load_error) {
 		// Propagate the error by ignoring any error we get from the
 		// second dump.
 		std::string throwaway;
-		return dump(throwaway);
+		return dump_and_truncate(throwaway);
 	}
 
 	return out;
 }
 
 // For debugging/testing purposes.
-std::vector<unsigned char> TBoard::dump() {
+std::vector<unsigned char> TBoard::dump_and_truncate() {
 	std::string throwaway;
-	return(dump(throwaway));
+	return(dump_and_truncate(throwaway));
 }

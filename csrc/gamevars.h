@@ -3,7 +3,6 @@
 
 #include "ptoc.h"
 #include "board.h"
-#include "world.h"
 #include <array>
 
 const integer MAX_ELEMENT = 61;               /*E_TEXT_BLINK_WHITE;*/
@@ -59,16 +58,6 @@ struct TEditorStatSetting {
 	integer StepX, StepY;
 };
 
-struct TWorld {
-	integer BoardCount;
-	// dynamic board length.
-	std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
-	/* KevEdit treats board length as unsigned, so to handle >32k
-		  boards without corrupting subsequent ones... */
-	array<0, MAX_BOARD,word> BoardLen;
-	TWorldInfo Info;
-	array<0, MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
-};
 struct THighScoreEntry {
 	asciiz Name;
 	integer Score;
@@ -95,7 +84,6 @@ EXTERN TString50 SavedGameFileName;
 EXTERN TString50 SavedBoardFileName;
 EXTERN TString50 StartupWorldFileName;
 EXTERN TBoard Board;
-EXTERN TWorld World;
 EXTERN boolean MessageAmmoNotShown;
 EXTERN boolean MessageOutOfAmmoNotShown;
 EXTERN boolean MessageNoShootingNotShown;

@@ -2,6 +2,7 @@
 
 #include "ptoc.h"
 #include "array.h"
+#include "gamevars.h"
 
 #include <vector>
 #include <array>
@@ -50,3 +51,17 @@ class TWorldInfo {
 			std::vector<unsigned char>::const_iterator ptr,
 			const std::vector<unsigned char>::const_iterator end);
 };
+
+class TWorld {
+	public:
+		integer BoardCount;
+		// dynamic board length.
+		std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
+		/* KevEdit treats board length as unsigned, so to handle >32k
+			  boards without corrupting subsequent ones... */
+		array<0, MAX_BOARD,word> BoardLen;
+		TWorldInfo Info;
+		array<0, MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
+};
+
+extern TWorld World;

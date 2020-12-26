@@ -15,4 +15,4 @@ How to compile?
 
 Other thoughts:
 - I need some kind of test harness that uses the FreePascal version as a reference, so I can clean up the code and still be (reasonably) sure I'm being bug-compatible.
-- The implementation is currently either (much) slower than the FPC implementation at Preposterous' Mandelbrot renderer, or gets stuck due to a bug. I need to investigate further. Most likely the latter: SINE also gets stuck.
+- The implementation currently does the Mandelbrot render from Preposterous Machines in 34 minutes. My recorded time for this render on the FPC Linux Reconstruction is 50 minutes.

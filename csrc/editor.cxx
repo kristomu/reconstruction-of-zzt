@@ -38,6 +38,7 @@
 #include "game.h"
 #include "fileops.h"
 #include "minmax.h"
+#include "world.h"
 
 #include <iterator>
 

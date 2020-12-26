@@ -39,7 +39,7 @@
 #include "tools.h"
 
 #include "dos.h"
-/*#include "Crt.h"*/
+#include "world.h"
 #include "video.h"
 #include "sounds.h"
 #include "elements.h"
@@ -125,7 +125,7 @@ template<typename T, typename Q> void MoveP(T & structureOne,
 }
 
 void BoardClose(boolean showTruncationNote) {
-	World.BoardData[World.Info.CurrentBoard] = Board.dump();
+	World.BoardData[World.Info.CurrentBoard] = Board.dump_and_truncate();
 	World.BoardLen[World.Info.CurrentBoard] =
 	    World.BoardData[World.Info.CurrentBoard].size();
 }
@@ -630,13 +630,8 @@ void WorldUnload() {
 
 	/* no need to show any notices if the world's to be unloaded. */
 	BoardClose(false);
-	/* Reallocating to 0 is better than freeing because it's then
-	possible to reallocate back to a higher level later, if
-	required. That BoardLen is 0 also makes it obvious that the
-	boards have been unloaded. */
 	for( i = 0; i <= World.BoardCount; i ++) {
 		World.BoardLen[i] = 0;
-		//ReAllocMem(World.BoardData[i], World.BoardLen[i]);
 	}
 }
 
@@ -862,7 +857,7 @@ void WorldSave(TString50 filename, TString50 extension) {
 		for( i = 0; i <= World.BoardCount; i ++) {
 			// TODO: Replace with a serialization procedure that's
 			// machine endian agnostic.
-			unsigned short board_len = World.BoardLen[i];
+			unsigned short board_len = World.BoardData[i].size();
 			out_file.write((char *)&board_len, 2);
 			if (DisplayIOError())  {
 				goto LOnError;
@@ -994,8 +989,7 @@ void CopyStatDataToTextWindow(integer statId,
 void AddStat(integer tx, integer ty, byte element, integer color,
     integer tcycle, TStat template_) {
 	/* First of all: check if we have space. If not, no can do! */
-	if (World.BoardLen[World.Info.CurrentBoard] +
-	    template_.packed_size() > MAX_BOARD_LEN) {
+	if (Board.get_packed_size() + template_.packed_size() > MAX_BOARD_LEN) {
 		return;
 	}
 
@@ -1011,12 +1005,6 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 
 	Board.StatCount = Board.StatCount + 1;
 	Board.Stats[Board.StatCount] = template_;
-
-	// Beware: this counts the data as well. In our case, that's what we
-	// *want* because we'll do a deep copy, but that's not always the
-	// case! Note to self if/when I change this.
-	World.BoardLen[World.Info.CurrentBoard] =
-	    World.BoardLen[World.Info.CurrentBoard] + template_.packed_size();
 
 	TStat * new_stat = &Board.Stats[Board.StatCount];
 
@@ -1045,6 +1033,9 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 	}
 	Board.Tiles[tx][ty].Element = element;
 
+	// Update board size.
+	World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
+
 	if (CoordInsideViewport(tx, ty)) {
 		BoardDrawTile(tx, ty);
 	}
@@ -1052,8 +1043,6 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 
 void RemoveStat(integer statId) {
 	integer i;
-
-	// TODO: Update board size.
 
 	Board.Stats[statId].data = NULL;	// deallocates if necessary
 
@@ -1090,6 +1079,13 @@ void RemoveStat(integer statId) {
 		Board.Stats[i - 1] = Board.Stats[i];
 	}
 	Board.StatCount = Board.StatCount - 1;
+
+	// Update board size.
+	// NOTE: For now, this just slows everything down, so I've commented
+	// it out. We don't really *need* to know the packed board size when
+	// removing something, only when adding that something. And AddStat
+	// does that at the moment.
+	// World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
 }
 
 integer GetStatIdAt(integer x, integer y) {
