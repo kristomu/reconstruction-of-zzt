@@ -4,7 +4,6 @@ Editor doesn't work yet.
 
 Known bugs and missing functionality:
 - No sound or music.
-- No error message upon opening an ordinary locked or save-locked world.
 - Blinking sometimes fails to work; in particular, try to change the speed slider. (This one is strange because blinking works when I first initialize curses.)
 
 Notable coding conventions:

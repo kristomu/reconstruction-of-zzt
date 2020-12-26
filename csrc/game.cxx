@@ -533,6 +533,7 @@ void SidebarPromptString(string prompt, TString50 extension,
 }
 
 void PauseOnError() {
+	redraw();
 	SoundQueue(1, SoundParse("s004x114x9"));
 	Delay(2000);
 }

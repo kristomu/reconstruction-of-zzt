@@ -33,21 +33,11 @@
 #include <iostream>
 #include <sstream>
 
-/*#include "Crt.h"*/
 #include "gamevars.h"
 #include "game.h"
 #include "sounds.h"
 #include "fileops.h"
-//#include "input.h"
 #include "video.h"
-/*#include "dos.h"
-#include "txtwind.h"
-#include "elements.h"
-#include "editor.h"
-#include "oop.h"*/
-#include "game_imp.h"
-
-
 
 void ParseArguments() {
     integer i;
