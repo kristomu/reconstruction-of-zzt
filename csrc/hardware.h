@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "unicode.h"
-#include "curses_io.h"
+#include "io/curses.h"
 #include "video.h"
 
 // All coordinates start at (1,1) (as is Pascal tradition).

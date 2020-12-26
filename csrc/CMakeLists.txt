@@ -26,7 +26,7 @@ add_executable(zzt
 	zzt.cxx
 	gamevars.cxx
 	fileops.cxx
-	curses_io.cc
+	io/curses.cc
 	hardware.cc
 	video.cxx
 	unicode.cxx
@@ -35,7 +35,6 @@ add_executable(zzt
 	minmax.cxx
 	elements.cxx
 	oop.cxx
-	dos.cxx
 	sounds.cxx
 	editor.cxx
 	tools.cc

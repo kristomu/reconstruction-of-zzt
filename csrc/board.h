@@ -3,7 +3,7 @@
 #include "ptoc.h"
 #include "array.h"
 #include "elements.h"
-#include "curses_io.h"      // colors, perhaps put somewhere else?
+#include "io/curses.h"      // colors, perhaps put somewhere else?
 
 #include <vector>
 #include <string>

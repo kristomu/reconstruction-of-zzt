@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 
-#include "curses_io.h"
+#include "io/curses.h"
 #include "ptoc.h"
 
 typedef std::string video_line;

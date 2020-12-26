@@ -1,7 +1,4 @@
-#include "ptoc.h"
-#include "io.h"
-
-/*
+{
         Copyright (c) 2020 Kristofer Munsterhjelm
 
         Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,28 +18,49 @@
         LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
         SOFTWARE.
-*/
-
-/* A simple file-handling shim for Linux. All of these functions alter IOResult,
-  as is the convention in ZZT. */
-
-/*$I-*/
-
-#define __Fileops_implementation__
-
-#include "ptoc.h"
-#include "fileops.h"
-
-#include <stdexcept>
-
-std::ifstream OpenForRead(std::string name) {
-	// TODO: Test if this overwrites files, etc...
-	std::ifstream file(name);
-	return file;
 }
 
-std::ofstream OpenForWrite(std::string name) {
-	// TODO: Test if this overwrites files, etc...
-	std::ofstream file(name);
-	return file;
-}
+{ Fuzzing-related functions. }
+
+unit Fuzz;
+
+interface
+	procedure DisableSignalHandlers;
+	procedure Wait(ms: Cardinal);
+var
+    TFuzzMode : boolean = false;     {Timer fuzz mode}
+
+implementation
+
+uses BaseUnix, Crt;
+
+{ https://www.freepascal.org/docs-html/rtl/baseunix/fpsigaction.html }
+procedure DisableSignalHandlers;
+    var
+        oa,na : PSigActionRec;
+    begin
+        { Disable Free Pascal's signal handler for SIGILL and SIGSEGV.}
+        new(na);
+        new(oa);
+        na^.sa_Handler:=sigactionhandler(SIG_DFL);
+        fillchar(na^.Sa_Mask,sizeof(na^.sa_mask),#0);
+        na^.Sa_Flags:=0;
+        na^.Sa_Restorer:=nil;
+
+        fpSigAction(SIGILL,na,oa);
+        fpSigAction(SIGSEGV,na,oa);
+
+        Dispose(na);
+        Dispose(oa);
+    end;
+
+procedure Wait(ms: Cardinal);
+    begin
+        if TFuzzMode then Exit;
+        Delay(ms);
+    end;
+
+begin
+    TFuzzMode := false;
+
+end.

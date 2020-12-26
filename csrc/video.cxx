@@ -32,7 +32,6 @@
 
 /*$I-*/
 
-#include "dos.h"
 #include "unicode.h"
 
 boolean VideoMonochrome;

@@ -70,6 +70,7 @@ interface
 		InputMouseActivationX, InputMouseActivationY: integer;
 		InputMouseButtonX, InputMouseButtonY: integer;
 		InputJoystickMoved: boolean;
+		FuzzMode: boolean;
 	procedure InputUpdate;
 	procedure InputInitDevices;
 	procedure InputReadWaitKey;
@@ -95,6 +96,12 @@ procedure InputUpdate;
 		utf: array[0..3] of Byte;	{ UTF8 storage array }
 		i: Byte;					{ Counter for UTF8 recording }
 	begin
+		if FuzzMode then begin
+			InputKeyPressed := KEY_ESCAPE;
+			InputKeyBuffer := KEY_ESCAPE;
+			InputSpecialKeyPressed := true;
+			Exit;
+		end;
 		InputDeltaX := 0;
 		InputDeltaY := 0;
 		InputShiftPressed := false;
@@ -222,6 +229,11 @@ function InputConfigure: boolean;
 
 procedure InputReadWaitKey;
 	begin
+		if FuzzMode then begin
+			InputKeyPressed := 'Y';
+			Exit;
+		end;
+
 		repeat
 			InputUpdate;
 			{ Don't busy-wait too much. }
@@ -230,6 +242,7 @@ procedure InputReadWaitKey;
 	end;
 
 begin
+	FuzzMode := false;
 	InputLastDeltaX := 0;
 	InputLastDeltaY := 0;
 	InputDeltaX := 0;

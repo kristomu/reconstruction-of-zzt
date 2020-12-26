@@ -34,11 +34,9 @@
 
 #define __Game_implementation__
 
-
 #include "game.h"
 #include "tools.h"
 
-#include "dos.h"
 #include "world.h"
 #include "video.h"
 #include "sounds.h"
@@ -902,7 +900,6 @@ void GameWorldSave(TString50 prompt, TString50 & filename,
 
 boolean GameWorldLoad(TString50 extension) {
 	TTextWindowState textWindow;
-	SearchRec fileSearchRec;
 	string entryName;
 	integer i;
 

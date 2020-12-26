@@ -52,7 +52,7 @@ interface
 	procedure BoardDrawBorder;
 	procedure TransitionDrawToBoard;
 	procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TString50; var value: byte);
-	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+	procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte; maximum: integer);
 	procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
 	procedure SidebarPromptDirection(editable: boolean; y: integer; prompt: string; var deltaX, deltaY: integer);
 	procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var buffer: TString50);
@@ -92,6 +92,7 @@ interface
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
 	procedure GamePrintRegisterMessage;
+	procedure GameRunFewCycles(cycles:integer);
 const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -114,7 +115,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops, Fuzz;
 
 function ValidCoord(x, y:integer):boolean;
 	begin
@@ -585,13 +586,23 @@ procedure BoardCreate;
 		for i := 0 to 3 do
 			Board.Info.NeighborBoards[i] := 0;
 
+		{ In a very rare situation, the player may be at (1,0) and try
+		  to go right. Then DOS ZZT will transport the player to the
+		  neighbor board's initial position because the player at (1,0)
+		  is preserved. Before this fix, it would cause a crash on Linux
+		  due to violating the player invariant (the edge would overwrite
+		  the player). }
 		for ix := 0 to BOARD_WIDTH+1 do begin
-			Board.Tiles[ix][0] := TileBoardEdge;
-			Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
+			if Board.Tiles[ix][0].Element <> E_PLAYER then
+				Board.Tiles[ix][0] := TileBoardEdge;
+			if Board.Tiles[ix][BOARD_HEIGHT+1].Element <> E_PLAYER then
+				Board.Tiles[ix][BOARD_HEIGHT+1] := TileBoardEdge;
 		end;
 		for iy := 0 to BOARD_HEIGHT+1 do begin
-			Board.Tiles[0][iy] := TileBoardEdge;
-			Board.Tiles[BOARD_WIDTH+1][iy] := TileBoardEdge;
+			if Board.Tiles[0][iy].Element <> E_PLAYER then
+				Board.Tiles[0][iy] := TileBoardEdge;
+			if Board.Tiles[BOARD_WIDTH+1][iy].Element <> E_PLAYER then
+				Board.Tiles[BOARD_WIDTH+1][iy] := TileBoardEdge;
 		end;
 
 		for ix := 1 to BOARD_WIDTH do
@@ -664,6 +675,9 @@ procedure BoardDrawTile(x, y: integer);
 	var
 		ch: byte;
 	begin
+		{ Don't draw tiles outside of the playing viewport}
+		if not CoordInsideViewport(x, y) then Exit;
+
 		with Board.Tiles[x][y] do begin
 			if not Board.Info.IsDark
 				or (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
@@ -736,7 +750,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
 
 			if editable then begin
-				Delay(25);
+				Wait(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -752,10 +766,12 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 		VideoWriteText(x + 5, y + 1, $1F, #31);
 	end;
 
-procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte);
+procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; var value: byte; maximum: integer);
 	var
 		newValue: integer;
+		newValInBounds, oldValInBounds: boolean;
 		startChar, endChar: char;
+		S: string;
 	begin
 		if prompt[Length(prompt) - 2] = ';' then begin
 			startChar := prompt[Length(prompt) - 1];
@@ -774,9 +790,18 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 
 		repeat
 			if editable then begin
+				if (value > 8) then begin
+					Str(value, S);
+					VideoWriteText(x, y + 2, $1e, startChar + '  (' + S + ')  ' + endChar);
+				end else begin
+					VideoWriteText(x, y + 2, $1e, startChar + '....:....' + endChar);
+					VideoWriteText(x + value + 1, y + 1, $9F, #31);
+				end;
+
 				if InputJoystickMoved then
-					Delay(45);
-				VideoWriteText(x + value + 1, y + 1, $9F, #31);
+					Delay(45)
+				else
+					Delay(10);
 
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin
@@ -784,15 +809,18 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 					SidebarClearLine(y + 1);
 				end else begin
 					newValue := value + InputDeltaX;
-					if (value <> newValue) and (newValue >= 0) and (newValue <= 8) then begin
-						value := newValue;
+					newValInBounds := (newValue >= 0) and (newValue <= 8);
+					oldValInBounds := (Value >= 0) and (value <= 8);
+					if (value <> newValue) and (newValue <= maximum) and ((not oldValInBounds) or (newValInBounds and OldValInBounds)) then begin
+						value := newValue mod 256;
 						SidebarClearLine(y + 1);
 					end;
 				end;
 			end;
 		until (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) or not editable or InputShiftPressed;
 
-		VideoWriteText(x + value + 1, y + 1, $1F, #31);
+		if value <= 8 then
+			VideoWriteText(x + value + 1, y + 1, $1F, #31);
 	end;
 
 procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: string; var result: byte);
@@ -822,7 +850,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
-				Delay(35);
+				Wait(35);
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -861,6 +889,11 @@ procedure PromptString(x, y, arrowColor, color, width: integer; mode: byte; var 
 	begin
 		oldBuffer := buffer;
 		firstKeyPress := true;
+
+		if FuzzMode then begin
+			buffer := 'Fuzz mode';
+			Exit;
+		end;
 
 		repeat
 			for i := 0 to (width - 1) do begin
@@ -946,7 +979,7 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		Wait(2000);
 	end;
 
 function DisplayIOError: boolean;
@@ -1392,21 +1425,34 @@ procedure RemoveStat(statId: integer);
 		i: integer;
 	label StatDataInUse;
 	begin
+		if statId > MAX_STAT then RunError(ERR_STATID_TOO_HIGH);
+		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+
+		if statId = 0 then Exit;
+		if statId > Board.StatCount then Exit; { Already removed. }
+
 		with Board.Stats[statId] do begin
 			if DataLen <> 0 then begin
 				for i := 1 to Board.StatCount do begin
 					if (Board.Stats[i].Data = Data) and (i <> statId) then
 						goto StatDataInUse;
 				end;
-				FreeMem(Data, DataLen);
+				if DataLen > 0 then begin
+					FreeMem(Data, DataLen);
+					World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] - DataLen;
+				end;
 			end;
 
 		StatDataInUse:
 			if statId < CurrentStatTicked then
 				CurrentStatTicked := CurrentStatTicked - 1;
 
-			Board.Tiles[X][Y] := Under;
-			if Y > 0 then
+			{ Don't remove the player if he's at the old position. This can
+			  happen with multiple stats with the same coordinate. }
+			if (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
+				Board.Tiles[X][Y] := Under;
+
+			if CoordInsideViewport(X, Y) then
 				BoardDrawTile(X, Y);
 
 			for i := 1 to Board.StatCount do begin
@@ -1425,8 +1471,11 @@ procedure RemoveStat(statId: integer);
 				end;
 			end;
 
-			for i := (statId + 1) to Board.StatCount do
+			Board.Stats[statId] := StatTemplateDefault;
+			for i := (statId + 1) to Board.StatCount do begin
 				Board.Stats[i - 1] := Board.Stats[i];
+			end;
+			World.BoardLen[World.Info.CurrentBoard] := World.BoardLen[World.Info.CurrentBoard] - SizeOf(TStat);
 			Board.StatCount := Board.StatCount - 1;
 		end;
 	end;
@@ -1451,6 +1500,10 @@ function BoardPrepareTileForPlacement(x, y: integer): boolean;
 		statId: integer;
 		result: boolean;
 	begin
+		if not ValidCoord(x, y) then begin
+			BoardPrepareTileForPlacement := false;
+			Exit;
+		end;
 		statId := GetStatIdAt(x, y);
 		if statId > 0 then begin
 			RemoveStat(statId);
@@ -1473,11 +1526,25 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 		oldX, oldY: integer;
 		oldBgColor: integer;
 	begin
+		if statId > MAX_STAT then RunError(ERR_STATID_TOO_HIGH);
+		if statId = -1 then RunError(ERR_STATID_DOESNT_EXIST);
+
+		if (Board.Stats[statId].X = newX) and (Board.Stats[statId].Y = newY) then Exit;
+		if not CoordInsideViewport(newX, newY) then Exit;
+
 		with Board.Stats[statId] do begin
 			oldBgColor := Board.Tiles[newX][newY].Color and $F0;
 
 			iUnder := Board.Stats[statId].Under;
 			Board.Stats[statId].Under := Board.Tiles[newX][newY];
+
+			{ If trying to move atop the player, reject this. The object
+			  is simply destroyed instead, as if a player was set on top
+			  afterwards. }
+			if (newX = Board.Stats[0].X) and (newY = Board.Stats[0].Y) then begin
+				RemoveStat(statId);
+				Exit;
+			end;
 
 			if Board.Tiles[X][Y].Element = E_PLAYER then
 				Board.Tiles[newX][newY].Color := Board.Tiles[X][Y].Color
@@ -1487,7 +1554,10 @@ procedure MoveStat(statId: integer; newX, newY: integer);
 				Board.Tiles[newX][newY].Color := (Board.Tiles[X][Y].Color and $0F) + (Board.Tiles[newX][newY].Color and $70);
 
 			Board.Tiles[newX][newY].Element := Board.Tiles[X][Y].Element;
-			Board.Tiles[X][Y] := iUnder;
+			{ Don't remove the player if he's at the old position. This can
+			  happen with multiple stats with the same coordinate. }
+			if (statId = 0) or (X <> Board.Stats[0].X) or (Y <> Board.Stats[0].Y) then
+				Board.Tiles[X][Y] := iUnder;
 
 			oldX := X;
 			oldY := Y;
@@ -1646,16 +1716,16 @@ procedure DamageStat(attackerStatId: integer);
 							SoundQueue(4, #32#1#35#1#39#1#48#1#16#1);
 
 							{ Move player to start }
-							Board.Tiles[X][Y].Element := E_EMPTY;
-							BoardDrawTile(X, Y);
 							oldX := X;
 							oldY := Y;
-							X := Board.Info.StartPlayerX;
-							Y := Board.Info.StartPlayerY;
+							if ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY) then
+								MoveStat(0, Board.Info.StartPlayerX, Board.Info.StartPlayerY);
+							BoardDrawTile(oldX, oldY);
 							DrawPlayerSurroundings(oldX, oldY, 0);
 							DrawPlayerSurroundings(X, Y, 0);
 
-							GamePaused := true;
+							if not FuzzMode then
+								GamePaused := true;
 						end;
 						SoundQueue(4, #16#1#32#1#19#1#35#1);
 					end else begin
@@ -1711,6 +1781,10 @@ procedure BoardAttack(attackerStatId: integer; x, y: integer);
 
 function BoardShoot(element: byte; tx, ty, deltaX, deltaY: integer; source: integer): boolean;
 	begin
+		if not ValidCoord(tx + deltaX, ty + deltaY) then begin
+			BoardShoot := false;
+			Exit;
+		end;
 		if ElementDefs[Board.Tiles[tx + deltaX][ty + deltaY].Element].Walkable
 			or (Board.Tiles[tx + deltaX][ty + deltaY].Element = E_WATER) then
 		begin
@@ -1794,9 +1868,19 @@ procedure BoardPassageTeleport(x, y: integer);
 		col := Board.Tiles[x][y].Color;
 
 		oldBoard := World.Info.CurrentBoard;
-		BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
 
+		{ Handle passages without stats. }
+		if GetStatIdAt(x, y) < 0 then BoardChange(oldBoard)
+		else BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
+
+		{ Set a default position that's outside the viewport, so that if
+	      there's no passage of the appropriate color at the destination
+	      board, the player appears at his initial location at the
+	      destination. (Do what DOS ZZT does, but without
+	      relying on out-of-bounds memory access...) }
 		newX := 0;
+		newY := 0;
+
 		for ix := 1 to BOARD_WIDTH do
 			for iy := 1 to BOARD_HEIGHT do
 				if (Board.Tiles[ix][iy].Element = E_PASSAGE) and (Board.Tiles[ix][iy].Color = col) then begin
@@ -1804,12 +1888,8 @@ procedure BoardPassageTeleport(x, y: integer);
 					newY := iy;
 				end;
 
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_EMPTY;
-		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := 0;
-		if newX <> 0 then begin
-			Board.Stats[0].X := newX;
-			Board.Stats[0].Y := newY;
-		end;
+		{ Move the player onto the passage. }
+		MoveStat(0, newX, newY);
 
 		GamePaused := true;
 		SoundQueue(4, #48#1#52#1#55#1#49#1#53#1#56#1#50#1#54#1#57#1#51#1#55#1#58#1#52#1#56#1#64#1);
@@ -1883,6 +1963,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 	var
 		exitLoop: boolean;
 		pauseBlink: boolean;
+		playerTileElem: byte;
 	procedure GameDrawSidebar;
 		begin
 			SidebarClear;
@@ -1920,7 +2001,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 				VideoWriteText(62, 23, $70, ' Q ');
 				VideoWriteText(65, 23, $1F, ' Quit');
 			end else if GameStateElement = E_MONITOR then begin
-				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed);
+				SidebarPromptSlider(false, 66, 21, 'Game speed:;FS', TickSpeed, 256);
 				VideoWriteText(62, 21, $70, ' S ');
 				VideoWriteText(62, 7, $30, ' W ');
 				VideoWriteText(65, 7, $1E, ' World:');
@@ -1978,8 +2059,10 @@ procedure GamePlayLoop(boardChanged: boolean);
 		GamePlayExitRequested := false;
 		exitLoop := false;
 
-		CurrentTick := Random(100);
-		CurrentStatTicked := Board.StatCount + 1;
+		if not FuzzMode then begin
+			CurrentTick := Random(100);
+			CurrentStatTicked := Board.StatCount + 1;
+		end;
 
 		pauseBlink := true;
 
@@ -1988,11 +2071,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if SoundHasTimeElapsed(TickTimeCounter, 25) then
 					pauseBlink := not pauseBlink;
 
-				if pauseBlink then begin
+				if pauseBlink and CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y) then begin
 					VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
 						ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 				end else begin
-					if Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER then
+					if CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y) and
+						(Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER) then
 						VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, $0F, ' ')
 					else
 						BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
@@ -2004,12 +2088,12 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if InputKeyPressed = KEY_ESCAPE then
 					GamePromptEndPlay;
 
-				if (InputDeltaX <> 0) or (InputDeltaY <> 0) then begin
+				if ((InputDeltaX <> 0) or (InputDeltaY <> 0)) and ValidCoord(Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY) then begin
 					ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].TouchProc(
 						Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
 				end;
 
-				if ((InputDeltaX <> 0) or (InputDeltaY <> 0))
+				if ((InputDeltaX <> 0) or (InputDeltaY <> 0)) and ValidCoord(Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY)
 					and ElementDefs[Board.Tiles[Board.Stats[0].X + InputDeltaX][Board.Stats[0].Y + InputDeltaY].Element].Walkable
 				then begin
 					{ Move player }
@@ -2037,7 +2121,13 @@ procedure GamePlayLoop(boardChanged: boolean);
 			end else begin { not GamePaused }
 				if CurrentStatTicked <= Board.StatCount then begin
 					with Board.Stats[CurrentStatTicked] do begin
-						if (Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle)) then
+						{ IMP: The game element (at stat 0) can always call
+						  a tick, but it can only act - affect the world -
+						  if the cycle is right. See ElementPlayerTick
+						  for more info. }
+						if (CurrentStatTicked = 0) or
+							((Cycle <> 0) and ((CurrentTick mod Cycle) = (CurrentStatTicked mod Cycle))) then
+
 							ElementDefs[Board.Tiles[X][Y].Element].TickProc(CurrentStatTicked);
 
 						CurrentStatTicked := CurrentStatTicked + 1;
@@ -2050,13 +2140,28 @@ procedure GamePlayLoop(boardChanged: boolean);
 				if SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration) then begin
 					{ next cycle }
 					CurrentTick := CurrentTick + 1;
-					if CurrentTick > 420 then
+					if CurrentTick > MAX_CYCLE then
 						CurrentTick := 1;
 					CurrentStatTicked := 0;
 
 					InputUpdate;
 				end;
 			end;
+
+			{ Crash if the invariant that the player (or monitor) must exist
+			  and be at the X,Y given by stat 0 is violated. We have to check
+			  for both player and monitor no matter what the GameStateElement
+			  is in order to support Chronos' Forced Play hack. }
+			if not ValidCoord(Board.Stats[0].X, Board.Stats[0].Y) then
+				RunError(ERR_NO_PLAYER);
+
+			playerTileElem := Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+			if (playerTileElem <> E_PLAYER) and (playerTileElem <> E_MONITOR) then
+				RunError(ERR_NO_PLAYER);
+
+			if GetHeapStatus.TotalAllocated > 655360 then
+				RunError(ERR_MEMORY_EXCEEDED);
+
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
 		SoundClearQueue;
@@ -2121,7 +2226,7 @@ procedure GameTitleLoop;
 						boardChanged := true;
 					end;
 					'S': begin
-						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed);
+						SidebarPromptSlider(true, 66, 21, 'Game speed:;FS', TickSpeed, 256);
 						InputKeyPressed := #0;
 					end;
 					'R': begin
@@ -2151,6 +2256,51 @@ procedure GameTitleLoop;
 				end;
 			until boardChanged or GameTitleExitRequested;
 		until GameTitleExitRequested;
+	end;
+
+{-KM-}
+
+procedure GameRunFewCycles(cycles:integer);
+	var
+		boardChanged: boolean;
+		startPlay: boolean;
+		i: integer;
+	begin
+		GameTitleExitRequested := false;
+		JustStarted := false;
+		ReturnBoardId := 0;
+		boardChanged := true;
+
+		if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
+
+		ReturnBoardId := World.Info.CurrentBoard;
+		BoardChange(0);
+		JustStarted := false;
+		CurrentStatTicked := 0;
+		CurrentTick := 0;
+
+		for i := 1 to cycles do begin
+			GameStateElement := E_MONITOR;
+			startPlay := false;
+			GamePaused := false;
+			GamePlayLoop(boardChanged);
+			boardChanged := false;
+		end;
+
+		InputDeltaX := 1;
+		InputDeltaY := 0;
+
+		{ When the player enters a board, ZZT calls BoardEnter, so we have
+		  to, too. }
+		BoardEnter;
+
+		for i := 1 to cycles do begin
+			GameStateElement := E_PLAYER;
+			startPlay := true;
+			GamePaused := false;
+			GamePlayLoop(boardChanged);
+			boardChanged := false;
+		end;
 	end;
 
 procedure GamePrintRegisterMessage;

@@ -78,7 +78,7 @@ interface
 	procedure TextWindowInit(x, y, width, height: integer);
 
 implementation
-uses Crt, Input, Printer, Gamevars, Fileops;
+uses Crt, Input, Printer, Gamevars, Fileops, Fuzz, Minmax;
 
 function UpCaseString(input: string): string;
 	var
@@ -117,7 +117,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(25);
+				Wait(25);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -134,7 +134,7 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(18);
+				Wait(18);
 				{ Replace upper line with background. }
 				VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1, ScreenCopy, true);
 				{ Replace lower line with background. }
@@ -147,6 +147,7 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 	var
 		lineY: integer;
 		textOffset, textColor, textX: integer;
+		displayLineLength: integer;
 	begin
 		with state do begin
 			lineY := ((TextWindowY + lpos) - LinePos) + (TextWindowHeight div 2) + 1;
@@ -161,28 +162,41 @@ procedure TextWindowDrawLine(var state: TTextWindowState; lpos: integer; without
 					textOffset := 1;
 					textColor := $1E;
 					textX := TextWindowX + 4;
+					displayLineLength := 0;
 					if Length(state.Lines[lpos]^) > 0 then begin
+						{ IMP: Determine how many characters we can show
+						  without making the line too long in the text box. }
+						displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 						case state.Lines[lpos]^[1] of
 							'!': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
 								VideoWriteText(textX + 2, lineY, $1D, #16);
 								textX := textX + 5;
 								textColor := $1F;
+
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 							end;
 							':': begin
 								textOffset := Pos(';', Lines[lpos]^) + 1;
 								textColor := $1F;
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
 							end;
 							'$': begin
 								textOffset := 2;
 								textColor := $1F;
-								textX := (textX - 4) + ((TextWindowWidth - Length(Lines[lpos]^)) div 2);
+								displayLineLength := Min(TextWindowWidth - 8,
+									Length(Lines[lpos]^) - textOffset + 1);
+
+								textX := (textX - 4) + ((TextWindowWidth - displayLineLength) div 2);
 							end;
 						end;
 					end;
 					if textOffset > 0 then begin
 						VideoWriteText(textX, lineY, textColor,
-							Copy(Lines[lpos]^, textOffset,Length(Lines[lpos]^) - textOffset + 1));
+							Copy(Lines[lpos]^, textOffset, displayLineLength));
 					end;
 				end;
 			end else if (lpos = 0) or (lpos = (state.LineCount + 1)) then begin
@@ -211,6 +225,7 @@ procedure TextWindowDraw(var state: TTextWindowState; withoutFormatting, viewing
 procedure TextWindowAppend(var state: TTextWindowState; line: TTextWindowLine);
 	begin
 		with state do begin
+			if LineCount = MAX_TEXT_WINDOW_LINES then Exit;
 			LineCount := LineCount + 1;
 			New(Lines[LineCount]);
 			Lines[LineCount]^ := line;
@@ -234,7 +249,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 		line: string;
 	begin
 		with state do begin
-			OpenForWrite(Lst); {??? What is Lst?}
+			OpenForWrite(Lst); {??? What is Lst? Printer output?}
 			for iLine := 1 to LineCount do begin
 				line := Lines[iLine]^;
 				if Length(line) > 0 then begin
@@ -255,6 +270,7 @@ procedure TextWindowPrint(var state: TTextWindowState);
 						line := '          ' + line
 					end;
 				end;
+
 				WriteLn(Lst, line);
 				if IOResult <> 0 then begin
 					Close(Lst);
@@ -284,7 +300,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 			TextWindowDraw(state, false, viewingFile);
 			repeat
 				{ Don't busy-wait too much. }
-				Delay(10);
+				Wait(10);
 				InputUpdate;
 				newLinePos := LinePos;
 				if InputDeltaY <> 0 then begin
@@ -360,7 +376,7 @@ procedure TextWindowSelect(var state: TTextWindowState; hyperlinkAsSelect, viewi
 							TextWindowDrawTitle($1E, #174'Press ENTER for more info'#175);
 				end;
 				if InputJoystickMoved then begin
-					Delay(35);
+					Wait(35);
 				end;
 			until (InputKeyPressed = KEY_ESCAPE) or (InputKeyPressed = KEY_ENTER) or InputShiftPressed;
 			if InputKeyPressed = KEY_ESCAPE then begin
@@ -570,7 +586,7 @@ procedure TextWindowEdit(var state: TTextWindowState);
 				end else begin
 					TextWindowDrawLine(state, LinePos, true, false);
 				end;
-			until InputKeyPressed = KEY_ESCAPE;
+			until (InputKeyPressed = KEY_ESCAPE) or FuzzMode;
 
 			if Length(Lines[LineCount]^) = 0 then begin
 				Dispose(Lines[LineCount]);

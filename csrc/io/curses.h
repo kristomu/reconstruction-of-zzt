@@ -9,16 +9,6 @@
 // Everything works in terms of DOS colors and characters. The ZZT
 // conversion doesn't know about any others.
 
-// This thing emulates DOS characters by using Unicode.
-class dos_emulation {
-	private:
-		std::vector<std::string> uchars;
-
-	public:
-		dos_emulation();
-		std::string unicode(unsigned char dos_char) const;
-};
-
 enum dos_color { Black = 0,
 	Blue = 1,
 	Green = 2,
@@ -83,13 +73,10 @@ typedef int64_t key_response;
 // wchar_int values do in fact represent UTF-8 codepoints.
 
 class curses_io {
-
-		WINDOW * window;
-
 	private:
+		WINDOW * window;
 		const int E_KEY_NONE = -33;
 
-		dos_emulation interpreter;
 		key_response last_key_detected;
 
 		mutable dos_color current_fg, current_bg;

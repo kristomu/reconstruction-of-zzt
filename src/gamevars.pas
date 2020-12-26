@@ -32,7 +32,8 @@ files incompatible as well.}
 interface
 	const
 		MAX_STAT = 150;
-		MAX_ELEMENT = 61;               {E_TEXT_BLINK_WHITE;}
+		MAX_CYCLE = 420;		{ maximum cycle number before reset }
+		MAX_ELEMENT = 61; 		{E_TEXT_BLINK_WHITE;}
 		MAX_BOARD = 100;
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
@@ -43,6 +44,15 @@ interface
 		TORCH_DY = 5;
 		TORCH_DIST_SQR = 50;
 		MAX_BOARD_LEN = 20000;
+
+		ERR_STATID_TOO_HIGH = 400;
+		ERR_STATID_DOESNT_EXIST = 401;
+
+		ERR_NO_PLAYER = 500;	{ Invariant violation. }
+
+		{ Fired if ZZT uses more memory than was available on DOS.
+		  For debugging purposes. }
+		ERR_MEMORY_EXCEEDED = 600;
 	type
 		TString50 = string[50];
 		TCoord = packed record
@@ -160,12 +170,12 @@ interface
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
 	const
 		{ This is used to make sure IoTmpBuf is always large enough to hold
-		  what changes may happen to the board. In the worst case, the board
-		  is completely empty when loaded but takes max space due to stats,
-		  then during play, the board gets filled with random tiles. That
-		  will require MAX_RLE_OVERFLOW additional bytes to hold. So by
-		  dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
-		  that it can never run out of space from RLE shenanigans. }
+	      what changes may happen to the board. In the worst case, the board
+	      is completely empty when loaded but takes max space due to stats,
+	      then during play, the board gets filled with random tiles. That
+	      will require MAX_RLE_OVERFLOW additional bytes to hold. So by
+	      dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
+	  	  that it can never run out of space from RLE shenanigans. }
 		MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT * SizeOf(TRleTile);
 	type
 		TIoTmpBuf = array[0 .. (MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)] of byte;

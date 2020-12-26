@@ -82,26 +82,71 @@ procedure OopReadValue(statId: integer; var position: integer);
 	var
 		s: string[20];
 		code: integer;
+		preliminaryVal: Longword;
+		hasNoDigits: boolean;
 	begin
+		hasNoDigits := true;
 		s := '';
 		repeat
 			OopReadChar(statId, position)
 		until OopChar <> ' ';
 
 		OopChar := UpCase(OopChar);
+
+		{ Handle leading zeroes. }
+		while (OopChar = '0') do begin
+			hasNoDigits := false;
+			OopReadChar(statId, position);
+		end;
+
+		{ Read off remaining numbers }
 		while (OopChar >= '0') and (OopChar <= '9') do begin
+			hasNoDigits := false;
 			s := s + OopChar;
 			OopReadChar(statId, position);
 			OopChar := UpCase(OopChar);
 		end;
 
-		if position > 0 then
-			position := position - 1;
+		if position > 0 then Dec(position);
 
-		if Length(s) <> 0 then
-			Val(s, OopValue, code)
-		else
+		if hasNoDigits then begin
 			OopValue := -1;
+			Exit;
+		end;
+
+		{ Now we need a somewhat complex set of rules to turn the value
+		  into an integer the way DOS ZZT does. The rules are:
+
+		  - If it doesn't fit into 31 bits, then it's zero.
+		  - Otherwise, if it's greater than 32768 mod 65536, it's zero.
+		  - Otherwise, it's the value mod 65536.
+		}
+
+		if Length(s) > 10 then begin		{ Doesn't even fit into 32 }
+			OopValue := 0;
+			Exit;
+		end;
+
+		{ Definitely doesn't fit into 31. }
+		if (Length(s) = 10) and (Ord(s[1]) >= Ord('3')) then begin
+			OopValue := 0;
+			Exit;
+		end;
+
+		{ We now know it fits in 32 bits, so transform it into a longword. }
+		Val(s, preliminaryVal, code);
+
+		{ Doesn't fit in 31 bits. }
+		if preliminaryVal >= $80000000 then begin
+			OopValue := 0;
+			Exit;
+		end;
+
+		preliminaryVal := preliminaryVal and $FFFF; { mod 65536 }
+		if preliminaryVal >= $8000 then
+			OopValue := 0
+		else
+			OopValue := preliminaryVal;
 	end;
 
 procedure OopSkipLine(statId: integer; var position: integer);
@@ -168,6 +213,12 @@ function OopParseDirection(statId: integer; var position: integer; var dx, dy: i
 				dx := 0;
 				dy := 0;
 				OopParseDirection := false;
+			end;
+
+			if not ValidCoord(Board.Stats[statId].X + dx, Board.Stats[statId].Y + dy) then begin
+				OopError(statId, 'Direction out of bounds');
+				dx := 0;
+				dy := 0;
 			end;
 		end;
 	end;
@@ -354,22 +405,22 @@ function OopParseTile(var statId, position: integer; var tile: TTile): boolean;
 	begin
 		OopParseTile := false;
 		tile.Color := 0;
+		tile.Element := E_BOARD_EDGE;
 
 		OopReadWord(statId, position);
 		for i := 1 to 7 do begin
 			if OopWord = OopStringToWord(ColorNames[i]) then begin
 				tile.Color := i + $08;
 				OopReadWord(statId, position);
-				goto ColorFound;
+				Break;
 			end;
 		end;
-	ColorFound:
 
 		for i := 0 to MAX_ELEMENT do begin
 			if OopWord = OopStringToWord(ElementDefs[i].Name) then begin
 				OopParseTile := true;
 				tile.Element := i;
-				exit;
+				Break;
 			end;
 		end;
 	end;
@@ -408,7 +459,9 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
-		if Board.Tiles[x][y].Element <> 4 then begin
+		if not ValidCoord(x, y) then Exit;
+
+		if (Board.Tiles[x][y].Element <> E_PLAYER) and (Board.Tiles[x][y].Element <> E_MONITOR) then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
 				color := ElementDefs[tile.Element].Color
@@ -462,8 +515,9 @@ function OopCheckCondition(statId: integer; var position: integer): boolean;
 			end else if OopWord = 'CONTACT' then begin
 				OopCheckCondition := (Sqr(X - Board.Stats[0].X) + Sqr(Y - Board.Stats[0].Y)) = 1;
 			end else if OopWord = 'BLOCKED' then begin
+				{ Out-of-bounds is always blocked.}
 				OopReadDirection(statId, position, deltaX, deltaY);
-				OopCheckCondition := not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable;
+				OopCheckCondition := (not ValidCoord(X + deltaX, Y + deltaY)) or (not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable);
 			end else if OopWord = 'ENERGIZED' then begin
 				OopCheckCondition := World.Info.EnergizerTicks > 0;
 			end else if OopWord = 'ANY' then begin
@@ -509,6 +563,12 @@ function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boole
 		OopSend := false;
 		iStat := 0;
 
+		{ Can't send to an ID that's out of bounds. This may happen if an
+		  object walks, then dies, then THUDs. OopFindLabel would then start
+		  going through a program that has been deallocated, which causes
+		  a read-after-free. }
+		if statId > Board.StatCount then Exit;
+
 		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
 			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
 				if iStat = statId then
@@ -524,7 +584,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		textWindow: TTextWindowState;
 		textLine: string;
 		deltaX, deltaY: integer;
-		ix, iy: integer;
+		i, ix, iy: integer;
 		stopRunning: boolean;
 		replaceStat: boolean;
 		endOfProgram: boolean;
@@ -542,6 +602,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 		insCount: integer;
 		argTile: TTile;
 		argTile2: TTile;
+		dataInUse: boolean;
 	label StartParsing;
 	label ReadInstruction;
 	label ReadCommand;
@@ -583,7 +644,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								repeatInsNextTick := false;
 							end;
@@ -604,7 +665,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 					OopReadWord(statId, position);
 					if OopWord = 'THEN' then
 						OopReadWord(statId, position);
-					if Length(OopWord) = 0 then
+					if (Length(OopWord) = 0) and (position <> DataLen-1) then
 						goto ReadInstruction;
 					Inc(insCount);
 					if Length(OopWord) <> 0 then begin
@@ -614,7 +675,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 							end else begin
 								repeatInsNextTick := true;
@@ -627,7 +688,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								stopRunning := true;
 							end else begin
@@ -685,7 +746,7 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 									if counterSubtract then
 										OopValue := -OopValue;
 
-									if (counterPtr^ + OopValue) >= 0 then begin
+									if ((32767 - counterPtr^) > OopValue) and ((counterPtr^ + OopValue) >= 0) then begin
 										counterPtr^ := counterPtr^ + OopValue;
 									end else begin
 										goto ReadCommand;
@@ -754,8 +815,10 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								and ((Y + deltaY) > 0)
 								and ((Y + deltaY) < BOARD_HEIGHT) then
 							begin
-								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
 									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+									statId := GetStatIdAt(X, Y);
+								end;
 
 								OopPlaceTile(X + deltaX, Y + deltaY, argTile);
 							end;
@@ -797,10 +860,34 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 							OopReadWord(statId, position);
 							bindStatId := 0;
 							if OopIterateStat(statId, bindStatId, OopWord) then begin
-								FreeMem(Data, DataLen);
-								Data := Board.Stats[bindStatId].Data;
-								DataLen := Board.Stats[bindStatId].DataLen;
-								position := 0;
+								dataInUse := false;
+
+								{ We can't bind if we're bound to someone else.
+								  Do some reference counting to find out if
+								  that's the case. }
+								for i := 0 to Board.StatCount do begin
+									if (i <> statId) and (Board.Stats[i].Data = Data) then begin
+										dataInUse := true;
+										Break;
+									end;
+								end;
+
+								if dataInUse then begin
+									OopError(statId, 'Can''t bind to ' + OopWord +
+										' when someone is bound to you!' );
+								end else begin
+									{ Binding when someone's bound to us
+									  would lead to a double free *here*.}
+
+									{ Don't free our memory if we're "binding"
+								      to ourselves, as that could cause a crash
+								      later. }
+									if bindStatId <> statId then
+										FreeMem(Data, DataLen);
+									Data := Board.Stats[bindStatId].Data;
+									DataLen := Board.Stats[bindStatId].DataLen;
+									position := 0;
+								end;
 							end;
 						end else begin
 							textLine := OopWord;
