@@ -77,7 +77,7 @@ void Video::VideoWriteText(int x, int y, char color, const char * text) {
 
 }
 
-void Video::VideoWriteText(int x, int y, char color, TVideoLine text) {
+void Video::VideoWriteText(int x, int y, char color, video_line text) {
     integer offset;
     char c;
 

@@ -1188,20 +1188,22 @@ void MoveStat(integer statId, integer newX, integer newY) {
 void PopupPromptString(string question, TString50 & buffer) {
 	integer x, y;
 
-	video.VideoWriteText(3, 18, 0x4f, TextWindowStrTop);
-	video.VideoWriteText(3, 19, 0x4f, TextWindowStrText);
-	video.VideoWriteText(3, 20, 0x4f, TextWindowStrSep);
-	video.VideoWriteText(3, 21, 0x4f, TextWindowStrText);
-	video.VideoWriteText(3, 22, 0x4f, TextWindowStrText);
-	video.VideoWriteText(3, 23, 0x4f, TextWindowStrBottom);
+	// TODO: Move to txtwind.cxx
+	video.VideoWriteText(3, 18, 0x4f, text_window_str_top);
+	video.VideoWriteText(3, 19, 0x4f, text_window_str_text);
+	video.VideoWriteText(3, 20, 0x4f, text_window_str_sep);
+	video.VideoWriteText(3, 21, 0x4f, text_window_str_text);
+	video.VideoWriteText(3, 22, 0x4f, text_window_str_text);
+	video.VideoWriteText(3, 23, 0x4f, text_window_str_bottom);
+	// TODO: "CenterText" function in txtwind.cxx
 	video.VideoWriteText(4 + (TextWindowWidth - length(question)) / 2, 19,
 	    0x4f,
 	    question);
 	buffer = "";
 	PromptString(10, 22, 0x4f, 0x4e, TextWindowWidth - 16, PROMPT_ANY,
 	    buffer);
-	for( y = 18; y <= 23; y ++)
-		for( x = 3; x <= (TextWindowWidth + 3); x ++) {
+	for (y = 18; y <= 23; y ++)
+		for (x = 3; x <= (TextWindowWidth + 3); x ++) {
 			BoardDrawTile(x + 1, y + 1);
 		}
 }

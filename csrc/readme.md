@@ -5,7 +5,6 @@ Editor doesn't work yet.
 Known bugs and missing functionality:
 - No sound or music.
 - Editing an object clears it.
-- The cursor and bullet point headers/footers in the text viewer are off; the cursor and bullets are one step too far to the right. (see txtwind.cxx:122)
 - !label;text entries don't go to the label when chosen.
 - Blinking sometimes fails to work; in particular, try to change the speed slider. (This one is strange because blinking works when I first initialize curses.)
 

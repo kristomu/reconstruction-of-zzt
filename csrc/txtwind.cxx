@@ -60,7 +60,7 @@ void TextWindowInitState(TTextWindowState& state) {
 
 void TextWindowDrawTitle(integer color, TTextWindowLine title) {
 	video.VideoWriteText(TextWindowX + 2, TextWindowY + 1, color,
-	                     TextWindowStrInnerEmpty);
+	                     text_window_str_inner_empty);
 	video.VideoWriteText(TextWindowX + ((TextWindowWidth - length(title)) / 2),
 	                     TextWindowY + 1, color, title);
 }
@@ -74,17 +74,18 @@ void TextWindowDrawOpen(TTextWindowState& state) {
 
 		for( iy = (TextWindowHeight / 2); iy >= 0; iy --) {
 			video.VideoWriteText(TextWindowX, TextWindowY + iy + 1, 0xf,
-			                     TextWindowStrText);
+			                     text_window_str_text);
 			video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1,
-			                     0xf, TextWindowStrText);
-			video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf, TextWindowStrTop);
+			                     0xf, text_window_str_text);
+			video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf,
+				text_window_str_top);
 			video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
-			                     TextWindowStrBottom);
+			                     text_window_str_bottom);
 			Delay(25);
             video.VideoRefresh();
 		}
 
-		video.VideoWriteText(TextWindowX, TextWindowY + 2, 0xf, TextWindowStrSep);
+		video.VideoWriteText(TextWindowX, TextWindowY + 2, 0xf, text_window_str_sep);
 		TextWindowDrawTitle(0x1e, state.Title);
 	}
 }
@@ -94,10 +95,10 @@ void TextWindowDrawClose(TTextWindowState& state) {
 	integer unk1, unk2;
 
 	{
-		for( iy = 0; iy <= (TextWindowHeight / 2); iy ++) {
-			video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf, TextWindowStrTop);
+		for(iy = 0; iy <= (TextWindowHeight / 2); iy ++) {
+			video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf, text_window_str_top);
 			video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
-			                     TextWindowStrBottom);
+			                     text_window_str_bottom);
 			Delay(18);
 			/* Replace upper line with background. */
 			video.VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1,
@@ -120,10 +121,10 @@ void TextWindowDrawLine(TTextWindowState& state, integer lpos,
 		        1;
 		if (lpos == state.LinePos)
 			video.VideoWriteText(TextWindowX + 2, lineY, 0x1c,
-			                     TextWindowStrInnerArrows);
+			                     text_window_str_inner_arrows);
 		else
 			video.VideoWriteText(TextWindowX + 2, lineY, 0x1e,
-			                     TextWindowStrInnerEmpty);
+			                     text_window_str_inner_empty);
 		if ((lpos > 0) && (lpos <= state.LineCount))  {
 			if (withoutFormatting)  {
 				video.VideoWriteText(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
@@ -160,7 +161,7 @@ void TextWindowDrawLine(TTextWindowState& state, integer lpos,
 				}
 			}
 		} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
-			video.VideoWriteText(TextWindowX + 2, lineY, 0x1e, TextWindowStrInnerSep);
+			video.VideoWriteText(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_sep);
 		} else if ((lpos == -4) && viewingFile)  {
 			video.VideoWriteText(TextWindowX + 2, lineY, 0x1a,
 			                     "   Use            to view text,");
@@ -765,26 +766,18 @@ void TextWindowInit(integer x, integer y, integer width, integer height) {
 	TextWindowWidth = width;
 	TextWindowY = y;
 	TextWindowHeight = height;
-	TextWindowStrInnerEmpty = "";
-	TextWindowStrInnerLine = "";
-	for( i = 1; i <= (TextWindowWidth - 5); i ++) {
-		TextWindowStrInnerEmpty = TextWindowStrInnerEmpty + ' ';
-		TextWindowStrInnerLine = TextWindowStrInnerLine + '\315';
-	}
-	TextWindowStrTop    = string("\306\321") + TextWindowStrInnerLine.c_str()  + '\321'
-	                      + '\265';
-	TextWindowStrBottom = string("\306\317") + TextWindowStrInnerLine.c_str()  + '\317'
-	                      + '\265';
-	TextWindowStrSep    =  string(" \306") + TextWindowStrInnerLine.c_str()  + '\265' +
-	                       ' ';
-	TextWindowStrText   =  string(" \263") + TextWindowStrInnerEmpty.c_str() + '\263' +
-	                       ' ';
-	TextWindowStrInnerArrows = TextWindowStrInnerEmpty;
-	TextWindowStrInnerArrows[1] = '\257';
-	TextWindowStrInnerArrows[length(TextWindowStrInnerArrows.c_str())] = '\256';
-	TextWindowStrInnerSep = TextWindowStrInnerEmpty;
+	text_window_str_inner_empty = std::string(TextWindowWidth-5, ' ');
+	text_window_str_inner_line = std::string(TextWindowWidth-5, '\315');
+	text_window_str_top    = "\306\321" + text_window_str_inner_line + "\321\265";
+	text_window_str_bottom = "\306\317" + text_window_str_inner_line + "\317\265";
+	text_window_str_sep    = " \306" + text_window_str_inner_line + "\265 ";
+	text_window_str_text   = " \263" + text_window_str_inner_empty + "\263 ";
+	text_window_str_inner_arrows = text_window_str_inner_empty;
+	text_window_str_inner_arrows[0] = '\257';
+	*text_window_str_inner_arrows.rbegin() = '\256';
+	text_window_str_inner_sep = text_window_str_inner_empty;
 	for( i = 1; i < (TextWindowWidth / 5); i ++)
-		TextWindowStrInnerSep[i * 5 + ((TextWindowWidth % 5) / 2)] = '\7';
+		text_window_str_inner_sep[i * 5 + ((TextWindowWidth % 5) / 2) - 1] = '\7';
 }
 
 class unit_TxtWind_initialize {

@@ -8,14 +8,14 @@
 #include "curses_io.h"
 #include "ptoc.h"
 
-typedef std::string TVideoLine;
+typedef std::string video_line;
 
 struct TTextChar {
 	char Char;
 	unsigned char Color;
 };
 
-typedef std::array<std::array<TTextChar, 25>, 80> TVideoBuffer;
+typedef std::array<std::array<TTextChar, 25>, 80> video_buffer;
 
 extern boolean VideoMonochrome;
 
@@ -27,14 +27,14 @@ extern boolean VideoMonochrome;
 class Video {
 	private:
 		std::shared_ptr<curses_io> io;
-		TVideoBuffer primary_buffer, secondary_buffer;
+		video_buffer primary_buffer, secondary_buffer;
 		TTextChar passthrough;
 
 	public:
 		void VideoWriteText(int x, int y, const TTextChar & to_print);
 		void VideoWriteText(int x, int y, char color, char to_print);
 		void VideoWriteText(int x, int y, char color, const char * text);
-		void VideoWriteText(int x, int y, char color, TVideoLine text);
+		void VideoWriteText(int x, int y, char color, video_line text);
 		bool VideoConfigure();
 		void VideoShowCursor() {
 			io->show_cursor();
