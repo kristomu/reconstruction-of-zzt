@@ -22,8 +22,33 @@ add_library(ptoc SHARED IMPORTED)
 set_target_properties(ptoc
 	PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ptoc/libptoc.a)
 
+# TODO: Cleanup
+
 add_executable(zzt
+	testing.cc
 	zzt.cxx
+	gamevars.cxx
+	fileops.cxx
+	io/curses.cc
+	io/stub.cc
+	hardware.cc
+	video.cxx
+	unicode.cxx
+	txtwind.cxx
+	game.cxx
+	minmax.cxx
+	elements.cxx
+	oop.cxx
+	sounds.cxx
+	editor.cxx
+	tools.cc
+	board.cc
+	serialization.cc
+	world.cc)
+
+add_executable(fuzzt
+	testing.cc
+	fuzzt.cxx
 	gamevars.cxx
 	fileops.cxx
 	io/curses.cc
@@ -50,3 +75,4 @@ add_executable(zzt
 # pressing things to do than chase a bug, I'll just kludge ncursesw in here.
 
 target_link_libraries(zzt ptoc -lncursesw)
+target_link_libraries(fuzzt ptoc -lncursesw)

@@ -33,12 +33,14 @@
 #include <stdexcept>
 
 std::ifstream OpenForRead(std::string name) {
+	errno = 0;
 	// TODO: Test if this overwrites files, etc...
 	std::ifstream file(name);
 	return file;
 }
 
 std::ofstream OpenForWrite(std::string name) {
+	errno = 0;
 	// TODO: Test if this overwrites files, etc...
 	std::ofstream file(name);
 	return file;

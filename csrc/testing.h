@@ -1,5 +1,5 @@
 #pragma once
 
-bool test_mode_disable_video = false;
-bool test_mode_disable_input = false;
-bool test_mode_disable_delay = false;
+extern bool test_mode_disable_video;
+extern bool test_mode_disable_input;
+extern bool test_mode_disable_delay;
