@@ -21,7 +21,7 @@ const int WindMaxY = 25;      // Lower right, Y coordinate
 const int WindMinX = 1;       // Upper left, X coordinate
 const int WindMinY = 1;       // Upper left, Y coordinate
 
-extern std::shared_ptr<curses_io> display;
+extern std::shared_ptr<io> display;
 extern Video video;
 
 // Set background color.
@@ -44,9 +44,8 @@ void GotoXY(int x, int y);
 void SetCBreak(bool pollEveryTime);
 
 void initCurses();
-void cursesWrite(std::string x);
-void cursesWriteLn(std::string x);
-void uninitCurses();
+void display_write(std::string x);
+void display_writeln(std::string x);
 bool Keypressed();
 key_response ReadKey();
 key_response ReadKeyBlocking();

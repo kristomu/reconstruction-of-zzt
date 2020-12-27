@@ -114,33 +114,33 @@ void GameConfigure() {
 	ClrScr();
 	TextColor(White);
 	TextColor(White);
-	cursesWriteLn("");
-	cursesWriteLn("                                 <=-  ZZT  -=>");
+	display_writeln("");
+	display_writeln("                                 <=-  ZZT  -=>");
 	TextColor(Yellow);
 	if (ConfigRegistration.size() == 0) {
-		cursesWriteLn("                             Shareware version 3.2");
+		display_writeln("                             Shareware version 3.2");
 	} else {
-		cursesWriteLn("                                  Version  3.2");
+		display_writeln("                                  Version  3.2");
 	}
-	cursesWriteLn("                            Created by Tim Sweeney");
+	display_writeln("                            Created by Tim Sweeney");
 	TextColor(LightGray);
 	if (bottomRow < 24) {
-		cursesWriteLn("                        Best played in 80x25 or larger.");
+		display_writeln("                        Best played in 80x25 or larger.");
 	}
 	GotoXY(1, 7);
 	TextColor(Blue);
-	cursesWriteLn("================================================================================");
+	display_writeln("================================================================================");
 	GotoXY(1, bottomRow);
-	cursesWriteLn("================================================================================");
+	display_writeln("================================================================================");
 	TextColor(White);
 	GotoXY(30, 7);
-	cursesWrite(" Game Configuration ");
+	display_write(" Game Configuration ");
 	GotoXY(1, bottomRow+1);
-	cursesWriteLn(" Copyright (c) 1991 Epic MegaGames                         Press ... to abort");
+	display_writeln(" Copyright (c) 1991 Epic MegaGames                         Press ... to abort");
 	TextColor(Black);
 	TextBackground(LightGray);
 	GotoXY(66, bottomRow+1);
-	cursesWrite("ESC");
+	display_write("ESC");
 	getch(); // hax
 	/*Window(1, 8, 80, bottomRow-2);
 	TextColor(Yellow);
@@ -246,12 +246,11 @@ int main(int argc, const char* argv[]) {
 	if (ConfigRegistration.size() == 0)  {
 		GamePrintRegisterMessage();
 	} else {
-		cursesWriteLn("");
-		cursesWriteLn("  Registered version -- Thank you for playing ZZT.");
-		cursesWriteLn("");
+		display_writeln("");
+		display_writeln("  Registered version -- Thank you for playing ZZT.");
+		display_writeln("");
 	}
 
 	video.VideoShowCursor();
-	uninitCurses();
 	return EXIT_SUCCESS;
 }

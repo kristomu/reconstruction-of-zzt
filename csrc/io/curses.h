@@ -1,5 +1,9 @@
 #pragma once
 
+#include "special_keys.h"
+#include "colors.h"
+#include "io.h"
+
 #include <ncurses.h>
 
 #include <vector>
@@ -9,62 +13,6 @@
 // Everything works in terms of DOS colors and characters. The ZZT
 // conversion doesn't know about any others.
 
-enum dos_color { Black = 0,
-	Blue = 1,
-	Green = 2,
-	Cyan = 3,
-	Red = 4,
-	Magenta = 5,
-	Brown = 6,
-	LightGray = 7,
-	DarkGray = 8,
-	LightBlue = 9,
-	LightGreen = 10,
-	LightCyan = 11,
-	LightRed = 12,
-	LightMagenta = 13,
-	Yellow = 14,
-	White = 15
-};
-
-const int64_t E_KEY_UP = -1,
-			  E_KEY_DOWN = -2,
-			  E_KEY_RIGHT = -3,
-			  E_KEY_LEFT = -4,
-			  E_KEY_NUMPAD_CLEAR = -5,	// the one in the center of the numpad
-			  E_KEY_INSERT = -6,
-			  E_KEY_HOME = -7,
-			  E_KEY_PAGE_UP = -8,
-			  E_KEY_PAGE_DOWN = -9,
-			  E_KEY_DELETE = -10,
-			  E_KEY_END = -11,
-			  E_KEY_F1 = -12,
-			  E_KEY_F2 = -13,
-			  E_KEY_F3 = -14,
-			  E_KEY_F4 = -15,
-			  E_KEY_F5 = -16,
-			  E_KEY_F6 = -17,
-			  E_KEY_F7 = -18,
-			  E_KEY_F8 = -19,
-			  E_KEY_F9 = -20,
-			  E_KEY_F10 = -21,
-			  E_KEY_F11 = -22,
-			  E_KEY_F12 = -23,
-			  E_KEY_PAUSE = -24,
-			  E_KEY_UNKNOWN = -25,
-			  E_KEY_BACKSPACE = -26,
-			  E_KEY_SHIFT_UP = -27,
-			  E_KEY_SHIFT_DOWN = -28,
-			  E_KEY_SHIFT_RIGHT = -29,
-			  E_KEY_SHIFT_LEFT = -30,
-			  E_KEY_CTRL_Y = -31,
-			  E_KEY_ALT_P = -32,
-			  //E_KEY_NONE = -33,			// private
-
-			  E_KEY_ESCAPE = '\33',
-			  E_KEY_ENTER = '\n',
-			  E_KEY_TAB = '\t';
-
 typedef int64_t key_response;
 
 // The curses IO class implicitly assumes that we're running on a Unicode
@@ -72,7 +20,7 @@ typedef int64_t key_response;
 // more powerful than just the ACS_* macros, so the code assumes that
 // wchar_int values do in fact represent UTF-8 codepoints.
 
-class curses_io {
+class curses_io : public io {
 	private:
 		WINDOW * window;
 		const int E_KEY_NONE = -33;

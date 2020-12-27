@@ -23,9 +23,6 @@
         SOFTWARE.
 */
 
-/* A simple file-handling shim for Linux. All of these functions alter IOResult,
-  as is the convention in ZZT. */
-
 /*$I-*/
 
 #define __Fileops_implementation__

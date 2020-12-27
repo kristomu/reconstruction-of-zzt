@@ -38,7 +38,7 @@ boolean VideoMonochrome;
 
 /* The input x,y values are offset by 0, i.e. 0,0 is upper left. */
 void Video::VideoWriteText(int x, int y, const TTextChar & to_print) {
-	io->print_ch(x, y, to_print.Color, to_print.Char);
+	io_interface->print_ch(x, y, to_print.Color, to_print.Char);
 	primary_buffer[x][y] = to_print;
 }
 
@@ -127,8 +127,8 @@ bool Video::VideoConfigure() {
 		return true;
 	}
 
-	cursesWriteLn("");
-	cursesWrite("  Video mode:  C)olor,  M)onochrome?  ");
+	display_writeln("");
+	display_write("  Video mode:  C)olor,  M)onochrome?  ");
 
 	bool gotResponse = false;
 	int64_t typed;
@@ -148,9 +148,9 @@ bool Video::VideoConfigure() {
 }
 
 void Video::VideoInstall(integer columns, dos_color borderColor,
-	std::shared_ptr<curses_io> io_in) {
+	std::shared_ptr<io> io_in) {
 
-	io = io_in;
+	io_interface = io_in;
 	VideoToggleEGAMode(true);
 
 	if (! VideoMonochrome) {

@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "io/curses.h"
+#include "io/io.h"
 #include "ptoc.h"
 
 typedef std::string video_line;
@@ -26,7 +27,7 @@ extern boolean VideoMonochrome;
 
 class Video {
 	private:
-		std::shared_ptr<curses_io> io;
+		std::shared_ptr<io> io_interface;
 		video_buffer primary_buffer, secondary_buffer;
 		TTextChar passthrough;
 
@@ -37,15 +38,15 @@ class Video {
 		void VideoWriteText(int x, int y, char color, video_line text);
 		bool VideoConfigure();
 		void VideoShowCursor() {
-			io->show_cursor();
+			io_interface->show_cursor();
 		}
 		void VideoHideCursor() {
-			io->hide_cursor();
+			io_interface->hide_cursor();
 		}
 		void VideoSetBorderColor(dos_color value);
 
 		void VideoInstall(integer columns, dos_color borderColor,
-			std::shared_ptr<curses_io> io_in);
+			std::shared_ptr<io> io_interface_in);
 		void VideoUninstall();
 
 		// Copy between display (and primary) and secondary buffer.
@@ -53,6 +54,6 @@ class Video {
 			bool to_display);
 
 		void VideoRefresh() {
-			io->redraw();
+			io_interface->redraw();
 		}
 };

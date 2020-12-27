@@ -7,7 +7,7 @@
 
 #include "hardware.h"
 
-std::shared_ptr<curses_io> display;
+std::shared_ptr<io> display;
 Video video;
 
 // Set background color.
@@ -44,18 +44,13 @@ void initCurses() {
 	display = std::make_shared<curses_io>();
 }
 
-void cursesWrite(std::string x) {
+void display_write(std::string x) {
 	display->print(x);
 }
 
-void cursesWriteLn(std::string x) {
-	cursesWrite(x);
+void display_writeln(std::string x) {
+	display_write(x);
 	display->print("\n");
-}
-
-
-void uninitCurses() {
-	// No conditional deleting required...
 }
 
 bool Keypressed() {
