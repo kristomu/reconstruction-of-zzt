@@ -38,7 +38,7 @@ class stub_io : public io {
 			unsigned char to_print) const {
 			return true;
 		}
-		bool print_ch(int x, int y, char packed_color,
+		bool print_ch(int x, int y, unsigned char packed_color,
 			unsigned char to_print) const {
 			return true;
 		}

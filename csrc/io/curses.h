@@ -71,7 +71,7 @@ class curses_io : public io {
 		bool print_ch(int x, int y, unsigned char to_print) const;
 		bool print_ch(int x, int y, dos_color fg, dos_color bg,
 			unsigned char to_print) const;
-		bool print_ch(int x, int y, char packed_color,
+		bool print_ch(int x, int y, unsigned char packed_color,
 			unsigned char to_print) const;
 		bool print_col(int x, int y, dos_color fg, dos_color bg,
 			const std::string str) const;

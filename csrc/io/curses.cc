@@ -250,7 +250,7 @@ bool curses_io::print_ch(int x, int y, dos_color fg, dos_color bg,
 	return (worked);
 }
 
-bool curses_io::print_ch(int x, int y, char packed_color,
+bool curses_io::print_ch(int x, int y, unsigned char packed_color,
 	unsigned char to_print) const {
 
 	return print_ch(x, y, (dos_color)(packed_color & 0xF),

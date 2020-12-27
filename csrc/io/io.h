@@ -27,7 +27,7 @@ class io {
 		virtual bool print_ch(int x, int y, unsigned char to_print) const  = 0;
 		virtual bool print_ch(int x, int y, dos_color fg, dos_color bg,
 			unsigned char to_print) const  = 0;
-		virtual bool print_ch(int x, int y, char packed_color,
+		virtual bool print_ch(int x, int y, unsigned char packed_color,
 			unsigned char to_print) const  = 0;
 
 		virtual void redraw() const  = 0;

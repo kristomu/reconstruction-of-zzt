@@ -141,7 +141,6 @@ void GameConfigure() {
 	TextBackground(LightGray);
 	GotoXY(66, bottomRow+1);
 	display_write("ESC");
-	getch(); // hax
 	/*Window(1, 8, 80, bottomRow-2);
 	TextColor(Yellow);
 	TextBackground(Black);
@@ -158,7 +157,7 @@ void GameConfigure() {
 	Window(1, 1, 80, bottomRow+1);
 }
 
-void debug_ncurses_input() {
+void debug_video_input() {
 	int col = 0;
 
 	do {
@@ -170,6 +169,15 @@ void debug_ncurses_input() {
 		++col;
 		col = col % 7;
 	} while (1 == 1);
+}
+
+void debug_display_output() {
+	for (int bg = 0; bg < 16; ++bg) {
+		for (int fg = 0; fg < 16; ++fg) {
+			display->print_ch(fg+10, bg+5, bg * 16 + fg, '!');
+		}
+	}
+	InputReadWaitKey();
 }
 
 int main(int argc, const char* argv[]) {
@@ -209,7 +217,8 @@ int main(int argc, const char* argv[]) {
 	ParseArguments();
 	TextWindowInit(5, 3, 50, 18);
 
-	/*debug_ncurses_input();*/
+	/*debug_display_input();*/
+	/*debug_display_output();*/
 
 	if (!GameTitleExitRequested)  {
 		TTextWindowState textWindow;
