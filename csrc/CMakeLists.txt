@@ -27,6 +27,7 @@ add_executable(zzt
 	gamevars.cxx
 	fileops.cxx
 	io/curses.cc
+	io/stub.cc
 	hardware.cc
 	video.cxx
 	unicode.cxx

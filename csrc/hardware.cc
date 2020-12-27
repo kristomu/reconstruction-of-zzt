@@ -6,6 +6,8 @@
 #include <sys/time.h>
 
 #include "hardware.h"
+#include "io/stub.h"
+#include "testing.h"
 
 std::shared_ptr<io> display;
 Video video;
@@ -41,7 +43,11 @@ void GotoXY(int x, int y) {
 void SetCBreak(bool pollEveryTime) {}
 
 void initCurses() {
-	display = std::make_shared<curses_io>();
+	if (test_mode_disable_video) {
+		display = std::make_shared<stub_io>();
+	} else {
+		display = std::make_shared<curses_io>();
+	}
 }
 
 void display_write(std::string x) {
@@ -108,7 +114,9 @@ void GetTime(short & hour, short & minute, short & second,
 }
 
 void Delay(int msec) {
-	usleep(msec*1000);
+	if (!test_mode_disable_delay) {
+		usleep(msec*1000);
+	}
 }
 
 integer InputDeltaX, InputDeltaY;      // translates arrow keys to movement

@@ -234,7 +234,7 @@ void TextWindowPrint(TTextWindowState & state) {
 		}
 	}
 	if (state.LoadedFilename == "ORDER.HLP")  {
-		printout << *OrderPrintId << "\n";
+		printout << order_print_id << "\n";
 	}
 	printout << chr(12); /* form feed */
 }

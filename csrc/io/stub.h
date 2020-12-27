@@ -7,8 +7,15 @@
 #include <vector>
 
 class stub_io : public io {
+	private:
+		std::vector<key_response> key_responses;
+		std::vector<key_response>::const_iterator response_pos;
 
 	public:
+		stub_io() {
+			response_pos = key_responses.begin();
+		}
+
 		void move(int x, int y) {}
 
 		bool supports_colors() {
@@ -42,15 +49,6 @@ class stub_io : public io {
 			unsigned char to_print) const {
 			return true;
 		}
-		bool print_col(int x, int y, dos_color fg, dos_color bg,
-			const std::string str) const {
-			return true;
-		}
-		// TODO: Replace this with DOS char mapping.
-		bool print_ext(int x, int y, dos_color fg, dos_color bg,
-			const std::vector<short> & ext) const {
-			return true;
-		}
 
 		void redraw() const {}
 		void clrscr() const {}
@@ -71,4 +69,6 @@ class stub_io : public io {
 		key_response read_key();
 		key_response read_key_blocking();
 		void flush_keybuf();
+
+		void set_key_responses(std::vector<key_response> responses_in);
 };

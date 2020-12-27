@@ -141,12 +141,8 @@ void GameConfigure() {
 	TextBackground(LightGray);
 	GotoXY(66, bottomRow+1);
 	display_write("ESC");
-	/*Window(1, 8, 80, bottomRow-2);
 	TextColor(Yellow);
 	TextBackground(Black);
-	ClrScr();
-	TextColor(Yellow);*/
-	// TBD: video.pas
 	GotoXY(1, 8);
 	TextColor(LightGreen);
 	TextBackground(Black);
@@ -205,10 +201,6 @@ int main(int argc, const char* argv[]) {
 	SetCBreak(false);
 	SetupCodepointToCP437();
 
-	// Back up the text attributes. This shouldn't be necessary because
-	// curses cleans up after itself.
-	//InitialTextAttr = TextAttr;
-
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";
 	ResetConfig = false;
@@ -224,7 +216,7 @@ int main(int argc, const char* argv[]) {
 		TTextWindowState textWindow;
 
 		// XXX: Fix
-		//OrderPrintId = &GameVersion;
+		order_print_id = GameVersion;
 		IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
 		//new TIoTmpBuf;
 

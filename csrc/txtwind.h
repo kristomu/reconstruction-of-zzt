@@ -41,7 +41,7 @@ EXTERN video_line text_window_str_inner_arrows;
 EXTERN bool TextWindowRejected;
 EXTERN std::string ResourceDataFileName;
 EXTERN TResourceDataHeader ResourceDataHeader;
-EXTERN string* OrderPrintId;
+EXTERN std::string order_print_id;
 #undef EXTERN
 #define EXTERN extern
 
