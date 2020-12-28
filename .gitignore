@@ -1,2 +1,19 @@
-BIN
-DIST
+#Ignore everything
+*
+
+# But not source files, libraries or readmes, or CMakeLists.
+!.gitignore
+!*.sh
+!*.h
+!*.cxx
+!*.cc
+!*.pas
+!*.py
+!*.md
+!*.a
+!CMakeLists.txt
+
+# And not ZZT.DAT or TOWN.ZZT
+!zzt.dat
+!ZZT.DAT
+!TOWN.ZZT
