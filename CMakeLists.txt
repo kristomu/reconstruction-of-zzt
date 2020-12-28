@@ -20,53 +20,53 @@ set(CMAKE_CXX_FLAGS "-O9 -march=native -ggdb -DTURBO_PASCAL")
 # Quick and dirty make specification.
 add_library(ptoc SHARED IMPORTED)
 set_target_properties(ptoc
-	PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/ptoc/libptoc.a)
+	PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/ptoc/libptoc.a)
 
 # TODO: Cleanup
 
 add_executable(zzt
-	testing.cc
-	zzt.cxx
-	gamevars.cxx
-	fileops.cxx
-	io/curses.cc
-	io/stub.cc
-	hardware.cc
-	video.cxx
-	unicode.cxx
-	txtwind.cxx
-	game.cxx
-	minmax.cxx
-	elements.cxx
-	oop.cxx
-	sounds.cxx
-	editor.cxx
-	tools.cc
-	board.cc
-	serialization.cc
-	world.cc)
+	csrc/testing.cc
+	csrc/zzt.cxx
+	csrc/gamevars.cxx
+	csrc/fileops.cxx
+	csrc/io/curses.cc
+	csrc/io/stub.cc
+	csrc/hardware.cc
+	csrc/video.cxx
+	csrc/unicode.cxx
+	csrc/txtwind.cxx
+	csrc/game.cxx
+	csrc/minmax.cxx
+	csrc/elements.cxx
+	csrc/oop.cxx
+	csrc/sounds.cxx
+	csrc/editor.cxx
+	csrc/tools.cc
+	csrc/board.cc
+	csrc/serialization.cc
+	csrc/world.cc)
 
 add_executable(fuzzt
-	testing.cc
-	fuzzt.cxx
-	gamevars.cxx
-	fileops.cxx
-	io/curses.cc
-	io/stub.cc
-	hardware.cc
-	video.cxx
-	unicode.cxx
-	txtwind.cxx
-	game.cxx
-	minmax.cxx
-	elements.cxx
-	oop.cxx
-	sounds.cxx
-	editor.cxx
-	tools.cc
-	board.cc
-	serialization.cc
-	world.cc)
+	csrc/testing.cc
+	csrc/fuzzt.cxx
+	csrc/gamevars.cxx
+	csrc/fileops.cxx
+	csrc/io/curses.cc
+	csrc/io/stub.cc
+	csrc/hardware.cc
+	csrc/video.cxx
+	csrc/unicode.cxx
+	csrc/txtwind.cxx
+	csrc/game.cxx
+	csrc/minmax.cxx
+	csrc/elements.cxx
+	csrc/oop.cxx
+	csrc/sounds.cxx
+	csrc/editor.cxx
+	csrc/tools.cc
+	csrc/board.cc
+	csrc/serialization.cc
+	csrc/world.cc)
 
 # For some bizarre reason, ncurses wide detection
 # (see commented-out lines above) doesn't work on my system, something
