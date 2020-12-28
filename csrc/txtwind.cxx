@@ -58,32 +58,32 @@ void TextWindowInitState(TTextWindowState & state) {
 }
 
 void TextWindowDrawTitle(integer color, TTextWindowLine title) {
-	video.VideoWriteText(TextWindowX + 2, TextWindowY + 1, color,
+	video.write(TextWindowX + 2, TextWindowY + 1, color,
 		text_window_str_inner_empty);
-	video.VideoWriteText(TextWindowX + ((TextWindowWidth - length(title)) / 2),
+	video.write(TextWindowX + ((TextWindowWidth - length(title)) / 2),
 		TextWindowY + 1, color, title);
 }
 
 void TextWindowDrawOpen(TTextWindowState & state) {
 	int ix, iy;
 
-	video.VideoCopy(TextWindowX, TextWindowY, TextWindowWidth,
+	video.Copy(TextWindowX, TextWindowY, TextWindowWidth,
 		TextWindowHeight+1, false);
 
 	for (iy = (TextWindowHeight / 2); iy >= 0; iy --) {
-		video.VideoWriteText(TextWindowX, TextWindowY + iy + 1, 0xf,
+		video.write(TextWindowX, TextWindowY + iy + 1, 0xf,
 			text_window_str_text);
-		video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1,
+		video.write(TextWindowX, TextWindowY + TextWindowHeight - iy - 1,
 			0xf, text_window_str_text);
-		video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf,
+		video.write(TextWindowX, TextWindowY + iy, 0xf,
 			text_window_str_top);
-		video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
+		video.write(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
 			text_window_str_bottom);
 		Delay(25);
-		video.VideoRefresh();
+		video.Refresh();
 	}
 
-	video.VideoWriteText(TextWindowX, TextWindowY + 2, 0xf,
+	video.write(TextWindowX, TextWindowY + 2, 0xf,
 		text_window_str_sep);
 	TextWindowDrawTitle(0x1e, state.Title);
 }
@@ -93,18 +93,18 @@ void TextWindowDrawClose(TTextWindowState & state) {
 	integer unk1, unk2;
 
 	for (iy = 0; iy <= (TextWindowHeight / 2); iy ++) {
-		video.VideoWriteText(TextWindowX, TextWindowY + iy, 0xf,
+		video.write(TextWindowX, TextWindowY + iy, 0xf,
 			text_window_str_top);
-		video.VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
+		video.write(TextWindowX, TextWindowY + TextWindowHeight - iy, 0xf,
 			text_window_str_bottom);
 		Delay(18);
 		/* Replace upper line with background. */
-		video.VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1,
+		video.Copy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1,
 			true);
 		/* Replace lower line with background. */
-		video.VideoCopy(TextWindowX, TextWindowY + TextWindowHeight - iy,
+		video.Copy(TextWindowX, TextWindowY + TextWindowHeight - iy,
 			TextWindowWidth, 1, true);
-		video.VideoRefresh();
+		video.Refresh();
 	}
 }
 
@@ -116,14 +116,14 @@ void TextWindowDrawLine(TTextWindowState & state, integer lpos,
 	lineY = ((TextWindowY + lpos) - state.LinePos) + (TextWindowHeight / 2) +
 		1;
 	if (lpos == state.LinePos)
-		video.VideoWriteText(TextWindowX + 2, lineY, 0x1c,
+		video.write(TextWindowX + 2, lineY, 0x1c,
 			text_window_str_inner_arrows);
 	else
-		video.VideoWriteText(TextWindowX + 2, lineY, 0x1e,
+		video.write(TextWindowX + 2, lineY, 0x1e,
 			text_window_str_inner_empty);
 	if ((lpos > 0) && (lpos <= state.LineCount))  {
 		if (withoutFormatting)  {
-			video.VideoWriteText(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
+			video.write(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
 		} else {
 			textOffset = 1;
 			textColor = 0x1e;
@@ -132,7 +132,7 @@ void TextWindowDrawLine(TTextWindowState & state, integer lpos,
 				switch ((*state.Lines[lpos])[1]) {
 					case '!': {
 						textOffset = pos(";", *state.Lines[lpos]) + 1;
-						video.VideoWriteText(textX + 2, lineY, 0x1d, "\20");
+						video.write(textX + 2, lineY, 0x1d, "\20");
 						textX = textX + 5;
 						textColor = 0x1f;
 					}
@@ -151,22 +151,22 @@ void TextWindowDrawLine(TTextWindowState & state, integer lpos,
 				}
 			}
 			if (textOffset > 0)  {
-				video.VideoWriteText(textX, lineY, textColor,
+				video.write(textX, lineY, textColor,
 					copy(*state.Lines[lpos], textOffset,
 						length(*state.Lines[lpos]) - textOffset + 1));
 			}
 		}
 	} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
-		video.VideoWriteText(TextWindowX + 2, lineY, 0x1e,
+		video.write(TextWindowX + 2, lineY, 0x1e,
 			text_window_str_inner_sep);
 	} else if ((lpos == -4) && viewingFile)  {
-		video.VideoWriteText(TextWindowX + 2, lineY, 0x1a,
+		video.write(TextWindowX + 2, lineY, 0x1a,
 			"   Use            to view text,");
-		video.VideoWriteText(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
+		video.write(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
 	} else if ((lpos == -3) && viewingFile)  {
-		video.VideoWriteText(TextWindowX + 2 + 1, lineY, 0x1a,
+		video.write(TextWindowX + 2 + 1, lineY, 0x1a,
 			"                 to print.");
-		video.VideoWriteText(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
+		video.write(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
 	}
 }
 
@@ -448,18 +448,18 @@ void TextWindowEdit(TTextWindowState & state) {
 	TextWindowDraw(state, true, false);
 	do {
 		if (insertMode) {
-			video.VideoWriteText(77, 14, 0x1e, "on ");
+			video.write(77, 14, 0x1e, "on ");
 		} else {
-			video.VideoWriteText(77, 14, 0x1e, "off");
+			video.write(77, 14, 0x1e, "off");
 		}
 
 		if (charPos >= (length(*state.Lines[state.LinePos]) + 1))  {
 			charPos = length(*state.Lines[state.LinePos]) + 1;
-			video.VideoWriteText(charPos + TextWindowX + 3,
+			video.write(charPos + TextWindowX + 3,
 				TextWindowY + (TextWindowHeight / 2) + 1,
 				0x70, " ");
 		} else {
-			video.VideoWriteText(charPos + TextWindowX + 3,
+			video.write(charPos + TextWindowX + 3,
 				TextWindowY + (TextWindowHeight / 2) + 1,
 				0x70, (*state.Lines[state.LinePos])[charPos]);
 		}

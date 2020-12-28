@@ -77,7 +77,7 @@ boolean CoordInsideViewport(integer x, integer y) {
 }
 
 void SidebarClearLine(integer y) {
-	video.VideoWriteText(60, y, 0x11, "\263                   ");
+	video.write(60, y, 0x11, "\263                   ");
 }
 
 void SidebarClear() {
@@ -205,7 +205,7 @@ void TransitionDrawToFill(char chr_, integer color) {
 	integer i;
 
 	for (i = 1; i <= TransitionTableSize; i ++)
-		video.VideoWriteText(TransitionTable[i].X - 1,
+		video.write(TransitionTable[i].X - 1,
 			TransitionTable[i].Y - 1,
 			color,
 			chr_);
@@ -223,30 +223,30 @@ void BoardDrawTile(integer x, integer y) {
 				TORCH_DIST_SQR)
 		) || ForceDarknessOff) {
 		if (with.Element == E_EMPTY) {
-			video.VideoWriteText(x - 1, y - 1, 0xf, " ");
+			video.write(x - 1, y - 1, 0xf, " ");
 		} else if ((with.Element < E_TEXT_MIN)
 			&& ElementDefs[with.Element].HasDrawProc)  {
 			ElementDefs[with.Element].DrawProc(x, y, ch);
-			video.VideoWriteText(x - 1, y - 1, with.Color, chr(ch));
+			video.write(x - 1, y - 1, with.Color, chr(ch));
 		} else if (with.Element < E_TEXT_MIN)
-			video.VideoWriteText(x - 1, y - 1, with.Color,
+			video.write(x - 1, y - 1, with.Color,
 				ElementDefs[with.Element].Character);
 		else {
 			/* Text drawing */
 			if (with.Element == E_TEXT_WHITE) {
-				video.VideoWriteText(x - 1, y - 1, 0xf, chr(Board.Tiles[x][y].Color));
-			} else if (VideoMonochrome)
-				video.VideoWriteText(x - 1, y - 1,
+				video.write(x - 1, y - 1, 0xf, chr(Board.Tiles[x][y].Color));
+			} else if (video.is_monochrome())
+				video.write(x - 1, y - 1,
 					((with.Element - E_TEXT_MIN) + 1) * 16,
 					chr(Board.Tiles[x][y].Color));
 			else
-				video.VideoWriteText(x - 1, y - 1,
+				video.write(x - 1, y - 1,
 					(((with.Element - E_TEXT_MIN) + 1) * 16) + 0xf,
 					chr(Board.Tiles[x][y].Color));
 		}
 	} else {
 		/* Darkness */
-		video.VideoWriteText(x - 1, y - 1, 0x7, "\260");
+		video.write(x - 1, y - 1, 0x7, "\260");
 	}
 }
 
@@ -280,14 +280,14 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 	integer i, newValue;
 
 	SidebarClearLine(y);
-	video.VideoWriteText(x, y, (integer)(editable) + 0x1e, prompt);
+	video.write(x, y, (integer)(editable) + 0x1e, prompt);
 	SidebarClearLine(y + 1);
-	video.VideoWriteText(x + 5, y + 1, 0x9f, "\37");
+	video.write(x + 5, y + 1, 0x9f, "\37");
 	SidebarClearLine(y + 2);
 
 	do {
 		for (i = (value - 4); i <= (value + 4); i ++)
-			video.VideoWriteText(((x + i) - value) + 5, y + 2, 0x1e,
+			video.write(((x + i) - value) + 5, y + 2, 0x1e,
 				chr((i + 0x100) % 0x100));
 
 		if (editable)  {
@@ -309,7 +309,7 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
 			|| InputShiftPressed));
 
-	video.VideoWriteText(x + 5, y + 1, 0x1f, "\37");
+	video.write(x + 5, y + 1, 0x1f, "\37");
 }
 
 void SidebarPromptSlider(boolean editable, integer x, integer y,
@@ -327,10 +327,10 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 	}
 
 	SidebarClearLine(y);
-	video.VideoWriteText(x, y, (integer)(editable) + 0x1e, prompt);
+	video.write(x, y, (integer)(editable) + 0x1e, prompt);
 	SidebarClearLine(y + 1);
 	SidebarClearLine(y + 2);
-	video.VideoWriteText(x, y + 2, 0x1e,
+	video.write(x, y + 2, 0x1e,
 		string(startChar) + "....:...." + endChar);
 
 	do {
@@ -338,7 +338,7 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 			if (InputJoystickMoved) {
 				Delay(45);
 			}
-			video.VideoWriteText(x + value + 1, y + 1, 0x9f, "\37");
+			video.write(x + value + 1, y + 1, 0x9f, "\37");
 
 			InputUpdate();
 			if ((InputKeyPressed >= '1') && (InputKeyPressed <= '9'))  {
@@ -356,7 +356,7 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
 			|| InputShiftPressed));
 
-	video.VideoWriteText(x + value + 1, y + 1, 0x1f, "\37");
+	video.write(x + value + 1, y + 1, 0x1f, "\37");
 }
 
 void SidebarPromptChoice(boolean editable, integer y, string prompt,
@@ -367,8 +367,8 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 	SidebarClearLine(y);
 	SidebarClearLine(y + 1);
 	SidebarClearLine(y + 2);
-	video.VideoWriteText(63, y, (integer)(editable) + 0x1e, prompt);
-	video.VideoWriteText(63, y + 2, 0x1e, choiceStr);
+	video.write(63, y, (integer)(editable) + 0x1e, prompt);
+	video.write(63, y + 2, 0x1e, choiceStr);
 
 	choiceCount = 1;
 	for (i = 1; i <= length(choiceStr); i ++)
@@ -387,7 +387,7 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 		}
 
 		if (editable)  {
-			video.VideoWriteText(62 + i, y + 1, 0x9f, "\37");
+			video.write(62 + i, y + 1, 0x9f, "\37");
 			Delay(35);
 			InputUpdate();
 
@@ -402,7 +402,7 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
 			|| InputShiftPressed));
 
-	video.VideoWriteText(62 + i, y + 1, 0x1f, "\37");
+	video.write(62 + i, y + 1, 0x1f, "\37");
 }
 
 void SidebarPromptDirection(boolean editable, integer y,
@@ -436,14 +436,14 @@ void PromptString(integer x, integer y, integer arrowColor,
 
 	do {
 		for (i = 0; i <= (width - 1); i ++) {
-			video.VideoWriteText(x + i, y, color, " ");
-			video.VideoWriteText(x + i, y - 1, arrowColor, " ");
+			video.write(x + i, y, color, " ");
+			video.write(x + i, y - 1, arrowColor, " ");
 		}
-		video.VideoWriteText(x + width, y - 1, arrowColor, " ");
-		video.VideoWriteText(x + length(buffer), y - 1,
+		video.write(x + width, y - 1, arrowColor, " ");
+		video.write(x + length(buffer), y - 1,
 			(arrowColor / 0x10) * 16 + 0xf,
 			"\37");
-		video.VideoWriteText(x, y, color, buffer);
+		video.write(x, y, color, buffer);
 
 		InputReadWaitKey();
 
@@ -493,8 +493,8 @@ boolean SidebarPromptYesNo(string message, boolean defaultReturn) {
 	SidebarClearLine(3);
 	SidebarClearLine(4);
 	SidebarClearLine(5);
-	video.VideoWriteText(63, 5, 0x1f, message);
-	video.VideoWriteText(63 + length(message), 5, 0x9e, "_");
+	video.write(63, 5, 0x1f, message);
+	video.write(63 + length(message), 5, 0x9e, "_");
 
 	do {
 		InputReadWaitKey();
@@ -516,8 +516,8 @@ void SidebarPromptString(string prompt, TString50 extension,
 	SidebarClearLine(3);
 	SidebarClearLine(4);
 	SidebarClearLine(5);
-	video.VideoWriteText(75 - length(prompt), 3, 0x1f, prompt);
-	video.VideoWriteText(63, 5, 0xf, string("        ") + extension);
+	video.write(75 - length(prompt), 3, 0x1f, prompt);
+	video.write(63, 5, 0xf, string("        ") + extension);
 
 	PromptString(63, 5, 0x1e, 0xf, 8, promptMode, filename);
 
@@ -527,7 +527,7 @@ void SidebarPromptString(string prompt, TString50 extension,
 }
 
 void PauseOnError() {
-	redraw();
+	video.redraw();
 	SoundQueue(1, SoundParse("s004x114x9"));
 	Delay(2000);
 }
@@ -636,7 +636,7 @@ boolean WorldLoad(std::string filename, std::string extension);
 static integer loadProgress;
 
 static void SidebarAnimateLoading() {
-	video.VideoWriteText(69, 5, ProgressAnimColors[loadProgress],
+	video.write(69, 5, ProgressAnimColors[loadProgress],
 		ProgressAnimStrings[loadProgress]);
 	loadProgress = (loadProgress + 1) % 8;
 }
@@ -702,7 +702,7 @@ boolean WorldLoad(std::string filename, std::string extension) {
 	SidebarClearLine(4);
 	SidebarClearLine(5);
 	SidebarClearLine(5);
-	video.VideoWriteText(62, 5, 0x1f, "Loading.....");
+	video.write(62, 5, 0x1f, "Loading.....");
 
 	if (filename + extension == "")  {
 		return WorldLoad_result;
@@ -728,8 +728,8 @@ boolean WorldLoad(std::string filename, std::string extension) {
 			// of ZZT. Otherwise (positive count), that's the board count.
 			if (World.BoardCount < 0)  {
 				if (World.BoardCount != -1)  {
-					video.VideoWriteText(63, 5, 0x1e, "You need a newer");
-					video.VideoWriteText(63, 6, 0x1e, " version of ZZT!");
+					video.write(63, 5, 0x1e, "You need a newer");
+					video.write(63, 6, 0x1e, " version of ZZT!");
 					return WorldLoad_result;
 				} else {
 					ptr = load_lsb_element(ptr, World.BoardCount);
@@ -826,7 +826,7 @@ void WorldSave(TString50 filename, TString50 extension) {
 
 
 	BoardClose(true);
-	video.VideoWriteText(63, 5, 0x1f, "Saving...");
+	video.write(63, 5, 0x1f, "Saving...");
 
 	std::string full_filename = std::string(filename + extension);
 	std::ofstream out_file = OpenForWrite(full_filename);
@@ -1177,14 +1177,14 @@ void PopupPromptString(string question, TString50 & buffer) {
 	integer x, y;
 
 	// TODO: Move to txtwind.cxx
-	video.VideoWriteText(3, 18, 0x4f, text_window_str_top);
-	video.VideoWriteText(3, 19, 0x4f, text_window_str_text);
-	video.VideoWriteText(3, 20, 0x4f, text_window_str_sep);
-	video.VideoWriteText(3, 21, 0x4f, text_window_str_text);
-	video.VideoWriteText(3, 22, 0x4f, text_window_str_text);
-	video.VideoWriteText(3, 23, 0x4f, text_window_str_bottom);
+	video.write(3, 18, 0x4f, text_window_str_top);
+	video.write(3, 19, 0x4f, text_window_str_text);
+	video.write(3, 20, 0x4f, text_window_str_sep);
+	video.write(3, 21, 0x4f, text_window_str_text);
+	video.write(3, 22, 0x4f, text_window_str_text);
+	video.write(3, 23, 0x4f, text_window_str_bottom);
 	// TODO: "CenterText" function in txtwind.cxx
-	video.VideoWriteText(4 + (TextWindowWidth - length(question)) / 2, 19,
+	video.write(4 + (TextWindowWidth - length(question)) / 2, 19,
 		0x4f, question);
 	buffer = "";
 	PromptString(10, 22, 0x4f, 0x4e, TextWindowWidth - 16, PROMPT_ANY,
@@ -1231,9 +1231,9 @@ void GameUpdateSidebar() {
 
 	if (GameStateElement == E_PLAYER)  {
 		if (Board.Info.TimeLimitSec > 0)  {
-			video.VideoWriteText(64, 6, 0x1e, "   Time:");
+			video.write(64, 6, 0x1e, "   Time:");
 			str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
-			video.VideoWriteText(72, 6, 0x1e, numStr + ' ');
+			video.write(72, 6, 0x1e, numStr + ' ');
 		} else {
 			SidebarClearLine(6);
 		}
@@ -1243,48 +1243,48 @@ void GameUpdateSidebar() {
 		}
 
 		str(World.Info.Health, numStr);
-		video.VideoWriteText(72, 7, 0x1e, numStr + ' ');
+		video.write(72, 7, 0x1e, numStr + ' ');
 		str(World.Info.Ammo, numStr);
-		video.VideoWriteText(72, 8, 0x1e, numStr + "  ");
+		video.write(72, 8, 0x1e, numStr + "  ");
 		str(World.Info.Torches, numStr);
-		video.VideoWriteText(72, 9, 0x1e, numStr + ' ');
+		video.write(72, 9, 0x1e, numStr + ' ');
 		str(World.Info.Gems, numStr);
-		video.VideoWriteText(72, 10, 0x1e, numStr + ' ');
+		video.write(72, 10, 0x1e, numStr + ' ');
 		str(World.Info.Score, numStr);
-		video.VideoWriteText(72, 11, 0x1e, numStr + ' ');
+		video.write(72, 11, 0x1e, numStr + ' ');
 
 		if (World.Info.TorchTicks == 0) {
-			video.VideoWriteText(75, 9, 0x16, "    ");
+			video.write(75, 9, 0x16, "    ");
 		} else {
 			for (i = 2; i <= 5; i ++) {
 				if (i <= ((World.Info.TorchTicks * 5) / TORCH_DURATION)) {
-					video.VideoWriteText(73 + i, 9, 0x16, "\261");
+					video.write(73 + i, 9, 0x16, "\261");
 				} else {
-					video.VideoWriteText(73 + i, 9, 0x16, "\260");
+					video.write(73 + i, 9, 0x16, "\260");
 				}
 			}
 		}
 
 		for (i = 1; i <= 7; i ++) {
 			if (World.Info.HasKey(i))
-				video.VideoWriteText(71 + i, 12, 0x18 + i,
+				video.write(71 + i, 12, 0x18 + i,
 					ElementDefs[E_KEY].Character);
 			else {
-				video.VideoWriteText(71 + i, 12, 0x1f, " ");
+				video.write(71 + i, 12, 0x1f, " ");
 			}
 		}
 
 		if (SoundEnabled) {
-			video.VideoWriteText(65, 15, 0x1f, " Be quiet");
+			video.write(65, 15, 0x1f, " Be quiet");
 		} else {
-			video.VideoWriteText(65, 15, 0x1f, " Be noisy");
+			video.write(65, 15, 0x1f, " Be noisy");
 		}
 
 		if (DebugEnabled)  {
 			/* TODO: Replace with some interesting stat
 			on Linux.*/
 			numStr = "lots";
-			video.VideoWriteText(69, 4, 0x1e, string('m') + numStr + ' ');
+			video.write(69, 4, 0x1e, string('m') + numStr + ' ');
 		}
 	}
 }
@@ -1576,62 +1576,62 @@ static void GameDrawSidebar() {
 	SidebarClearLine(0);
 	SidebarClearLine(1);
 	SidebarClearLine(2);
-	video.VideoWriteText(61, 0, 0x1f, "    - - - - -      ");
-	video.VideoWriteText(62, 1, 0x70, "      ZZT      ");
-	video.VideoWriteText(61, 2, 0x1f, "    - - - - -      ");
+	video.write(61, 0, 0x1f, "    - - - - -      ");
+	video.write(62, 1, 0x70, "      ZZT      ");
+	video.write(61, 2, 0x1f, "    - - - - -      ");
 	if (GameStateElement == E_PLAYER)  {
-		video.VideoWriteText(64, 7, 0x1e, " Health:");
-		video.VideoWriteText(64, 8, 0x1e, "   Ammo:");
-		video.VideoWriteText(64, 9, 0x1e, "Torches:");
-		video.VideoWriteText(64, 10, 0x1e, "   Gems:");
-		video.VideoWriteText(64, 11, 0x1e, "  Score:");
-		video.VideoWriteText(64, 12, 0x1e, "   Keys:");
-		video.VideoWriteText(62, 7, 0x1f, ElementDefs[E_PLAYER].Character);
-		video.VideoWriteText(62, 8, 0x1b, ElementDefs[E_AMMO].Character);
-		video.VideoWriteText(62, 9, 0x16, ElementDefs[E_TORCH].Character);
-		video.VideoWriteText(62, 10, 0x1b, ElementDefs[E_GEM].Character);
-		video.VideoWriteText(62, 12, 0x1f, ElementDefs[E_KEY].Character);
-		video.VideoWriteText(62, 14, 0x70, " T ");
-		video.VideoWriteText(65, 14, 0x1f, " Torch");
-		video.VideoWriteText(62, 15, 0x30, " B ");
-		video.VideoWriteText(62, 16, 0x70, " H ");
-		video.VideoWriteText(65, 16, 0x1f, " Help");
-		video.VideoWriteText(67, 18, 0x30, " \30\31\32\33 ");
-		video.VideoWriteText(72, 18, 0x1f, " Move");
-		video.VideoWriteText(61, 19, 0x70, " Shift \30\31\32\33 ");
-		video.VideoWriteText(72, 19, 0x1f, " Shoot");
-		video.VideoWriteText(62, 21, 0x70, " S ");
-		video.VideoWriteText(65, 21, 0x1f, " Save game");
-		video.VideoWriteText(62, 22, 0x30, " P ");
-		video.VideoWriteText(65, 22, 0x1f, " Pause");
-		video.VideoWriteText(62, 23, 0x70, " Q ");
-		video.VideoWriteText(65, 23, 0x1f, " Quit");
+		video.write(64, 7, 0x1e, " Health:");
+		video.write(64, 8, 0x1e, "   Ammo:");
+		video.write(64, 9, 0x1e, "Torches:");
+		video.write(64, 10, 0x1e, "   Gems:");
+		video.write(64, 11, 0x1e, "  Score:");
+		video.write(64, 12, 0x1e, "   Keys:");
+		video.write(62, 7, 0x1f, ElementDefs[E_PLAYER].Character);
+		video.write(62, 8, 0x1b, ElementDefs[E_AMMO].Character);
+		video.write(62, 9, 0x16, ElementDefs[E_TORCH].Character);
+		video.write(62, 10, 0x1b, ElementDefs[E_GEM].Character);
+		video.write(62, 12, 0x1f, ElementDefs[E_KEY].Character);
+		video.write(62, 14, 0x70, " T ");
+		video.write(65, 14, 0x1f, " Torch");
+		video.write(62, 15, 0x30, " B ");
+		video.write(62, 16, 0x70, " H ");
+		video.write(65, 16, 0x1f, " Help");
+		video.write(67, 18, 0x30, " \30\31\32\33 ");
+		video.write(72, 18, 0x1f, " Move");
+		video.write(61, 19, 0x70, " Shift \30\31\32\33 ");
+		video.write(72, 19, 0x1f, " Shoot");
+		video.write(62, 21, 0x70, " S ");
+		video.write(65, 21, 0x1f, " Save game");
+		video.write(62, 22, 0x30, " P ");
+		video.write(65, 22, 0x1f, " Pause");
+		video.write(62, 23, 0x70, " Q ");
+		video.write(65, 23, 0x1f, " Quit");
 	} else if (GameStateElement == E_MONITOR)  {
 		SidebarPromptSlider(false, 66, 21, "Game speed:;FS", TickSpeed);
-		video.VideoWriteText(62, 21, 0x70, " S ");
-		video.VideoWriteText(62, 7, 0x30, " W ");
-		video.VideoWriteText(65, 7, 0x1e, " World:");
+		video.write(62, 21, 0x70, " S ");
+		video.write(62, 7, 0x30, " W ");
+		video.write(65, 7, 0x1e, " World:");
 
 		if (World.Info.Name.size() != 0) {
-			video.VideoWriteText(69, 8, 0x1f, World.Info.Name);
+			video.write(69, 8, 0x1f, World.Info.Name);
 		} else {
-			video.VideoWriteText(69, 8, 0x1f, "Untitled");
+			video.write(69, 8, 0x1f, "Untitled");
 		}
 
-		video.VideoWriteText(62, 11, 0x70, " P ");
-		video.VideoWriteText(65, 11, 0x1f, " Play");
-		video.VideoWriteText(62, 12, 0x30, " R ");
-		video.VideoWriteText(65, 12, 0x1e, " Restore game");
-		video.VideoWriteText(62, 13, 0x70, " Q ");
-		video.VideoWriteText(65, 13, 0x1e, " Quit");
-		video.VideoWriteText(62, 16, 0x30, " A ");
-		video.VideoWriteText(65, 16, 0x1f, " About ZZT!");
-		video.VideoWriteText(62, 17, 0x70, " H ");
-		video.VideoWriteText(65, 17, 0x1e, " High Scores");
+		video.write(62, 11, 0x70, " P ");
+		video.write(65, 11, 0x1f, " Play");
+		video.write(62, 12, 0x30, " R ");
+		video.write(65, 12, 0x1e, " Restore game");
+		video.write(62, 13, 0x70, " Q ");
+		video.write(65, 13, 0x1e, " Quit");
+		video.write(62, 16, 0x30, " A ");
+		video.write(65, 16, 0x1f, " About ZZT!");
+		video.write(62, 17, 0x70, " H ");
+		video.write(65, 17, 0x1e, " High Scores");
 
 		if (EditorEnabled)  {
-			video.VideoWriteText(62, 18, 0x30, " E ");
-			video.VideoWriteText(65, 18, 0x1e, " Board Editor");
+			video.write(62, 18, 0x30, " E ");
+			video.write(65, 18, 0x1e, " Board Editor");
 		}
 	}
 }
@@ -1647,7 +1647,7 @@ void GamePlayLoop(boolean boardChanged) {
 		GameAboutScreen();
 		if (length(StartupWorldFileName) != 0)  {
 			SidebarClearLine(8);
-			video.VideoWriteText(69, 8, 0x1f, StartupWorldFileName);
+			video.write(69, 8, 0x1f, StartupWorldFileName);
 			if (! WorldLoad(std::string(StartupWorldFileName),
 					".ZZT"))  {
 				WorldCreate();
@@ -1665,7 +1665,7 @@ void GamePlayLoop(boolean boardChanged) {
 
 	if (GameStateElement == E_MONITOR)  {
 		DisplayMessage(0, "");
-		video.VideoWriteText(62, 5, 0x1b, "Pick a command:");
+		video.write(62, 5, 0x1b, "Pick a command:");
 	}
 
 	if (boardChanged) {
@@ -1688,19 +1688,19 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 
 			if (pauseBlink)  {
-				video.VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+				video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
 					ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 			} else {
 				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
 					E_PLAYER)
-					video.VideoWriteText(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf,
+					video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf,
 						" ");
 				else {
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 				}
 			}
 
-			video.VideoWriteText(64, 5, 0x1f, "Pausing...");
+			video.write(64, 5, 0x1f, "Pausing...");
 			InputUpdate();
 
 			if (InputKeyPressed == E_KEY_ESCAPE) {
@@ -1935,7 +1935,7 @@ void GamePrintRegisterMessage() {
 					f.read(scratch+1, s.size());
 					s = scratch;
 					if (s[0] != '@') {
-						video.VideoWriteText(0, iy, color, s);
+						video.write(0, iy, color, s);
 					} else {
 						isReading = false;
 					}
@@ -1944,13 +1944,13 @@ void GamePrintRegisterMessage() {
 			}
 
 			f.close();
-			video.VideoWriteText(28, 24, 0x1f, "Press any key to exit...");
-			TextColor(LightGray);
+			video.write(28, 24, 0x1f, "Press any key to exit...");
+			video.TextColor(LightGray);
 
 			ReadKeyBlocking();
 
-			video.VideoWriteText(28, 24, 0, "                        ");
-			GotoXY(1, 23);
+			video.write(28, 24, 0, "                        ");
+			video.go_to_xy(0, 22);
 		}
 	}
 }

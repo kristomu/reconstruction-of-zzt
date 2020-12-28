@@ -94,53 +94,53 @@ static void EditorDrawSidebar() {
 
 	SidebarClear();
 	SidebarClearLine(1);
-	video.VideoWriteText(61, 0, 0x1f, "     - - - -       ");
-	video.VideoWriteText(62, 1, 0x70, "  ZZT Editor   ");
-	video.VideoWriteText(61, 2, 0x1f, "     - - - -       ");
-	video.VideoWriteText(61, 4, 0x70, " L ");
-	video.VideoWriteText(64, 4, 0x1f, " Load");
-	video.VideoWriteText(61, 5, 0x30, " S ");
-	video.VideoWriteText(64, 5, 0x1f, " Save");
-	video.VideoWriteText(70, 4, 0x70, " H ");
-	video.VideoWriteText(73, 4, 0x1e, " Help");
-	video.VideoWriteText(70, 5, 0x30, " Q ");
-	video.VideoWriteText(73, 5, 0x1f, " Quit");
-	video.VideoWriteText(61, 7, 0x70, " B ");
-	video.VideoWriteText(65, 7, 0x1f, " Switch boards");
-	video.VideoWriteText(61, 8, 0x30, " I ");
-	video.VideoWriteText(65, 8, 0x1f, " Board Info");
-	video.VideoWriteText(61, 10, 0x70, "  f1   ");
-	video.VideoWriteText(68, 10, 0x1f, " Item");
-	video.VideoWriteText(61, 11, 0x30, "  f2   ");
-	video.VideoWriteText(68, 11, 0x1f, " Creature");
-	video.VideoWriteText(61, 12, 0x70, "  f3   ");
-	video.VideoWriteText(68, 12, 0x1f, " Terrain");
-	video.VideoWriteText(61, 13, 0x30, "  f4   ");
-	video.VideoWriteText(68, 13, 0x1f, " Enter text");
-	video.VideoWriteText(61, 15, 0x70, " Space ");
-	video.VideoWriteText(68, 15, 0x1f, " Plot");
-	video.VideoWriteText(61, 16, 0x30, "  Tab  ");
-	video.VideoWriteText(68, 16, 0x1f, " Draw mode");
-	video.VideoWriteText(61, 18, 0x70, " P ");
-	video.VideoWriteText(64, 18, 0x1f, " Pattern");
-	video.VideoWriteText(61, 19, 0x30, " C ");
-	video.VideoWriteText(64, 19, 0x1f, " Color:");
+	video.write(61, 0, 0x1f, "     - - - -       ");
+	video.write(62, 1, 0x70, "  ZZT Editor   ");
+	video.write(61, 2, 0x1f, "     - - - -       ");
+	video.write(61, 4, 0x70, " L ");
+	video.write(64, 4, 0x1f, " Load");
+	video.write(61, 5, 0x30, " S ");
+	video.write(64, 5, 0x1f, " Save");
+	video.write(70, 4, 0x70, " H ");
+	video.write(73, 4, 0x1e, " Help");
+	video.write(70, 5, 0x30, " Q ");
+	video.write(73, 5, 0x1f, " Quit");
+	video.write(61, 7, 0x70, " B ");
+	video.write(65, 7, 0x1f, " Switch boards");
+	video.write(61, 8, 0x30, " I ");
+	video.write(65, 8, 0x1f, " Board Info");
+	video.write(61, 10, 0x70, "  f1   ");
+	video.write(68, 10, 0x1f, " Item");
+	video.write(61, 11, 0x30, "  f2   ");
+	video.write(68, 11, 0x1f, " Creature");
+	video.write(61, 12, 0x70, "  f3   ");
+	video.write(68, 12, 0x1f, " Terrain");
+	video.write(61, 13, 0x30, "  f4   ");
+	video.write(68, 13, 0x1f, " Enter text");
+	video.write(61, 15, 0x70, " Space ");
+	video.write(68, 15, 0x1f, " Plot");
+	video.write(61, 16, 0x30, "  Tab  ");
+	video.write(68, 16, 0x1f, " Draw mode");
+	video.write(61, 18, 0x70, " P ");
+	video.write(64, 18, 0x1f, " Pattern");
+	video.write(61, 19, 0x30, " C ");
+	video.write(64, 19, 0x1f, " Color:");
 
 	/* Colors */
 	for (i = 9; i <= 15; i ++) {
-		video.VideoWriteText(61 + i, 22, i, "\333");
+		video.write(61 + i, 22, i, "\333");
 	}
 
 	/* Patterns */
 	for (i = 1; i <= EditorPatternCount; i ++) {
-		video.VideoWriteText(61 + i, 22, 0xf,
+		video.write(61 + i, 22, 0xf,
 			ElementDefs[EditorPatterns[i]].Character);
 	}
 
-	video.VideoWriteText(62 + EditorPatternCount, 22, copiedTile.Color,
+	video.write(62 + EditorPatternCount, 22, copiedTile.Color,
 		copiedChr);
 
-	video.VideoWriteText(61, 24, 0x1f, " Mode:");
+	video.write(61, 24, 0x1f, " Mode:");
 }
 
 
@@ -163,16 +163,16 @@ static void EditorDrawTileAndNeighborsAt(integer x, integer y) {
 
 static void EditorUpdateSidebar() {
 	if (drawMode == DrawingOn) {
-		video.VideoWriteText(68, 24, 0x9e, "Drawing on ");
+		video.write(68, 24, 0x9e, "Drawing on ");
 	} else if (drawMode == TextEntry) {
-		video.VideoWriteText(68, 24, 0x9e, "Text entry ");
+		video.write(68, 24, 0x9e, "Text entry ");
 	} else if (drawMode == DrawingOff) {
-		video.VideoWriteText(68, 24, 0x1e, "Drawing off");
+		video.write(68, 24, 0x1e, "Drawing off");
 	}
 
-	video.VideoWriteText(72, 19, 0x1e, ColorNames[cursorColor - 8]);
-	video.VideoWriteText(61 + cursorPattern, 21, 0x1f, "\37");
-	video.VideoWriteText(61 + cursorColor, 21, 0x1f, "\37");
+	video.write(72, 19, 0x1e, ColorNames[cursorColor - 8]);
+	video.write(61 + cursorPattern, 21, 0x1f, "\37");
+	video.write(61 + cursorColor, 21, 0x1f, "\37");
 }
 
 
@@ -186,10 +186,10 @@ static void EditorDrawRefresh() {
 	TransitionDrawToBoard();
 
 	if (Board.Name.size() != 0) {
-		video.VideoWriteText((59 - Board.Name.size()) / 2, 0, 0x70,
+		video.write((59 - Board.Name.size()) / 2, 0, 0x70,
 			" " + Board.Name + " ");
 	} else {
-		video.VideoWriteText(26, 0, 0x70, " Untitled ");
+		video.write(26, 0, 0x70, " Untitled ");
 	}
 }
 
@@ -551,7 +551,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 				}
 				iy = iy + 4;
 			} else {
-				video.VideoWriteText(63, iy, 0x1f,
+				video.write(63, iy, 0x1f,
 					string("Room: ") + copy(EditorGetBoardName(with.P3, true), 1, 10));
 			}
 		}
@@ -583,8 +583,8 @@ static void EditorEditStat(integer statId) {
 			}
 		}
 
-		video.VideoWriteText(64, 6, 0x1e, categoryName);
-		video.VideoWriteText(64, 7, 0x1f, ElementDefs[element].Name);
+		video.write(64, 6, 0x1e, categoryName);
+		video.write(64, 7, 0x1f, ElementDefs[element].Name);
 
 		EditorEditStatSettings(false, statId, iy, element, promptByte,
 			selectedBoard);
@@ -777,7 +777,7 @@ void EditorLoop() {
 			if (cursorBlinker == 0) {
 				BoardDrawTile(cursorX, cursorY);
 			} else {
-				video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+				video.write(cursorX - 1, cursorY - 1, 0xf, "\305");
 			}
 			EditorUpdateSidebar();
 		} else {
@@ -838,7 +838,7 @@ void EditorLoop() {
 					cursorY = BOARD_HEIGHT;
 				}
 
-				video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+				video.write(cursorX - 1, cursorY - 1, 0xf, "\305");
 				if ((InputKeyPressed == '\0') && InputJoystickEnabled) {
 					Delay(70);
 				}
@@ -848,7 +848,7 @@ void EditorLoop() {
 			switch (upcase(InputKeyPressed)) {
 				case '`': EditorDrawRefresh(); break;
 				case 'P': {
-					video.VideoWriteText(62, 21, 0x1f, "       ");
+					video.write(62, 21, 0x1f, "       ");
 					if (cursorPattern <= EditorPatternCount) {
 						cursorPattern = cursorPattern + 1;
 					} else {
@@ -857,8 +857,8 @@ void EditorLoop() {
 				}
 				break;
 				case 'C': {
-					video.VideoWriteText(72, 19, 0x1e, "       ");
-					video.VideoWriteText(69, 21, 0x1f, "        ");
+					video.write(72, 19, 0x1e, "       ");
+					video.write(69, 21, 0x1f, "        ");
 					if ((cursorColor % 0x10) != 0xf) {
 						cursorColor = cursorColor + 1;
 					} else {
@@ -874,11 +874,11 @@ void EditorLoop() {
 								SidebarClearLine(3);
 								SidebarClearLine(4);
 								SidebarClearLine(5);
-								video.VideoWriteText(63, 4, 0x1e, "Can not edit");
+								video.write(63, 4, 0x1e, "Can not edit");
 								if (World.Info.IsSave) {
-									video.VideoWriteText(63, 5, 0x1e, "a saved game!");
+									video.write(63, 5, 0x1e, "a saved game!");
 								} else {
-									video.VideoWriteText(63, 5, 0x1e, "  " + World.Info.Name + "!");
+									video.write(63, 5, 0x1e, "  " + World.Info.Name + "!");
 								}
 								PauseOnError();
 								WorldUnload();
@@ -956,7 +956,7 @@ void EditorLoop() {
 				}
 				break;
 				case E_KEY_F1: case E_KEY_F2: case E_KEY_F3: {
-					video.VideoWriteText(cursorX - 1, cursorY - 1, 0xf, "\305");
+					video.write(cursorX - 1, cursorY - 1, 0xf, "\305");
 					for (i = 3; i <= 20; i ++) {
 						SidebarClearLine(i);
 					}
@@ -970,13 +970,13 @@ void EditorLoop() {
 						if (ElementDefs[iElem].EditorCategory == selectedCategory)  {
 							if (length(ElementDefs[iElem].CategoryName) != 0)  {
 								i = i + 1;
-								video.VideoWriteText(65, i, 0x1e, ElementDefs[iElem].CategoryName);
+								video.write(65, i, 0x1e, ElementDefs[iElem].CategoryName);
 								i = i + 1;
 							}
 
-							video.VideoWriteText(61, i, ((i % 2) << 6) + 0x30,
+							video.write(61, i, ((i % 2) << 6) + 0x30,
 								string(' ') + ElementDefs[iElem].EditorShortcut + ' ');
-							video.VideoWriteText(65, i, 0x1f, ElementDefs[iElem].Name);
+							video.write(65, i, 0x1f, ElementDefs[iElem].Name);
 							if (ElementDefs[iElem].Color == COLOR_CHOICE_ON_BLACK) {
 								elemMenuColor = (cursorColor % 0x10) + 0x10;
 							} else if (ElementDefs[iElem].Color == COLOR_WHITE_ON_CHOICE) {
@@ -988,7 +988,7 @@ void EditorLoop() {
 							} else {
 								elemMenuColor = ElementDefs[iElem].Color;
 							}
-							video.VideoWriteText(78, i, elemMenuColor, ElementDefs[iElem].Character);
+							video.write(78, i, elemMenuColor, ElementDefs[iElem].Character);
 
 							i = i + 1;
 						}
@@ -1173,18 +1173,18 @@ void HighScoresDisplay(integer linePos) {
 
 void EditorOpenEditTextWindow(TTextWindowState & state) {
 	SidebarClear();
-	video.VideoWriteText(61, 4, 0x30, " Return ");
-	video.VideoWriteText(64, 5, 0x1f, " Insert line");
-	video.VideoWriteText(61, 7, 0x70, " Ctrl-Y ");
-	video.VideoWriteText(64, 8, 0x1f, " Delete line");
-	video.VideoWriteText(61, 10, 0x30, " Cursor keys ");
-	video.VideoWriteText(64, 11, 0x1f, " Move cursor");
-	video.VideoWriteText(61, 13, 0x70, " Insert ");
-	video.VideoWriteText(64, 14, 0x1f, " Insert mode: ");
-	video.VideoWriteText(61, 16, 0x30, " Delete ");
-	video.VideoWriteText(64, 17, 0x1f, " Delete char");
-	video.VideoWriteText(61, 19, 0x70, " Escape ");
-	video.VideoWriteText(64, 20, 0x1f, " Exit editor");
+	video.write(61, 4, 0x30, " Return ");
+	video.write(64, 5, 0x1f, " Insert line");
+	video.write(61, 7, 0x70, " Ctrl-Y ");
+	video.write(64, 8, 0x1f, " Delete line");
+	video.write(61, 10, 0x30, " Cursor keys ");
+	video.write(64, 11, 0x1f, " Move cursor");
+	video.write(61, 13, 0x70, " Insert ");
+	video.write(64, 14, 0x1f, " Insert mode: ");
+	video.write(61, 16, 0x30, " Delete ");
+	video.write(64, 17, 0x1f, " Delete char");
+	video.write(61, 19, 0x70, " Escape ");
+	video.write(64, 20, 0x1f, " Exit editor");
 	TextWindowEdit(state);
 }
 

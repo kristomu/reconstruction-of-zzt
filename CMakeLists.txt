@@ -11,7 +11,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 # Parameters
 # Enable Wall later.
 # For turbo mode, add -O9 -march=native.
-set(CMAKE_CXX_FLAGS "-O9 -march=native -ggdb -DTURBO_PASCAL")
+set(CMAKE_CXX_FLAGS "-ggdb -DTURBO_PASCAL")
 
 # Require ncursesw
 #find_package(NCurses REQUIRED)
@@ -32,7 +32,7 @@ add_executable(zzt
 	csrc/io/curses.cc
 	csrc/io/stub.cc
 	csrc/hardware.cc
-	csrc/video.cxx
+	csrc/video.cc
 	csrc/unicode.cxx
 	csrc/txtwind.cxx
 	csrc/game.cxx
@@ -54,7 +54,7 @@ add_executable(fuzzt
 	csrc/io/curses.cc
 	csrc/io/stub.cc
 	csrc/hardware.cc
-	csrc/video.cxx
+	csrc/video.cc
 	csrc/unicode.cxx
 	csrc/txtwind.cxx
 	csrc/game.cxx

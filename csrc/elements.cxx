@@ -67,7 +67,7 @@ void ElementMessageTimerTick(integer statId) {
 		TStat & with = Board.Stats[statId];
 		switch (with.X) {
 			case 0: {
-				video.VideoWriteText((60 - Board.Info.Message.size()) / 2, 24,
+				video.write((60 - Board.Info.Message.size()) / 2, 24,
 					9 + (with.P2 % 7), " " + Board.Info.Message + " ");
 				with.P2 = with.P2 - 1;
 				if (with.P2 <= 0)  {

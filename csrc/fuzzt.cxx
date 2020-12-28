@@ -3,6 +3,7 @@
 
 /*
 	Copyright (c) 2020 Adrian Siekierka
+	Copyright (c) 2020 Kristofer Munsterhjelm
 
 	Based on a reconstruction of code from ZZT,
 	Copyright 1991 Epic MegaGames, used with permission.
@@ -39,6 +40,8 @@
 #include "fileops.h"
 #include "video.h"
 #include "world.h"
+
+#include "testing.h"
 
 TWorld World;
 
@@ -93,11 +96,6 @@ void GameConfigure() {
 		StartupWorldFileName = ConfigWorldFile.c_str();
 	}
 	cfgFile.close();
-
-	// TBD: inputs.pas
-	/*InputInitDevices();
-	joystickEnabled = InputJoystickEnabled;
-	mouseEnabled = InputMouseEnabled;*/
 
 	/* Define the bottom row of the 80x25 terminal layout, or
 	the bottom of the screen if it's smaller. */
@@ -173,6 +171,15 @@ void debug_display_output() {
 }
 
 int main(int argc, const char* argv[]) {
+	// Example
+	// Separating the two former will require a pretty thorough refactoring
+	// of the curses classes, and combination with video and input classes
+	// resp. It might be due anyway, so I can start paring down the
+	// "catch-all" file hardware.cc.
+	test_mode_disable_video = true;
+	test_mode_disable_input = true;
+	test_mode_disable_delay = true;
+
 	pio_initialize(argc, argv);
 	WorldFileDescCount = 7;
 	WorldFileDescKeys[1] = "TOWN";
@@ -234,6 +241,10 @@ int main(int argc, const char* argv[]) {
 
 	SoundUninstall();
 	SoundClearQueue();
+
+	/*VideoUninstall();
+	TextAttr = InitialTextAttr;
+	video.ClrScr();*/
 
 	if (ConfigRegistration.size() == 0)  {
 		GamePrintRegisterMessage();
