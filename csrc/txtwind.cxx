@@ -250,12 +250,12 @@ void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
 	state.Hyperlink = "";
 	TextWindowDraw(state, false, viewingFile);
 	do {
-		InputReadWaitKey();
+		keyboard.wait_for_key();
 		newLinePos = state.LinePos;
-		if (InputDeltaY != 0)  {
-			newLinePos = newLinePos + InputDeltaY;
-		} else if (InputShiftPressed || (InputKeyPressed == E_KEY_ENTER))  {
-			InputShiftAccepted = true;
+		if (keyboard.InputDeltaY != 0)  {
+			newLinePos = newLinePos + keyboard.InputDeltaY;
+		} else if (keyboard.InputShiftPressed
+			|| (keyboard.InputKeyPressed == E_KEY_ENTER))  {
 			/* IMP: Fix potential out-of-bounds access. */
 			if ((length(*state.Lines[state.LinePos]) > 0)
 				&& (((*state.Lines[state.LinePos])[1]) == '!'))  {
@@ -276,8 +276,8 @@ void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
 						viewingFile = true;
 						newLinePos = state.LinePos;
 						TextWindowDraw(state, false, viewingFile);
-						InputKeyPressed = '\0';
-						InputShiftPressed = false;
+						keyboard.InputKeyPressed = '\0';
+						keyboard.InputShiftPressed = false;
 					}
 				} else {
 					if (hyperlinkAsSelect)  {
@@ -294,8 +294,8 @@ void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
 									}
 								}
 								newLinePos = iLine;
-								InputKeyPressed = '\0';
-								InputShiftPressed = false;
+								keyboard.InputKeyPressed = '\0';
+								keyboard.InputShiftPressed = false;
 								goto LLabelMatched;
 LLabelNotMatched:;
 							}
@@ -304,11 +304,11 @@ LLabelNotMatched:;
 				}
 			}
 		} else {
-			if (InputKeyPressed == E_KEY_PAGE_UP) {
+			if (keyboard.InputKeyPressed == E_KEY_PAGE_UP) {
 				newLinePos = state.LinePos - TextWindowHeight + 4;
-			} else if (InputKeyPressed == E_KEY_PAGE_DOWN) {
+			} else if (keyboard.InputKeyPressed == E_KEY_PAGE_DOWN) {
 				newLinePos = state.LinePos + TextWindowHeight - 4;
-			} else if (InputKeyPressed == E_KEY_ALT_P) {
+			} else if (keyboard.InputKeyPressed == E_KEY_ALT_P) {
 				TextWindowPrint(state);
 			}
 		}
@@ -333,13 +333,12 @@ LLabelMatched:
 				}
 			}
 		}
-		if (InputJoystickMoved)  {
-			Delay(35);
-		}
-	} while (!((InputKeyPressed == E_KEY_ESCAPE)
-			|| (InputKeyPressed == E_KEY_ENTER) || InputShiftPressed));
-	if (InputKeyPressed == E_KEY_ESCAPE)  {
-		InputKeyPressed = '\0';
+		Delay(10);
+	} while (!((keyboard.InputKeyPressed == E_KEY_ESCAPE)
+			|| (keyboard.InputKeyPressed == E_KEY_ENTER)
+			|| keyboard.InputShiftPressed));
+	if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
+		keyboard.InputKeyPressed = '\0';
 		TextWindowRejected = true;
 	}
 }
@@ -463,9 +462,9 @@ void TextWindowEdit(TTextWindowState & state) {
 				TextWindowY + (TextWindowHeight / 2) + 1,
 				0x70, (*state.Lines[state.LinePos])[charPos]);
 		}
-		InputReadWaitKey();
+		keyboard.wait_for_key();
 		newLinePos = state.LinePos;
-		switch (InputKeyPressed) {
+		switch (keyboard.InputKeyPressed) {
 			case E_KEY_UP: newLinePos = state.LinePos - 1; break;
 			case E_KEY_DOWN: newLinePos = state.LinePos + 1; break;
 			case E_KEY_PAGE_UP: newLinePos = state.LinePos - TextWindowHeight + 4;
@@ -540,11 +539,12 @@ void TextWindowEdit(TTextWindowState & state) {
 			}
 			break;
 			default:
-				if ((InputKeyPressed >= '\40') && (charPos < (TextWindowWidth - 7)))  {
+				if ((keyboard.InputKeyPressed >= '\40')
+					&& (charPos < (TextWindowWidth - 7)))  {
 					if (! insertMode)  {
 						*state.Lines[state.LinePos] = copy(*state.Lines[state.LinePos], 1,
 								charPos - 1)
-							+ (char)(InputKeyPressed)
+							+ (char)(keyboard.InputKeyPressed)
 							+ copy(*state.Lines[state.LinePos], charPos + 1,
 								length(*state.Lines[state.LinePos]) - charPos);
 						charPos = charPos + 1;
@@ -552,7 +552,7 @@ void TextWindowEdit(TTextWindowState & state) {
 						if (length(*state.Lines[state.LinePos]) < (TextWindowWidth - 8))  {
 							*state.Lines[state.LinePos] = copy(*state.Lines[state.LinePos], 1,
 									charPos - 1)
-								+ (char)InputKeyPressed
+								+ (char)keyboard.InputKeyPressed
 								+ copy(*state.Lines[state.LinePos], charPos,
 									length(*state.Lines[state.LinePos]) - charPos + 1);
 							charPos = charPos + 1;
@@ -573,7 +573,7 @@ void TextWindowEdit(TTextWindowState & state) {
 		} else {
 			TextWindowDrawLine(state, state.LinePos, true, false);
 		}
-	} while (!(InputKeyPressed == E_KEY_ESCAPE));
+	} while (!(keyboard.InputKeyPressed == E_KEY_ESCAPE));
 
 	if (length(*state.Lines[state.LineCount]) == 0)  {
 		delete state.Lines[state.LineCount];

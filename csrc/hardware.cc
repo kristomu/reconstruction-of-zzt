@@ -8,28 +8,35 @@
 #include "hardware.h"
 #include "io/stub.h"
 #include "testing.h"
+#include "input.h"
 
-std::shared_ptr<io> display;
+Input keyboard;
 Video video;
 
-void initCurses() {
-	if (test_mode_disable_video) {
-		display = std::make_shared<stub_io>();
-	} else {
-		display = std::make_shared<curses_io>();
+void init_IO(dos_color border_color) {
+	std::shared_ptr<stub_io> stub_ptr;
+	std::shared_ptr<curses_io> curses_ptr;
+
+	if (test_mode_disable_video || test_mode_disable_input) {
+		stub_ptr = std::make_shared<stub_io>();
+		//display =
 	}
-}
 
-bool Keypressed() {
-	return display->key_pressed();
-}
+	if (!test_mode_disable_video || !test_mode_disable_input) {
+		curses_ptr = std::make_shared<curses_io>();
+	}
 
-key_response ReadKey() {
-	return display->read_key();
-}
+	if (test_mode_disable_video) {
+		video.install(border_color, stub_ptr);
+	} else {
+		video.install(border_color, curses_ptr);
+	}
 
-key_response ReadKeyBlocking() {
-	return display->read_key_blocking();
+	if (test_mode_disable_input) {
+		keyboard.set_interface(stub_ptr);
+	} else {
+		keyboard.set_interface(curses_ptr);
+	}
 }
 
 /*void SoundUninstall() {}
@@ -65,84 +72,4 @@ void Delay(int msec) {
 	if (!test_mode_disable_delay) {
 		usleep(msec*1000);
 	}
-}
-
-integer InputDeltaX, InputDeltaY;      // translates arrow keys to movement
-bool InputShiftPressed;                  // It does what it says
-bool InputSpecialKeyPressed;
-bool InputShiftAccepted; // ???
-integer InputKeyPressed;
-
-// ZZT specs say that everything coming out of here should be CP437 points.
-// Hence InputKeyPressed should be a char, and buffer also. Fix later?
-void InputUpdateCore(bool blocking) {
-	InputDeltaX = 0;
-	InputDeltaY = 0;
-	InputShiftPressed = false;
-	InputKeyPressed = 0;
-
-	// If there are no keys to fetch and we're nonblocking, just bail.
-	if (!blocking && !Keypressed()) {
-		return;
-	}
-
-	key_response key_read;
-
-	if (blocking) {
-		key_read = ReadKeyBlocking();
-	} else {
-		key_read = ReadKey();
-	}
-
-	// How do we handle special keys? Probably this (ugly) way:
-	// If it's negative, then it's a special key, otherwise it's a
-	// CP437 character. Also hard-code some control characters that
-	// don't have a negative key value.
-	// All of this must be fixed later, once I've got it running.
-	// ... I don't actually know of a better way at the moment.
-
-	InputSpecialKeyPressed = key_read < 0 ||
-		key_read == E_KEY_ESCAPE ||
-		key_read == E_KEY_ENTER ||
-		key_read == E_KEY_TAB;
-
-	if (InputSpecialKeyPressed) {
-		InputKeyPressed = key_read;
-	} else {
-		InputKeyPressed = CodepointToCP437(key_read);
-	}
-
-	InputShiftPressed = InputKeyPressed == E_KEY_SHIFT_LEFT ||
-		InputKeyPressed == E_KEY_SHIFT_RIGHT ||
-		InputKeyPressed == E_KEY_SHIFT_UP ||
-		InputKeyPressed == E_KEY_SHIFT_DOWN;
-
-	// Set up the input deltas.
-
-	switch (InputKeyPressed) {
-		case E_KEY_SHIFT_UP: case E_KEY_UP: case '8':
-			InputDeltaX = 0;
-			InputDeltaY = -1;
-			break;
-		case E_KEY_SHIFT_LEFT: case E_KEY_LEFT: case '4':
-			InputDeltaX = -1;
-			InputDeltaY = 0;
-			break;
-		case E_KEY_SHIFT_RIGHT: case E_KEY_RIGHT: case '6':
-			InputDeltaX = 1;
-			InputDeltaY = 0;
-			break;
-		case E_KEY_SHIFT_DOWN: case E_KEY_DOWN: case '2':
-			InputDeltaX = 0;
-			InputDeltaY = 1;
-			break;
-	}
-}
-
-void InputUpdate() {
-	InputUpdateCore(false);
-}
-
-void InputReadWaitKey() {
-	InputUpdateCore(true);
 }

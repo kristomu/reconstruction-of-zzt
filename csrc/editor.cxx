@@ -224,10 +224,10 @@ static void EditorSetAndCopyTile(byte x, byte y, byte element,
 
 
 static void EditorAskSaveChanged() {
-	InputKeyPressed = '\0';
+	keyboard.InputKeyPressed = '\0';
 	if (wasModified)
 		if (SidebarPromptYesNo("Save first? ", true))
-			if (InputKeyPressed != E_KEY_ESCAPE) {
+			if (keyboard.InputKeyPressed != E_KEY_ESCAPE) {
 				GameWorldSave("Save world", LoadedGameFileName, ".ZZT");
 			}
 	World.Info.Name = LoadedGameFileName;
@@ -346,11 +346,11 @@ static void EditorEditBoardInfo() {
 		*state.Lines[10] = "          Quit!";
 
 		TextWindowSelect(state, false, false);
-		if ((InputKeyPressed == E_KEY_ENTER) && (state.LinePos >= 1)
+		if ((keyboard.InputKeyPressed == E_KEY_ENTER) && (state.LinePos >= 1)
 			&& (state.LinePos <= 8)) {
 			wasModified = true;
 		}
-		if (InputKeyPressed == E_KEY_ENTER)
+		if (keyboard.InputKeyPressed == E_KEY_ENTER)
 			switch (state.LinePos) {
 				case 1: {
 					popup_prompt_string("New title for board:", Board.Name);
@@ -455,7 +455,7 @@ static void EditorEditStatText(integer statId, string prompt) {
 
 		TextWindowFree(state);
 		TextWindowDrawClose(state);
-		InputKeyPressed = '\0';
+		keyboard.InputKeyPressed = '\0';
 	}
 }
 
@@ -466,7 +466,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 	integer & iy, byte & element, byte & promptByte, byte & selectedBoard) {
 	{
 		TStat & with = Board.Stats[statId];
-		InputKeyPressed = '\0';
+		keyboard.InputKeyPressed = '\0';
 		iy = 9;
 
 		if (length(ElementDefs[element].Param1Name) != 0)  {
@@ -488,14 +488,14 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			iy = iy + 4;
 		}
 
-		if ((InputKeyPressed != E_KEY_ESCAPE) &&
+		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
 			(length(ElementDefs[element].ParamTextName) != 0)) {
 			if (selected) {
 				EditorEditStatText(statId, ElementDefs[element].ParamTextName);
 			}
 		}
 
-		if ((InputKeyPressed != E_KEY_ESCAPE) &&
+		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
 			(length(ElementDefs[element].Param2Name) != 0)) {
 			promptByte = (with.P2 % 0x80);
 			SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name,
@@ -507,7 +507,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			iy = iy + 4;
 		}
 
-		if ((InputKeyPressed != E_KEY_ESCAPE) &&
+		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
 			(length(ElementDefs[element].ParamBulletTypeName) != 0)) {
 			promptByte = (with.P2) / 0x80;
 			SidebarPromptChoice(selected, iy, ElementDefs[element].ParamBulletTypeName,
@@ -519,7 +519,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			iy = iy + 4;
 		}
 
-		if ((InputKeyPressed != E_KEY_ESCAPE) &&
+		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
 			(length(ElementDefs[element].ParamDirName) != 0)) {
 			SidebarPromptDirection(selected, iy, ElementDefs[element].ParamDirName,
 				with.StepX, with.StepY);
@@ -530,7 +530,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			iy = iy + 4;
 		}
 
-		if ((InputKeyPressed != E_KEY_ESCAPE) &&
+		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
 			(length(ElementDefs[element].ParamBoardName) != 0)) {
 			if (selected)  {
 				selectedBoard = EditorSelectBoard(ElementDefs[element].ParamBoardName,
@@ -547,7 +547,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 					}
 					World.EditorStatSettings[element].P3 = with.P3;
 				} else {
-					InputKeyPressed = E_KEY_ESCAPE;
+					keyboard.InputKeyPressed = E_KEY_ESCAPE;
 				}
 				iy = iy + 4;
 			} else {
@@ -591,7 +591,7 @@ static void EditorEditStat(integer statId) {
 		EditorEditStatSettings(true, statId, iy, element, promptByte,
 			selectedBoard);
 
-		if (InputKeyPressed != E_KEY_ESCAPE)  {
+		if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 			copiedHasStat = true;
 			copiedStat = Board.Stats[statId];
 			copiedTile = Board.Tiles[with.X][with.Y];
@@ -624,14 +624,14 @@ static void EditorTransferBoard() {
 	SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
 	std::string full_filename = std::string(SavedBoardFileName + ".BRD");
 
-	if (InputKeyPressed != E_KEY_ESCAPE)  {
+	if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 		if (i == 0)  {
 			// TODO: check what happens if we specify a file that doesn't
 			// exist. (OpenForRead should give an IO error right away, but
 			// I'm not sure it does.)
 			SidebarPromptString("Import board", ".BRD", SavedBoardFileName,
 				PROMPT_ALPHANUM);
-			if ((InputKeyPressed != E_KEY_ESCAPE)
+			if ((keyboard.InputKeyPressed != E_KEY_ESCAPE)
 				&& (length(SavedBoardFileName) != 0))  {
 				std::ifstream input_board_file = OpenForRead(full_filename);
 				if (DisplayIOError()) {
@@ -666,7 +666,7 @@ static void EditorTransferBoard() {
 		} else if (i == 1)  {
 			SidebarPromptString("Export board", ".BRD", SavedBoardFileName,
 				PROMPT_ALPHANUM);
-			if ((InputKeyPressed != E_KEY_ESCAPE)
+			if ((keyboard.InputKeyPressed != E_KEY_ESCAPE)
 				&& (length(SavedBoardFileName) != 0))  {
 				std::ofstream out_file =
 					OpenForWrite(full_filename);
@@ -768,9 +768,10 @@ void EditorLoop() {
 		if (drawMode == DrawingOn) {
 			EditorPlaceTile(cursorX, cursorY);
 		}
-		InputUpdate();
-		if ((InputKeyPressed == '\0') && (InputDeltaX == 0) && (InputDeltaY == 0)
-			&& ! InputShiftPressed)  {
+		keyboard.update();
+		if ((keyboard.InputKeyPressed == '\0') && (keyboard.InputDeltaX == 0)
+			&& (keyboard.InputDeltaY == 0)
+			&& ! keyboard.InputShiftPressed)  {
 			if (SoundHasTimeElapsed(TickTimeCounter, 15)) {
 				cursorBlinker = (cursorBlinker + 1) % 3;
 			}
@@ -785,33 +786,33 @@ void EditorLoop() {
 		}
 
 		if (drawMode == TextEntry)  {
-			if ((InputKeyPressed >= '\40') && (InputKeyPressed < '\200'))  {
+			if ((keyboard.InputKeyPressed >= '\40')
+				&& (keyboard.InputKeyPressed < '\200'))  {
 				if (EditorPrepareModifyTile(cursorX, cursorY))  {
 					Board.Tiles[cursorX][cursorY].Element = (cursorColor - 9) + E_TEXT_MIN;
-					Board.Tiles[cursorX][cursorY].Color = ord(InputKeyPressed);
+					Board.Tiles[cursorX][cursorY].Color = ord(keyboard.InputKeyPressed);
 					EditorDrawTileAndNeighborsAt(cursorX, cursorY);
-					InputDeltaX = 1;
-					InputDeltaY = 0;
+					keyboard.InputDeltaX = 1;
+					keyboard.InputDeltaY = 0;
 				}
-				InputKeyPressed = '\0';
-			} else if ((InputKeyPressed == E_KEY_BACKSPACE) && (cursorX > 1)
+				keyboard.InputKeyPressed = '\0';
+			} else if ((keyboard.InputKeyPressed == E_KEY_BACKSPACE) && (cursorX > 1)
 				&& EditorPrepareModifyTile(cursorX - 1, cursorY)) {
 				cursorX = cursorX - 1;
-			} else if ((InputKeyPressed == E_KEY_ENTER)
-				|| (InputKeyPressed == E_KEY_ESCAPE))  {
+			} else if ((keyboard.InputKeyPressed == E_KEY_ENTER)
+				|| (keyboard.InputKeyPressed == E_KEY_ESCAPE))  {
 				drawMode = DrawingOff;
-				InputKeyPressed = '\0';
+				keyboard.InputKeyPressed = '\0';
 			}
 		}
 
 		{
 			TTile & with = Board.Tiles[cursorX][cursorY];
-			if (InputShiftPressed || (InputKeyPressed == ' '))  {
-				InputShiftAccepted = true;
+			if (keyboard.InputShiftPressed || (keyboard.InputKeyPressed == ' '))  {
 				if ((with.Element == 0)
 					|| (ElementDefs[with.Element].PlaceableOnTop && copiedHasStat
 						&& (cursorPattern > EditorPatternCount))
-					|| (InputDeltaX != 0) || (InputDeltaY != 0)) {
+					|| (keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0)) {
 					EditorPlaceTile(cursorX, cursorY);
 				} else {
 					canModify = EditorPrepareModifyTile(cursorX, cursorY);
@@ -821,8 +822,8 @@ void EditorLoop() {
 				}
 			}
 
-			if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
-				cursorX = cursorX + InputDeltaX;
+			if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
+				cursorX = cursorX + keyboard.InputDeltaX;
 				if (cursorX < 1) {
 					cursorX = 1;
 				}
@@ -830,7 +831,7 @@ void EditorLoop() {
 					cursorX = BOARD_WIDTH;
 				}
 
-				cursorY = cursorY + InputDeltaY;
+				cursorY = cursorY + keyboard.InputDeltaY;
 				if (cursorY < 1) {
 					cursorY = 1;
 				}
@@ -839,13 +840,9 @@ void EditorLoop() {
 				}
 
 				video.write(cursorX - 1, cursorY - 1, 0xf, "\305");
-				if ((InputKeyPressed == '\0') && InputJoystickEnabled) {
-					Delay(70);
-				}
-				InputShiftAccepted = false;
 			}
 
-			switch (upcase(InputKeyPressed)) {
+			switch (upcase(keyboard.InputKeyPressed)) {
 				case '`': EditorDrawRefresh(); break;
 				case 'P': {
 					video.write(62, 21, 0x1f, "       ");
@@ -868,7 +865,7 @@ void EditorLoop() {
 				break;
 				case 'L': {
 					EditorAskSaveChanged();
-					if ((InputKeyPressed != E_KEY_ESCAPE) && GameWorldLoad(".ZZT"))  {
+					if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) && GameWorldLoad(".ZZT"))  {
 						if (World.Info.IsSave || (WorldGetFlagPosition("SECRET") >= 0))  {
 							if (! DebugEnabled)  {
 								SidebarClearLine(3);
@@ -893,7 +890,7 @@ void EditorLoop() {
 				break;
 				case 'S': {
 					GameWorldSave("Save world:", LoadedGameFileName, ".ZZT");
-					if (InputKeyPressed != E_KEY_ESCAPE) {
+					if (keyboard.InputKeyPressed != E_KEY_ESCAPE) {
 						wasModified = false;
 					}
 					EditorDrawSidebar();
@@ -913,9 +910,9 @@ void EditorLoop() {
 				break;
 				case 'N': {
 					if (SidebarPromptYesNo("Make new world? ", false)
-						&& (InputKeyPressed != E_KEY_ESCAPE))  {
+						&& (keyboard.InputKeyPressed != E_KEY_ESCAPE))  {
 						EditorAskSaveChanged();
-						if (InputKeyPressed != E_KEY_ESCAPE)  {
+						if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 							WorldUnload();
 							WorldCreate();
 							EditorDrawRefresh();
@@ -931,7 +928,7 @@ void EditorLoop() {
 				break;
 				case 'B': {
 					i = EditorSelectBoard("Switch boards", World.Info.CurrentBoard, false);
-					if (InputKeyPressed != E_KEY_ESCAPE)  {
+					if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 						if (i > World.BoardCount)
 							if (SidebarPromptYesNo("Add new board? ", false)) {
 								EditorAppendBoard();
@@ -960,7 +957,7 @@ void EditorLoop() {
 					for (i = 3; i <= 20; i ++) {
 						SidebarClearLine(i);
 					}
-					switch (InputKeyPressed) {
+					switch (keyboard.InputKeyPressed) {
 						case E_KEY_F1: selectedCategory = CATEGORY_ITEM; break;
 						case E_KEY_F2: selectedCategory = CATEGORY_CREATURE; break;
 						case E_KEY_F3: selectedCategory = CATEGORY_TERRAIN; break;
@@ -993,10 +990,11 @@ void EditorLoop() {
 							i = i + 1;
 						}
 					}
-					InputReadWaitKey();
+					keyboard.wait_for_key();
 					for (iElem = 1; iElem <= MAX_ELEMENT; iElem ++) {
 						if ((ElementDefs[iElem].EditorCategory == selectedCategory)
-							&& (ElementDefs[iElem].EditorShortcut == upcase(InputKeyPressed))) {
+							&& (ElementDefs[iElem].EditorShortcut == upcase(
+									keyboard.InputKeyPressed))) {
 							if (iElem == E_PLAYER)  {
 								if (EditorPrepareModifyTile(cursorX, cursorY)) {
 									MoveStat(0, cursorX, cursorY);
@@ -1037,7 +1035,7 @@ void EditorLoop() {
 											}
 										}
 										EditorEditStat(Board.StatCount);
-										if (InputKeyPressed == E_KEY_ESCAPE) {
+										if (keyboard.InputKeyPressed == E_KEY_ESCAPE) {
 											RemoveStat(Board.StatCount);
 										}
 									}
@@ -1094,7 +1092,7 @@ void EditorLoop() {
 
 		if (editorExitRequested)  {
 			EditorAskSaveChanged();
-			if (InputKeyPressed == E_KEY_ESCAPE)  {
+			if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
 				editorExitRequested = false;
 				EditorDrawSidebar();
 			}
@@ -1105,7 +1103,7 @@ void EditorLoop() {
 
 	copiedData = NULL;
 
-	InputKeyPressed = '\0';
+	keyboard.InputKeyPressed = '\0';
 	InitElementsGame();
 }
 
@@ -1278,7 +1276,7 @@ integer EditorSelectBoard(string title, integer currentBoard,
 	TextWindowSelect(textWindow, false, false);
 	TextWindowDrawClose(textWindow);
 	TextWindowFree(textWindow);
-	if (InputKeyPressed == E_KEY_ESCAPE) {
+	if (keyboard.InputKeyPressed == E_KEY_ESCAPE) {
 		EditorSelectBoard_result = 0;
 	} else {
 		EditorSelectBoard_result = textWindow.LinePos - 1;

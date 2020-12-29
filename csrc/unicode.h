@@ -2,14 +2,20 @@
 
 #include <map>
 
-/* Credits go to Ben Russell (iamgreaser) for this table. */
-/* Note, 0xED now redirects to U+03D5 as identified by IBM;
-    see Wikipedia note. https://bit.ly/39t1732 Better still
-    would be U+1D719.*/
-extern wchar_t cp437ToUnicode[];
+class unicode_converter {
+	private:
+		/* Credits go to Ben Russell (iamgreaser) for the CP437 to
+		   Unicode table.
+		   Note, 0xED now redirects to U+03D5 as identified by IBM;
+		   see Wikipedia note. https://bit.ly/39t1732 */
+		const wchar_t cp437_to_unicode[256];
+		std::map<wchar_t, unsigned char> unicode_to_CP437;
 
-extern std::map<wchar_t, unsigned char>  UnicodeToCP437;
+		void setup_conversion_table();
 
-void SetupCodepointToCP437();
-unsigned char CodepointToCP437(wchar_t cp);
-wchar_t CP437ToCodepoint(unsigned char c);
+	public:
+		unicode_converter();
+
+		unsigned char codepoint_to_CP437(wchar_t cp) const;
+		wchar_t CP437_to_codepoint(unsigned char c) const;
+};

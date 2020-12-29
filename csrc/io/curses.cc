@@ -231,7 +231,7 @@ bool curses_io::print(int x, int y, std::string str) const {
 bool curses_io::print_ch(int x, int y, unsigned char to_print) const {
 	// This is kind of a hack, but apparently that's the right way
 	// to do it!
-	wchar_t arr[2] = {CP437ToCodepoint(to_print), 0};
+	wchar_t arr[2] = {converter.CP437_to_codepoint(to_print), 0};
 	int errval = mvwaddnwstr(window, y, x, arr, 1);
 
 	return (errval != ERR);

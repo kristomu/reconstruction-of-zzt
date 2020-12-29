@@ -293,21 +293,21 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 		if (editable)  {
 			// All of these can be replaced with a blocking read later.
 			// It'll only make things more responsive.
-			Delay(25);
-			InputUpdate();
-			if (InputKeyPressed == E_KEY_TAB) {
-				InputDeltaX = 9;
+			Delay(10);
+			keyboard.wait_for_key();
+			if (keyboard.InputKeyPressed == E_KEY_TAB) {
+				keyboard.InputDeltaX = 9;
 			}
 
-			newValue = value + InputDeltaX;
+			newValue = value + keyboard.InputDeltaX;
 			if (value != newValue)  {
 				value = (newValue + 0x100) % 0x100;
 				SidebarClearLine(y + 2);
 			}
 		}
-	} while (!((InputKeyPressed == E_KEY_ENTER)
-			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
-			|| InputShiftPressed));
+	} while (!((keyboard.InputKeyPressed == E_KEY_ENTER)
+			|| (keyboard.InputKeyPressed == E_KEY_ESCAPE) || ! editable
+			|| keyboard.InputShiftPressed));
 
 	video.write(x + 5, y + 1, 0x1f, "\37");
 }
@@ -335,26 +335,24 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 
 	do {
 		if (editable)  {
-			if (InputJoystickMoved) {
-				Delay(45);
-			}
 			video.write(x + value + 1, y + 1, 0x9f, "\37");
 
-			InputUpdate();
-			if ((InputKeyPressed >= '1') && (InputKeyPressed <= '9'))  {
-				value = ord(InputKeyPressed) - 49;
+			keyboard.update();
+			if ((keyboard.InputKeyPressed >= '1')
+				&& (keyboard.InputKeyPressed <= '9'))  {
+				value = ord(keyboard.InputKeyPressed) - 49;
 				SidebarClearLine(y + 1);
 			} else {
-				newValue = value + InputDeltaX;
+				newValue = value + keyboard.InputDeltaX;
 				if ((value != newValue) && (newValue >= 0) && (newValue <= 8))  {
 					value = newValue;
 					SidebarClearLine(y + 1);
 				}
 			}
 		}
-	} while (!((InputKeyPressed == E_KEY_ENTER)
-			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
-			|| InputShiftPressed));
+	} while (!((keyboard.InputKeyPressed == E_KEY_ENTER)
+			|| (keyboard.InputKeyPressed == E_KEY_ESCAPE) || ! editable
+			|| keyboard.InputShiftPressed));
 
 	video.write(x + value + 1, y + 1, 0x1f, "\37");
 }
@@ -389,18 +387,18 @@ void SidebarPromptChoice(boolean editable, integer y, string prompt,
 		if (editable)  {
 			video.write(62 + i, y + 1, 0x9f, "\37");
 			Delay(35);
-			InputUpdate();
+			keyboard.update();
 
-			newResult = result + InputDeltaX;
+			newResult = result + keyboard.InputDeltaX;
 			if ((result != newResult) && (newResult >= 0)
 				&& (newResult <= (choiceCount - 1)))  {
 				result = newResult;
 				SidebarClearLine(y + 1);
 			}
 		}
-	} while (!((InputKeyPressed == E_KEY_ENTER)
-			|| (InputKeyPressed == E_KEY_ESCAPE) || ! editable
-			|| InputShiftPressed));
+	} while (!((keyboard.InputKeyPressed == E_KEY_ENTER)
+			|| (keyboard.InputKeyPressed == E_KEY_ESCAPE) || ! editable
+			|| keyboard.InputShiftPressed));
 
 	video.write(62 + i, y + 1, 0x1f, "\37");
 }
@@ -445,45 +443,46 @@ void PromptString(integer x, integer y, integer arrowColor,
 			"\37");
 		video.write(x, y, color, buffer);
 
-		InputReadWaitKey();
+		keyboard.wait_for_key();
 
-		if ((length(buffer) < width) && (InputKeyPressed >= '\40')
-			&& (! InputSpecialKeyPressed))  {
+		if ((length(buffer) < width) && (keyboard.InputKeyPressed >= '\40')
+			&& (! keyboard.InputSpecialKeyPressed))  {
 			if (firstKeyPress) {
 				buffer = "";
 			}
 			switch (mode) {
 				case PROMPT_NUMERIC: {
-					if (set::of(range('0', '9'), eos).has(InputKeyPressed))  {
-						buffer = buffer + (char)InputKeyPressed;
+					if (set::of(range('0', '9'), eos).has(keyboard.InputKeyPressed))  {
+						buffer = buffer + (char)keyboard.InputKeyPressed;
 					}
 				}
 				break;
 				case PROMPT_ANY: {
-					buffer = buffer + (char)InputKeyPressed;
+					buffer = buffer + (char)keyboard.InputKeyPressed;
 				}
 				break;
 				case PROMPT_ALPHANUM: {
-					if ((set::of(range('A', 'Z'), eos).has(keyUpCase(InputKeyPressed)))
-						|| (set::of(range('0', '9'), eos).has(InputKeyPressed))
-						|| (InputKeyPressed == '-')) {
-						buffer = buffer + (char)keyUpCase(InputKeyPressed);
+					if ((set::of(range('A', 'Z'),
+								eos).has(keyUpCase(keyboard.InputKeyPressed)))
+						|| (set::of(range('0', '9'), eos).has(keyboard.InputKeyPressed))
+						|| (keyboard.InputKeyPressed == '-')) {
+						buffer = buffer + (char)keyUpCase(keyboard.InputKeyPressed);
 					}
 				}
 				break;
 			}
-		} else if ((InputKeyPressed == E_KEY_LEFT)
-			|| (InputKeyPressed == E_KEY_BACKSPACE))  {
+		} else if ((keyboard.InputKeyPressed == E_KEY_LEFT)
+			|| (keyboard.InputKeyPressed == E_KEY_BACKSPACE))  {
 			buffer = copy(buffer, 1, length(buffer) - 1);
 			/*IMP: Clear the whole line if Home is pressed.*/
-		} else if (InputKeyPressed == E_KEY_HOME)  {
+		} else if (keyboard.InputKeyPressed == E_KEY_HOME)  {
 			buffer = "";
 		}
 
 		firstKeyPress = false;
-	} while (!((InputKeyPressed == E_KEY_ENTER)
-			|| (InputKeyPressed == E_KEY_ESCAPE)));
-	if (InputKeyPressed == E_KEY_ESCAPE)  {
+	} while (!((keyboard.InputKeyPressed == E_KEY_ENTER)
+			|| (keyboard.InputKeyPressed == E_KEY_ESCAPE)));
+	if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
 		buffer = oldBuffer;
 	}
 }
@@ -497,10 +496,10 @@ boolean SidebarPromptYesNo(string message, boolean defaultReturn) {
 	video.write(63 + length(message), 5, 0x9e, "_");
 
 	do {
-		InputReadWaitKey();
+		keyboard.wait_for_key();
 	} while (!(set::of(E_KEY_ESCAPE, 'N', 'Y',
-				eos).has(keyUpCase(InputKeyPressed))));
-	if (keyUpCase(InputKeyPressed) == 'Y') {
+				eos).has(keyUpCase(keyboard.InputKeyPressed))));
+	if (keyUpCase(keyboard.InputKeyPressed) == 'Y') {
 		defaultReturn = true;
 	} else {
 		defaultReturn = false;
@@ -888,7 +887,7 @@ void GameWorldSave(TString50 prompt, TString50 & filename,
 
 	newFilename = filename;
 	SidebarPromptString(prompt, extension, newFilename, PROMPT_ALPHANUM);
-	if ((InputKeyPressed != E_KEY_ESCAPE)
+	if ((keyboard.InputKeyPressed != E_KEY_ESCAPE)
 		&& (length(newFilename) != 0))  {
 		filename = newFilename;
 		if (extension == ".ZZT") {
@@ -1701,40 +1700,41 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 
 			video.write(64, 5, 0x1f, "Pausing...");
-			InputUpdate();
+			keyboard.update();
 
-			if (InputKeyPressed == E_KEY_ESCAPE) {
+			if (keyboard.InputKeyPressed == E_KEY_ESCAPE) {
 				GamePromptEndPlay();
 			}
 
-			if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
+			if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
 				ElementDefs[Board.Tiles[Board.Stats[0].X +
-													 InputDeltaX][Board.Stats[0].Y +
-													 InputDeltaY].Element].TouchProc(
-							Board.Stats[0].X + InputDeltaX, Board.Stats[0].Y + InputDeltaY, 0,
-							InputDeltaX, InputDeltaY);
+													 keyboard.InputDeltaX][Board.Stats[0].Y +
+													 keyboard.InputDeltaY].Element].TouchProc(
+							Board.Stats[0].X + keyboard.InputDeltaX,
+							Board.Stats[0].Y + keyboard.InputDeltaY, 0,
+							keyboard.InputDeltaX, keyboard.InputDeltaY);
 			}
 
-			if (((InputDeltaX != 0) || (InputDeltaY != 0))
+			if (((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))
 				&& ElementDefs[Board.Tiles[Board.Stats[0].X +
-													 InputDeltaX][Board.Stats[0].Y
-													 + InputDeltaY].Element].Walkable) {
+													 keyboard.InputDeltaX][Board.Stats[0].Y
+													 + keyboard.InputDeltaY].Element].Walkable) {
 				/* Move player */
 				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
 					E_PLAYER)
-					MoveStat(0, Board.Stats[0].X + InputDeltaX,
-						Board.Stats[0].Y + InputDeltaY);
+					MoveStat(0, Board.Stats[0].X + keyboard.InputDeltaX,
+						Board.Stats[0].Y + keyboard.InputDeltaY);
 				else {
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-					Board.Stats[0].X = Board.Stats[0].X + InputDeltaX;
-					Board.Stats[0].Y = Board.Stats[0].Y + InputDeltaY;
+					Board.Stats[0].X = Board.Stats[0].X + keyboard.InputDeltaX;
+					Board.Stats[0].Y = Board.Stats[0].Y + keyboard.InputDeltaY;
 					Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER;
 					Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
 						ElementDefs[E_PLAYER].Color;
 					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
 					DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
-					DrawPlayerSurroundings(Board.Stats[0].X - InputDeltaX,
-						Board.Stats[0].Y - InputDeltaY, 0);
+					DrawPlayerSurroundings(Board.Stats[0].X - keyboard.InputDeltaX,
+						Board.Stats[0].Y - keyboard.InputDeltaY, 0);
 				}
 
 				/* Unpause */
@@ -1770,7 +1770,7 @@ void GamePlayLoop(boolean boardChanged) {
 				}
 				CurrentStatTicked = 0;
 
-				InputUpdate();
+				keyboard.update();
 			}
 		}
 
@@ -1831,7 +1831,7 @@ void GameTitleLoop() {
 			GamePlayLoop(boardChanged);
 			boardChanged = false;
 
-			switch (keyUpCase(InputKeyPressed)) {
+			switch (keyUpCase(keyboard.InputKeyPressed)) {
 				case 'W': {
 					if (GameWorldLoad(".ZZT"))  {
 						ReturnBoardId = World.Info.CurrentBoard;
@@ -1865,7 +1865,7 @@ void GameTitleLoop() {
 					break;
 				case 'S': {
 					SidebarPromptSlider(true, 66, 21, "Game speed:;FS", TickSpeed);
-					InputKeyPressed = '\0';
+					keyboard.InputKeyPressed = '\0';
 				}
 				break;
 				case 'R': {
@@ -1947,7 +1947,7 @@ void GamePrintRegisterMessage() {
 			video.write(28, 24, 0x1f, "Press any key to exit...");
 			video.TextColor(LightGray);
 
-			ReadKeyBlocking();
+			keyboard.wait_for_key();
 
 			video.write(28, 24, 0, "                        ");
 			video.go_to_xy(0, 22);

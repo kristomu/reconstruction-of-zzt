@@ -1,10 +1,6 @@
 #pragma once
-#include <string>
-#include <iostream>
-#include <memory>
-#include <vector>
 
-#include "unicode.h"
+#include "input.h"
 #include "io/curses.h"
 #include "video.h"
 
@@ -18,13 +14,10 @@ const int WindMaxY = 25;      // Lower right, Y coordinate
 const int WindMinX = 1;       // Upper left, X coordinate
 const int WindMinY = 1;       // Upper left, Y coordinate
 
+extern Input keyboard;
 extern Video video;
 
-extern std::shared_ptr<io> display;
-void initCurses();
-bool Keypressed();
-key_response ReadKey();
-key_response ReadKeyBlocking();
+void init_IO(dos_color border_color);
 
 // Currently unimplemented as we have no sound.
 /*void SoundUninstall();
@@ -40,16 +33,3 @@ void GetTime(short & hour, short & minute, short & second,
 	short & hundredths);
 
 void Delay(int msec);
-
-extern integer InputDeltaX,
-	   InputDeltaY; // translates arrow keys to movement
-extern bool InputShiftPressed;			// It does what it says
-extern bool InputSpecialKeyPressed;
-extern bool InputShiftAccepted; // ???
-extern integer InputKeyPressed;
-
-const bool InputJoystickMoved = false;	 // not supported
-const bool InputJoystickEnabled = false; // ditto
-
-void InputUpdate();				// Polls and updates.
-void InputReadWaitKey();

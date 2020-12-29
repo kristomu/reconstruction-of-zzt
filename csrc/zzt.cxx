@@ -144,7 +144,7 @@ void GameConfigure() {
 	video.go_to_xy(0, 7);
 	video.TextColor(LightGreen);
 	video.TextBackground(Black);
-	if (! video.Configure()) {
+	if (! video.Configure(keyboard)) {
 		GameTitleExitRequested = true;
 	}
 }
@@ -153,10 +153,10 @@ void debug_video_input() {
 	int col = 0;
 
 	do {
-		InputReadWaitKey();
+		keyboard.wait_for_key();
 		video.write(10, 10, col + 0x09,
-			"Key read: " + itos(InputKeyPressed) + " delta " + itos(
-				InputDeltaX) + "," + itos(InputDeltaY));
+			"Key read: " + itos(keyboard.InputKeyPressed) + " delta " + itos(
+				keyboard.InputDeltaX) + "," + itos(keyboard.InputDeltaY));
 		//video.write(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
 		++col;
 		col = col % 7;
@@ -166,10 +166,10 @@ void debug_video_input() {
 void debug_display_output() {
 	for (int bg = 0; bg < 16; ++bg) {
 		for (int fg = 0; fg < 16; ++fg) {
-			display->print_ch(fg+10, bg+5, bg * 16 + fg, '!');
+			video.write(fg+10, bg+5, bg * 16 + fg, '!');
 		}
 	}
-	InputReadWaitKey();
+	keyboard.wait_for_key();
 }
 
 int main(int argc, const char* argv[]) {
@@ -190,11 +190,9 @@ int main(int argc, const char* argv[]) {
 	WorldFileDescKeys[7] = "TOUR";
 	WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
 
-	initCurses();
-	video.install(Blue, display);
+	init_IO(Blue);
 
 	Randomize();
-	SetupCodepointToCP437();
 
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";

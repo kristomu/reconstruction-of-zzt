@@ -4,6 +4,8 @@
 #include "colors.h"
 #include "io.h"
 
+#include "../unicode.h"
+
 #include <ncurses.h>
 
 #include <vector>
@@ -24,6 +26,8 @@ class curses_io : public io {
 	private:
 		WINDOW * window;
 		const int E_KEY_NONE = -33;
+
+		unicode_converter converter;
 
 		key_response last_key_detected;
 

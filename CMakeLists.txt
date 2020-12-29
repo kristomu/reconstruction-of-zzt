@@ -25,6 +25,7 @@ set_target_properties(ptoc
 # TODO: Cleanup
 
 add_executable(zzt
+	csrc/input.cc
 	csrc/testing.cc
 	csrc/zzt.cxx
 	csrc/gamevars.cxx
@@ -33,7 +34,7 @@ add_executable(zzt
 	csrc/io/stub.cc
 	csrc/hardware.cc
 	csrc/video.cc
-	csrc/unicode.cxx
+	csrc/unicode.cc
 	csrc/txtwind.cxx
 	csrc/game.cxx
 	csrc/minmax.cxx
@@ -47,6 +48,7 @@ add_executable(zzt
 	csrc/world.cc)
 
 add_executable(fuzzt
+	csrc/input.cc
 	csrc/testing.cc
 	csrc/fuzzt.cxx
 	csrc/gamevars.cxx
@@ -55,7 +57,7 @@ add_executable(fuzzt
 	csrc/io/stub.cc
 	csrc/hardware.cc
 	csrc/video.cc
-	csrc/unicode.cxx
+	csrc/unicode.cc
 	csrc/txtwind.cxx
 	csrc/game.cxx
 	csrc/minmax.cxx

@@ -1,4 +1,4 @@
-#Ignore everything
+#Ignore everything...
 *
 
 # But not source files, libraries or readmes, or CMakeLists.
@@ -13,10 +13,11 @@
 !*.a
 !CMakeLists.txt
 
-# And not ZZT.DAT or TOWN.ZZT
+# And not ZZT.DAT or TOWN.ZZT.
 !zzt.dat
 !ZZT.DAT
 !TOWN.ZZT
 
-# Nor the directories
+# Nor the directories.
 !/**/
+!*/

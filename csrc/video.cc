@@ -37,31 +37,31 @@
 
 // Set background color.
 void Video::TextBackground(dos_color bgColor) {
-	display->set_background_color(bgColor);
+	display_interface->set_background_color(bgColor);
 }
 
 // Set foreground color.
 void Video::TextColor(dos_color fgColor) {
-	display->set_text_color(fgColor);
+	display_interface->set_text_color(fgColor);
 }
 
 // Clear the screen
 void Video::ClrScr() {
-	display->clrscr();
+	display_interface->clrscr();
 }
 
 void Video::redraw() {
-	display->redraw();
+	display_interface->redraw();
 }
 
 // Go to (x, y).
 void Video::go_to_xy(int x, int y) {
-	display->move(x, y);
+	display_interface->move(x, y);
 }
 
 /* The input x,y values are offset by 0, i.e. 0,0 is upper left. */
 void Video::write(int x, int y, const TTextChar & to_print) {
-	io_interface->print_ch(x, y, to_print.Color, to_print.Char);
+	display_interface->print_ch(x, y, to_print.Color, to_print.Char);
 	primary_buffer[x][y] = to_print;
 }
 
@@ -104,7 +104,7 @@ void Video::write(int x, int y, char color, video_line text) {
 }
 
 void Video::write(std::string text) {
-	display->print(text);
+	display_interface->print(text);
 }
 
 void Video::writeln(std::string text) {
@@ -112,7 +112,7 @@ void Video::writeln(std::string text) {
 	write("\n");
 }
 
-bool Video::Configure() {
+bool Video::Configure(Input & key_input) {
 
 	bool MonochromeOnly = !has_colors();
 	if (MonochromeOnly)  {
@@ -124,26 +124,22 @@ bool Video::Configure() {
 	write("  Video mode:  C)olor,  M)onochrome?  ");
 
 	bool gotResponse = false;
-	int64_t typed;
+	int64_t typed = keyUpCase(key_input.read_key_blocking());
 
-	while (!gotResponse) {
-		typed = keyUpCase(ReadKeyBlocking());
-		gotResponse = true;
-
-		switch (typed) {
-			case 'C': chose_monochrome = false; break;
-			case 'M': chose_monochrome = true; break;
-			case E_KEY_ESCAPE: chose_monochrome = MonochromeOnly; break;
-			default: gotResponse = false; break;
-		}
+	switch (typed) {
+		case 'C': chose_monochrome = false; break;
+		case 'M': chose_monochrome = true; break;
+		case E_KEY_ESCAPE: chose_monochrome = MonochromeOnly; break;
+		default: gotResponse = false; break;
 	}
+
 	return typed != E_KEY_ESCAPE;
 }
 
 void Video::install(dos_color borderColor, std::shared_ptr<io> io_in) {
 
-	io_interface = io_in;
-	io_interface->set_black_and_white(chose_monochrome);
+	display_interface = io_in;
+	display_interface->set_black_and_white(chose_monochrome);
 
 	if (!chose_monochrome) {
 		TextBackground(borderColor);
@@ -153,7 +149,7 @@ void Video::install(dos_color borderColor, std::shared_ptr<io> io_in) {
 }
 
 Video::~Video() {
-	if (io_interface) {
+	if (display_interface) {
 		TextBackground(Black);
 		SetBorderColor(Black);
 		ClrScr();
@@ -163,11 +159,11 @@ Video::~Video() {
 /* These do nothing in Linux, but are meant to show or hide the terminal cursor.
 It will have to be done in some other way. TODO */
 void Video::ShowCursor() {
-	io_interface->show_cursor();
+	display_interface->show_cursor();
 }
 
 void Video::HideCursor() {
-	io_interface->hide_cursor();
+	display_interface->hide_cursor();
 }
 
 /* This does nothing in Linux either. I'm keeping the empty function in case

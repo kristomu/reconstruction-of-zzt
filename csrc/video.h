@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 
-#include "io/curses.h"
+#include "input.h"
 #include "io/io.h"
 #include "ptoc.h"
 
@@ -22,7 +22,7 @@ typedef std::array<std::array<TTextChar, 25>, 80> video_buffer;
 
 class Video {
 	private:
-		std::shared_ptr<io> io_interface;
+		std::shared_ptr<io> display_interface;
 		video_buffer primary_buffer, secondary_buffer;
 		TTextChar passthrough;
 
@@ -50,7 +50,7 @@ class Video {
 		void write(std::string text);
 		void writeln(std::string text);
 
-		bool Configure();
+		bool Configure(Input & key_input);
 
 		void ShowCursor();
 		void HideCursor();
@@ -65,6 +65,6 @@ class Video {
 			bool to_display);
 
 		void Refresh() {
-			io_interface->redraw();
+			display_interface->redraw();
 		}
 };

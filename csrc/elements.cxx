@@ -1052,8 +1052,9 @@ void ElementDuplicatorTick(integer statId) {
 			if (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element ==
 				E_PLAYER)  {
 				ElementDefs[Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element]
-				.TouchProc(with.X + with.StepX, with.Y + with.StepY, 0, InputDeltaX,
-					InputDeltaY);
+				.TouchProc(with.X + with.StepX, with.Y + with.StepY, 0,
+					keyboard.InputDeltaX,
+					keyboard.InputDeltaY);
 			} else {
 				if (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element !=
 					E_EMPTY)
@@ -1338,7 +1339,7 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 		BoardChange(Board.Info.NeighborBoards[neighborId]);
 		if (Board.Tiles[entryX][entryY].Element != E_PLAYER)  {
 			ElementDefs[Board.Tiles[entryX][entryY].Element].TouchProc(
-				entryX, entryY, sourceStatId, InputDeltaX, InputDeltaY);
+				entryX, entryY, sourceStatId, keyboard.InputDeltaX, keyboard.InputDeltaY);
 		}
 
 		if (ElementDefs[Board.Tiles[entryX][entryY].Element].Walkable
@@ -1407,11 +1408,11 @@ void GamePromptEndPlay() {
 		BoardDrawBorder();
 	} else {
 		GamePlayExitRequested = SidebarPromptYesNo("End this game? ", true);
-		if (InputKeyPressed == '\33') {
+		if (keyboard.InputKeyPressed == '\33') {
 			GamePlayExitRequested = false;
 		}
 	}
-	InputKeyPressed = '\0';
+	keyboard.InputKeyPressed = '\0';
 }
 
 void ElementPlayerTick(integer statId) {
@@ -1443,9 +1444,9 @@ void ElementPlayerTick(integer statId) {
 		}
 
 		if (World.Info.Health <= 0)  {
-			InputDeltaX = 0;
-			InputDeltaY = 0;
-			InputShiftPressed = false;
+			keyboard.InputDeltaX = 0;
+			keyboard.InputDeltaY = 0;
+			keyboard.InputShiftPressed = false; // ew
 
 			if (GetStatIdAt(0,0) == -1) {
 				DisplayMessage(32000, " Game over  -  Press ESCAPE");
@@ -1454,10 +1455,11 @@ void ElementPlayerTick(integer statId) {
 			TickTimeDuration = 0;
 			SoundBlockQueueing = true;
 		}
-		if (InputShiftPressed || (InputKeyPressed == ' '))  {
-			if (InputShiftPressed && ((InputDeltaX != 0) || (InputDeltaY != 0)))  {
-				PlayerDirX = InputDeltaX;
-				PlayerDirY = InputDeltaY;
+		if (keyboard.InputShiftPressed || (keyboard.InputKeyPressed == ' '))  {
+			if (keyboard.InputShiftPressed && ((keyboard.InputDeltaX != 0)
+					|| (keyboard.InputDeltaY != 0)))  {
+				PlayerDirX = keyboard.InputDeltaX;
+				PlayerDirY = keyboard.InputDeltaY;
 			}
 
 			if ((PlayerDirX != 0) || (PlayerDirY != 0))  {
@@ -1487,37 +1489,38 @@ void ElementPlayerTick(integer statId) {
 
 							SoundQueue(2, "\100\1\60\1\40\1");
 
-							InputDeltaX = 0;
-							InputDeltaY = 0;
+							keyboard.InputDeltaX = 0;
+							keyboard.InputDeltaY = 0;
 						}
 					}
 				}
 			}
-		} else if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
-			PlayerDirX = InputDeltaX;
-			PlayerDirY = InputDeltaY;
+		} else if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
+			PlayerDirX = keyboard.InputDeltaX;
+			PlayerDirY = keyboard.InputDeltaY;
 
-			ElementDefs[Board.Tiles[with.X + InputDeltaX][with.Y +
-									   InputDeltaY].Element].TouchProc(
-						with.X + InputDeltaX, with.Y + InputDeltaY, 0, InputDeltaX, InputDeltaY);
-			if ((InputDeltaX != 0) || (InputDeltaY != 0))  {
+			ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
+									   keyboard.InputDeltaY].Element].TouchProc(
+						with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY, 0,
+						keyboard.InputDeltaX, keyboard.InputDeltaY);
+			if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
 				if (SoundEnabled && ! SoundIsPlaying) {
 					Sound(110);
 				}
-				if (ElementDefs[Board.Tiles[with.X + InputDeltaX][with.Y +
-											   InputDeltaY].Element].Walkable)  {
+				if (ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
+											   keyboard.InputDeltaY].Element].Walkable)  {
 					if (SoundEnabled && ! SoundIsPlaying) {
-						NoSound;
+						NoSound();
 					}
 
-					MoveStat(0, with.X + InputDeltaX, with.Y + InputDeltaY);
+					MoveStat(0, with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY);
 				} else if (SoundEnabled && ! SoundIsPlaying)  {
-					NoSound;
+					NoSound();
 				}
 			}
 		}
 
-		switch (keyUpCase(InputKeyPressed)) {
+		switch (keyUpCase(keyboard.InputKeyPressed)) {
 			case 'T': {
 				if (World.Info.TorchTicks <= 0)  {
 					if (World.Info.Torches > 0)  {
@@ -1560,7 +1563,7 @@ void ElementPlayerTick(integer statId) {
 				SoundEnabled = ! SoundEnabled;
 				SoundClearQueue();
 				GameUpdateSidebar();
-				InputKeyPressed = ' ';
+				keyboard.InputKeyPressed = ' ';
 			}
 			break;
 			case 'H': {
@@ -1573,7 +1576,7 @@ void ElementPlayerTick(integer statId) {
 			break;
 			case '?': {
 				GameDebugPrompt();
-				InputKeyPressed = '\0';
+				keyboard.InputKeyPressed = '\0';
 			}
 			break;
 		}
@@ -1620,7 +1623,7 @@ void ElementPlayerTick(integer statId) {
 void ElementMonitorTick(integer statId) {
 
 	if (set::of(E_KEY_ESCAPE, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|',
-			eos).has(keyUpCase(InputKeyPressed))) {
+			eos).has(keyUpCase(keyboard.InputKeyPressed))) {
 		GamePlayExitRequested = true;
 	}
 }
