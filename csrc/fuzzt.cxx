@@ -1,6 +1,3 @@
-#include "ptoc.h"
-#include "tools.h"
-
 /*
 	Copyright (c) 2020 Adrian Siekierka
 	Copyright (c) 2020 Kristofer Munsterhjelm
@@ -27,13 +24,11 @@
 	SOFTWARE.
 */
 
-/*$I-*/
+#include "ptoc.h"
+#include "tools.h"
 
+#include "io/stub.h"
 #include "hardware.h"
-#include <unistd.h>
-#include <iostream>
-#include <sstream>
-
 #include "gamevars.h"
 #include "game.h"
 #include "sounds.h"
@@ -43,6 +38,10 @@
 
 #include "testing.h"
 
+#include <unistd.h>
+#include <iostream>
+#include <sstream>
+
 TWorld World;
 
 void ParseArguments(int argc, const char ** argv) {
@@ -51,7 +50,7 @@ void ParseArguments(int argc, const char ** argv) {
 
 	for (i = 1; i < argc; i ++) {
 		pArg = argv[i];
-		if (pArg[1] == '/')  {
+		if (pArg[1] == '-')  {
 			switch (upcase(pArg[2])) {
 				case 'T': {
 					// TBD: sounds.pas
@@ -147,27 +146,30 @@ void GameConfigure() {
 	}
 }
 
-void debug_video_input() {
-	int col = 0;
+std::shared_ptr<stub_io> stub_ptr;
 
-	do {
-		keyboard.wait_for_key();
-		video.write(10, 10, col + 0x09,
-			"Key read: " + itos(keyboard.InputKeyPressed) + " delta " + itos(
-				keyboard.InputDeltaX) + "," + itos(keyboard.InputDeltaY));
-		//video.write(10, 10, 0x0F, "Key read: " + itos(ReadKeyBlocking().key));
-		++col;
-		col = col % 7;
-	} while (1 == 1);
-}
+void init_IO_fuzz(dos_color border_color) {
+	std::shared_ptr<curses_io> curses_ptr;
 
-void debug_display_output() {
-	for (int bg = 0; bg < 16; ++bg) {
-		for (int fg = 0; fg < 16; ++fg) {
-			video.write(fg+10, bg+5, bg * 16 + fg, '!');
-		}
+	if (test_mode_disable_video || test_mode_disable_input) {
+		stub_ptr = std::make_shared<stub_io>();
 	}
-	keyboard.wait_for_key();
+
+	if (!test_mode_disable_video || !test_mode_disable_input) {
+		curses_ptr = std::make_shared<curses_io>();
+	}
+
+	if (test_mode_disable_video) {
+		video.install(border_color, stub_ptr);
+	} else {
+		video.install(border_color, curses_ptr);
+	}
+
+	if (test_mode_disable_input) {
+		keyboard.set_interface(stub_ptr);
+	} else {
+		keyboard.set_interface(curses_ptr);
+	}
 }
 
 int main(int argc, const char* argv[]) {
@@ -196,9 +198,11 @@ int main(int argc, const char* argv[]) {
 	WorldFileDescKeys[7] = "TOUR";
 	WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
 
-	init_IO(Blue);
+	init_IO_fuzz(Blue);
+	stub_ptr->set_key_responses({'C', E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+		E_KEY_ENTER, 'Q', 'Y'});
 
-	Randomize();
+	Randomize();	// TBD: Make deterministic.
 
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";

@@ -48,7 +48,7 @@ void ParseArguments(int argc, const char ** argv) {
 
 	for (i = 1; i < argc; i ++) {
 		pArg = argv[i];
-		if (pArg[1] == '/')  {
+		if (pArg[1] == '-')  {
 			switch (upcase(pArg[2])) {
 				case 'T': {
 					// TBD: sounds.pas
