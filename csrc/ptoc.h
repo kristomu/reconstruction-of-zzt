@@ -36,7 +36,6 @@ typedef unsigned char boolean;
  * Pascal runtime library headers
  */
 
-#include "io.h"
 #include "array.h"
 #include "paslib.h"
 #include "set.h"

@@ -42,12 +42,12 @@
 
 TWorld World;
 
-void ParseArguments() {
+void ParseArguments(int argc, const char ** argv) {
 	integer i;
-	string pArg;
+	std::string pArg;
 
-	for (i = 1; i <= ParamCount; i ++) {
-		pArg = ParamStr(i);
+	for (i = 1; i < argc; i ++) {
+		pArg = argv[i];
 		if (pArg[1] == '/')  {
 			switch (upcase(pArg[2])) {
 				case 'T': {
@@ -59,7 +59,7 @@ void ParseArguments() {
 				case 'R': ResetConfig = true; break;
 			}
 		} else {
-			StartupWorldFileName = pArg;
+			StartupWorldFileName = pArg.c_str();
 			if ((length(StartupWorldFileName) > 4)
 				&& (StartupWorldFileName[length(StartupWorldFileName) - 3] == '.'))  {
 				StartupWorldFileName = copy(StartupWorldFileName, 1,
@@ -173,7 +173,7 @@ void debug_display_output() {
 }
 
 int main(int argc, const char* argv[]) {
-	pio_initialize(argc, argv);
+
 	WorldFileDescCount = 7;
 	WorldFileDescKeys[1] = "TOWN";
 	WorldFileDescValues[1] = "TOWN       The Town of ZZT";
@@ -199,7 +199,7 @@ int main(int argc, const char* argv[]) {
 	ResetConfig = false;
 	GameTitleExitRequested = false;
 	GameConfigure();
-	ParseArguments();
+	ParseArguments(argc, argv);
 	TextWindowInit(5, 3, 50, 18);
 
 	/*debug_display_input();*/

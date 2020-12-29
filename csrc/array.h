@@ -179,23 +179,6 @@ class array {
 			return compare(&elem) != 0;
 		}
 
-		friend text & operator << (text & t, array a) {
-			pio_output_string((text_descriptor*)&t, (char*)a.buf,
-				high_bound-low_bound+1, NULL);
-			return t;
-		}
-
-		friend text & operator >> (text & t, array & a) {
-			pio_input_string((text_descriptor*)&t, (char*)a.buf,
-				high_bound-low_bound+1, true);
-			return t;
-		}
-
-		friend format_string<high_bound-low_bound+1> format(array const & a,
-			int width) {
-			return format_string<high_bound-low_bound+1>((char*)a.buf, width);
-		}
-
 #ifndef NO_ARRAY_ASSIGN_OPERATOR
 		void operator = (const Type* ptr) {
 			if (sizeof(Type) == 1) { /* array of char */
@@ -448,16 +431,6 @@ class varying_string_header {
 			return compare(ch) != 0;
 		}
 
-		friend text & operator << (text & t, varying_string_header const & str) {
-			pio_output_string((text_descriptor*)&t, str.get_body(),
-				str.length(), NULL);
-			return t;
-		}
-
-		friend format_varying_string format(varying_string_header const & str,
-			int width) {
-			return format_varying_string(str.get_body(), str.length(), width);
-		}
 };
 
 
@@ -494,12 +467,6 @@ class varying_string : public varying_string_header {
 			} else {
 				return lpsz(1, len, body);
 			}
-		}
-
-		friend text & operator >> (text & t, varying_string & str) {
-			str.set_length(pio_input_string((text_descriptor*)&t, str.get_body(),
-					max_size, false));
-			return t;
 		}
 
 		void operator = (const char* str) {
@@ -539,8 +506,6 @@ class varying_string : public varying_string_header {
 		string operator + (char ch) const;
 
 		string operator + (unsigned char ch) const;
-
-		string operator + (new_line_marker &) const;
 
 		varying_string(const varying_string_header & str) {
 			size_t len = str.length();
@@ -628,22 +593,6 @@ const {
 	}
 	return result;
 }
-
-template<size_t max_size>
-inline string varying_string<max_size>::operator + (new_line_marker &)
-const {
-	string result;
-	size_t len = length();
-	memcpy(result.body, body, len);
-	if (len < MAX_STRING_SIZE) {
-		result.body[len] = '\n';
-		result.set_length(len+1);
-	} else {
-		result.set_length(len);
-	}
-	return result;
-}
-
 
 template<size_t max_size>
 inline void str(int val, varying_string<max_size> & s) {

@@ -817,7 +817,6 @@ boolean WorldLoad(std::string filename, std::string extension) {
 }
 
 void WorldSave(TString50 filename, TString50 extension) {
-	untyped_file f;
 	integer i;
 	integer unk1;
 	TIoTmpBuf * ptr;
