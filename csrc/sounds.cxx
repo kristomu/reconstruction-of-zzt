@@ -1,5 +1,3 @@
-#include "ptoc.h"
-
 /*
 	Copyright (c) 2020 Adrian Siekierka
 
@@ -30,7 +28,8 @@
 
 #define __Sounds_implementation__
 
-
+#include "ptoc.h"
+#include "testing.h"
 #include "sounds.h"
 
 /*#include "Crt.h"*/
@@ -152,6 +151,10 @@ boolean SoundHasTimeElapsed(integer & counter, integer duration) {
 	short hour, minute, sec, hSec;
 	word hSecsDiff;
 	integer hSecsTotal;
+
+	if (test_mode_disable_delay) {
+		return true;
+	}
 
 	boolean SoundHasTimeElapsed_result;
 	if ((SoundTimeCheckCounter > 0) && ((SoundTimeCheckCounter % 2) == 1))  {

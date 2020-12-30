@@ -47,6 +47,7 @@
 #include "minmax.h"
 
 #include "hardware.h"
+#include "testing.h"
 
 boolean ValidCoord(integer x, integer y) {
 	boolean ValidCoord_result;
@@ -1453,6 +1454,11 @@ void CalcDirectionSeek(integer x, integer y, integer & deltaX,
 }
 
 void TransitionDrawBoardChange() {
+	// This is a hotspot, so skip if we've disabled video.
+	if (test_mode_disable_video) {
+		return;
+	}
+
 	TransitionDrawToFill('\333', 0x5);
 	TransitionDrawToBoard();
 }
@@ -1770,6 +1776,7 @@ void GamePlayLoop(boolean boardChanged) {
 				CurrentStatTicked = 0;
 
 				keyboard.update();
+				video.redraw();
 			}
 		}
 

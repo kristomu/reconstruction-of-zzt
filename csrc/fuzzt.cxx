@@ -48,25 +48,15 @@ void ParseArguments(int argc, const char ** argv) {
 	integer i;
 	std::string pArg;
 
+	// Don't accept any switches, just consider the last
+	// argument as a literal filename.
+
 	for (i = 1; i < argc; i ++) {
-		pArg = argv[i];
-		if (pArg[1] == '-')  {
-			switch (upcase(pArg[2])) {
-				case 'T': {
-					// TBD: sounds.pas
-					/* SoundTimeCheckCounter = 0;
-					UseSystemTimeForElapsed = false;*/
-				}
-				break;
-				case 'R': ResetConfig = true; break;
-			}
-		} else {
-			StartupWorldFileName = pArg.c_str();
-			if ((length(StartupWorldFileName) > 4)
-				&& (StartupWorldFileName[length(StartupWorldFileName) - 3] == '.'))  {
-				StartupWorldFileName = copy(StartupWorldFileName, 1,
-						length(StartupWorldFileName) - 4);
-			}
+		StartupWorldFileName = argv[i];
+		if ((length(StartupWorldFileName) > 4)
+			&& (StartupWorldFileName[length(StartupWorldFileName) - 3] == '.'))  {
+			StartupWorldFileName = copy(StartupWorldFileName, 1,
+					length(StartupWorldFileName) - 4);
 		}
 	}
 }
@@ -149,11 +139,8 @@ void GameConfigure() {
 std::shared_ptr<stub_io> stub_ptr;
 
 void init_IO_fuzz(dos_color border_color) {
-	std::shared_ptr<curses_io> curses_ptr;
-
-	if (test_mode_disable_video || test_mode_disable_input) {
-		stub_ptr = std::make_shared<stub_io>();
-	}
+	std::shared_ptr<curses_io> curses_ptr = NULL;
+	stub_ptr = std::make_shared<stub_io>();
 
 	if (!test_mode_disable_video || !test_mode_disable_input) {
 		curses_ptr = std::make_shared<curses_io>();
@@ -199,62 +186,57 @@ int main(int argc, const char* argv[]) {
 	WorldFileDescValues[7] = "TOUR       Guided Tour ZZT\47s Other Worlds";
 
 	init_IO_fuzz(Blue);
-	stub_ptr->set_key_responses({'C', E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
-		E_KEY_ENTER, 'Q', 'Y'});
-
-	Randomize();	// TBD: Make deterministic.
-
+	stub_ptr->set_key_responses({'C'}); // skip init screen
+	GameConfigure();
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";
 	ResetConfig = false;
-	GameTitleExitRequested = false;
-	GameConfigure();
-	ParseArguments(argc, argv);
-	TextWindowInit(5, 3, 50, 18);
 
-	/*debug_display_input();*/
-	/*debug_display_output();*/
+	IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+	Randomize();	// TBD: Make deterministic.
+	GenerateTransitionTable();
 
-	if (!GameTitleExitRequested)  {
-		TTextWindowState textWindow;
+#ifdef __AFL_LOOP
+	while (__AFL_LOOP(1000))
+#endif
+	{
+		stub_ptr->set_key_responses({
+			// skip ZZT.DAT and corruption notices
+			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+			// run a few cycles doing nothing
+			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+			// play and go right a bunch
+			'P', E_KEY_UP, E_KEY_LEFT, E_KEY_DOWN, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
+			// get out of any scrolls
+			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+			// abort pause (??)
+			E_KEY_RIGHT,
+			// quit from play, and quit the game.
+			E_KEY_ESCAPE, 'Y', 'Q', 'Y'});
 
-		// XXX: Fix
-		order_print_id = GameVersion;
-		IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
-		//new TIoTmpBuf;
+		GameTitleExitRequested = false;
+		ParseArguments(argc, argv);
+		TextWindowInit(5, 3, 50, 18);
 
-		video.HideCursor();
-		video.ClrScr();
+		if (!GameTitleExitRequested)  {
+			TTextWindowState textWindow;
 
-		TickSpeed = 4;
-		DebugEnabled = false;
-		SavedGameFileName = "SAVED";
-		SavedBoardFileName = "TEMP";
-		GenerateTransitionTable();
-		WorldCreate();
+			video.HideCursor();
+			video.ClrScr();
 
-		GameTitleLoop();
+			TickSpeed = 4;
+			DebugEnabled = false;
+			SavedGameFileName = "SAVED";
+			SavedBoardFileName = "TEMP";
 
-		//LEAKFIX: Remember to dispose of *everything* in use.
-		WorldUnload();
-		delete[] IoTmpBuf;
+			WorldCreate();
+			GameTitleLoop();
+
+			WorldUnload();
+		}
 	}
 
 	SoundUninstall();
 	SoundClearQueue();
-
-	/*VideoUninstall();
-	TextAttr = InitialTextAttr;
-	video.ClrScr();*/
-
-	if (ConfigRegistration.size() == 0)  {
-		GamePrintRegisterMessage();
-	} else {
-		video.writeln("");
-		video.writeln("  Registered version -- Thank you for playing ZZT.");
-		video.writeln("");
-	}
-
-	video.ShowCursor();
-	return EXIT_SUCCESS;
+	delete[] IoTmpBuf;
 }

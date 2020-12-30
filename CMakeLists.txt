@@ -8,10 +8,35 @@ project(zzt)
 set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+# If you want to build a fuzzable binary, set AFL_FUZZER_DIR to the
+# directory that AFL lives in.
+
+set(AFL_FUZZER_DIR "" CACHE STRING "AFL fuzzer binary directory")
+
+if(AFL_FUZZER_DIR)
+	set(CMAKE_C_COMPILER "${AFL_FUZZER_DIR}/afl-clang-fast")
+	set(CMAKE_CXX_COMPILER "${AFL_FUZZER_DIR}/afl-clang-fast++")
+	set(ZZT_NAME "zzt-afl")
+	set(FUZZT_NAME "fuzzt-afl")
+else()
+    set(CMAKE_C_COMPILER gcc)
+    set(CMAKE_CXX_COMPILER g++)
+    set(ZZT_NAME "zzt")
+	set(FUZZT_NAME "fuzzt")
+endif()
+
 # Parameters
 # Enable Wall later.
 # For turbo mode, add -O9 -march=native.
-set(CMAKE_CXX_FLAGS "-ggdb -DTURBO_PASCAL")
+
+# If we're in fuzz mode, enable all the sanity checks we can, except ASAN
+# (because it doesn't play nice with afl), and enable turbo mode so we can
+# test as many instances at once as possible.
+if(AFL_FUZZER_DIR)
+	set(CMAKE_CXX_FLAGS "-fsanitize-trap=undefined,integer 	-fno-omit-frame-pointer -O9 -march=native -ggdb -DTURBO_PASCAL")
+else()
+	set(CMAKE_CXX_FLAGS "-ggdb -DTURBO_PASCAL")
+endif()
 
 # Require ncursesw
 #find_package(NCurses REQUIRED)
@@ -19,12 +44,17 @@ set(CMAKE_CXX_FLAGS "-ggdb -DTURBO_PASCAL")
 
 # Quick and dirty make specification.
 add_library(ptoc SHARED IMPORTED)
-set_target_properties(ptoc
-	PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/ptoc/libptoc.a)
+if(AFL_FUZZER_DIR)
+	set_target_properties(ptoc
+		PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/afl-ptoc/libptoc.a)
+else()
+	set_target_properties(ptoc
+		PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/ptoc/libptoc.a)
+endif()
 
 # TODO: Cleanup
 
-add_executable(zzt
+add_executable(${ZZT_NAME}
 	csrc/input.cc
 	csrc/testing.cc
 	csrc/zzt.cxx
@@ -47,7 +77,7 @@ add_executable(zzt
 	csrc/serialization.cc
 	csrc/world.cc)
 
-add_executable(fuzzt
+add_executable(${FUZZT_NAME}
 	csrc/input.cc
 	csrc/testing.cc
 	csrc/fuzzt.cxx
@@ -76,5 +106,5 @@ add_executable(fuzzt
 # CURSES_NEED_WIDE check being done in FindCurses.cmake. As I have more
 # pressing things to do than chase a bug, I'll just kludge ncursesw in here.
 
-target_link_libraries(zzt ptoc -lncursesw)
-target_link_libraries(fuzzt ptoc -lncursesw)
+target_link_libraries(${ZZT_NAME} ptoc -lncursesw)
+target_link_libraries(${FUZZT_NAME} ptoc -lncursesw)

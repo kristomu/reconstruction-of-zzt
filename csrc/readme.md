@@ -5,6 +5,7 @@ Known bugs and missing functionality:
 - High score file loading and writing isn't implemented.
 - ZZT isn't aware of the size of the terminal and so doesn't do the right thing with less than 25 lines available.
 - The Town of ZZT: Entering the prison level crashes.
+- Can't type text with F4 in the editor.
 
 Notable coding conventions:
 - Everything that uses underscore_naming_convention is C or C++ based and (unless otherwise marked) zero-indexed. Most of what uses PascalCase is one-based, with TBoard, TStat etc. being the most notable exceptions. (I need to change these and TVideoLine to underscore case). The point of doing this is to keep zero-based string processing and one-based separate, and thus reduce the risk of off-by-one errors.
