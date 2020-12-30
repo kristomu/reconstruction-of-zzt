@@ -2,7 +2,7 @@
 
 #include "ptoc.h"
 
-typedef char element_t;
+typedef unsigned char element_t;
 
 const element_t E_EMPTY = 0;
 const element_t E_BOARD_EDGE = 1;

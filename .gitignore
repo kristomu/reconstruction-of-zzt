@@ -21,3 +21,7 @@
 # Nor the directories.
 !/**/
 !*/
+
+# Nor the test cases.
+!/testcase/*
+!/testcase/**
