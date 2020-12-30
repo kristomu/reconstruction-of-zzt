@@ -635,6 +635,9 @@ std::vector<unsigned char> TBoard::dump() const {
 	// Stats
 	append_lsb_element(StatCount, out);
 
+	// TODO: Check if this actually works, and if it replicates BIND
+	// objects. RLEFLOW hangs; looks like the problem may be located here
+	// somewhere.
 	for (int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
 		TStat stat_to_dump = Stats[stat_idx];
 

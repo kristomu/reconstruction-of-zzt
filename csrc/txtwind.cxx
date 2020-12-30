@@ -28,6 +28,7 @@
 /*$I-*/
 #define __TxtWind_implementation__
 
+#include "testing.h"
 #include "tools.h"
 #include "txtwind.h"
 #include "serialization.h"
@@ -112,61 +113,74 @@ void TextWindowDrawLine(TTextWindowState & state, integer lpos,
 	boolean withoutFormatting, boolean viewingFile) {
 	integer lineY;
 	integer textOffset, textColor, textX;
+	integer displayLineLength;
 
-	lineY = ((TextWindowY + lpos) - state.LinePos) + (TextWindowHeight / 2) +
-		1;
-	if (lpos == state.LinePos)
-		video.write(TextWindowX + 2, lineY, 0x1c,
-			text_window_str_inner_arrows);
-	else
-		video.write(TextWindowX + 2, lineY, 0x1e,
-			text_window_str_inner_empty);
-	if ((lpos > 0) && (lpos <= state.LineCount))  {
-		if (withoutFormatting)  {
-			video.write(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
+	{
+		lineY = ((TextWindowY + lpos) - state.LinePos) + (TextWindowHeight / 2) +
+			1;
+		if (lpos == state.LinePos) {
+			video.write(TextWindowX + 2, lineY, 0x1c, text_window_str_inner_arrows);
 		} else {
-			textOffset = 1;
-			textColor = 0x1e;
-			textX = TextWindowX + 4;
-			if (length(*state.Lines[lpos]) > 0)  {
-				switch ((*state.Lines[lpos])[1]) {
-					case '!': {
-						textOffset = pos(";", *state.Lines[lpos]) + 1;
-						video.write(textX + 2, lineY, 0x1d, "\20");
-						textX = textX + 5;
-						textColor = 0x1f;
+			video.write(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_empty);
+		}
+		if ((lpos > 0) && (lpos <= state.LineCount))  {
+			if (withoutFormatting)  {
+				video.write(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
+			} else {
+				textOffset = 1;
+				textColor = 0x1e;
+				textX = TextWindowX + 4;
+				displayLineLength = 0;
+				if (length(*state.Lines[lpos]) > 0)  {
+					/* IMP: Determine how many characters we can show
+					without making the line too long in the text box. */
+					displayLineLength = std::min(TextWindowWidth - 8,
+							length(*state.Lines[lpos]) - textOffset + 1);
+					switch ((*state.Lines[lpos])[1]) {
+						case '!': {
+							textOffset = pos(";", *state.Lines[lpos]) + 1;
+							video.write(textX + 2, lineY, 0x1d, "\20");
+							textX = textX + 5;
+							textColor = 0x1f;
+
+							displayLineLength = std::min(TextWindowWidth - 8,
+									length(*state.Lines[lpos]) - textOffset + 1);
+						}
+						break;
+						case ':': {
+							textOffset = pos(";", *state.Lines[lpos]) + 1;
+							textColor = 0x1f;
+							displayLineLength = std::min(TextWindowWidth - 8,
+									length(*state.Lines[lpos]) - textOffset + 1);
+						}
+						break;
+						case '$': {
+							textOffset = 2;
+							textColor = 0x1f;
+							displayLineLength = std::min(TextWindowWidth - 8,
+									length(*state.Lines[lpos]) - textOffset + 1);
+
+							textX = (textX - 4) + ((TextWindowWidth - displayLineLength) / 2);
+						}
+						break;
 					}
-					break;
-					case ':': {
-						textOffset = pos(";", *state.Lines[lpos]) + 1;
-						textColor = 0x1f;
-					}
-					break;
-					case '$': {
-						textOffset = 2;
-						textColor = 0x1f;
-						textX = (textX - 4) + ((TextWindowWidth - length(*state.Lines[lpos])) / 2);
-					}
-					break;
+				}
+				if (textOffset > 0)  {
+					video.write(textX, lineY, textColor,
+						copy(*state.Lines[lpos], textOffset, displayLineLength));
 				}
 			}
-			if (textOffset > 0)  {
-				video.write(textX, lineY, textColor,
-					copy(*state.Lines[lpos], textOffset,
-						length(*state.Lines[lpos]) - textOffset + 1));
-			}
+		} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
+			video.write(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_sep);
+		} else if ((lpos == -4) && viewingFile)  {
+			video.write(TextWindowX + 2, lineY, 0x1a,
+				"   Use            to view text,");
+			video.write(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
+		} else if ((lpos == -3) && viewingFile)  {
+			video.write(TextWindowX + 2 + 1, lineY, 0x1a,
+				"                 to print.");
+			video.write(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
 		}
-	} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
-		video.write(TextWindowX + 2, lineY, 0x1e,
-			text_window_str_inner_sep);
-	} else if ((lpos == -4) && viewingFile)  {
-		video.write(TextWindowX + 2, lineY, 0x1a,
-			"   Use            to view text,");
-		video.write(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
-	} else if ((lpos == -3) && viewingFile)  {
-		video.write(TextWindowX + 2 + 1, lineY, 0x1a,
-			"                 to print.");
-		video.write(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
 	}
 }
 
@@ -182,6 +196,11 @@ void TextWindowDraw(TTextWindowState & state, boolean withoutFormatting,
 }
 
 void TextWindowAppend(TTextWindowState & state, TTextWindowLine line) {
+	// No scribbling past the end of the buffer...
+	if (state.LineCount == MAX_TEXT_WINDOW_LINES) {
+		return;
+	}
+
 	state.LineCount = state.LineCount + 1;
 	state.Lines[state.LineCount] = new TTextWindowLine;
 	*state.Lines[state.LineCount] = line;
@@ -334,9 +353,10 @@ LLabelMatched:
 			}
 		}
 		Delay(10);
-	} while (!((keyboard.InputKeyPressed == E_KEY_ESCAPE)
-			|| (keyboard.InputKeyPressed == E_KEY_ENTER)
-			|| keyboard.InputShiftPressed));
+	} while ( keyboard.InputKeyPressed != E_KEY_ESCAPE
+			&& keyboard.InputKeyPressed != E_KEY_ENTER
+			&& !keyboard.InputShiftPressed
+			&& !test_mode_disable_dialog_boxes);
 	if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
 		keyboard.InputKeyPressed = '\0';
 		TextWindowRejected = true;

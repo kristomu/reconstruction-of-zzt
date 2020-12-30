@@ -22,7 +22,7 @@ typedef std::array<std::array<TTextChar, 25>, 80> video_buffer;
 
 class Video {
 	private:
-		std::shared_ptr<io> display_interface;
+		std::shared_ptr<io> display_interface = NULL;
 		video_buffer primary_buffer, secondary_buffer;
 		TTextChar passthrough;
 

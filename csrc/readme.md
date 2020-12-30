@@ -20,6 +20,5 @@ Other thoughts:
 
 Current test failures:
 - ./testcase/crash/INVAR6.ZZT
-- ./testcase/crash/LONG.ZZT
 - ./testcase/crash/RLEFLOW.ZZT
 - ./testcase/EDLEAK2.ZZT
