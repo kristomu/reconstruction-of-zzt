@@ -4,7 +4,6 @@ Known bugs and missing functionality:
 - No sound or music.
 - High score file loading and writing isn't implemented.
 - ZZT isn't aware of the size of the terminal and so doesn't do the right thing with less than 25 lines available.
-- The Town of ZZT: Entering the prison level crashes.
 - Can't type text with F4 in the editor.
 
 Notable coding conventions:
@@ -17,28 +16,10 @@ How to compile?
 Other thoughts:
 - I need some kind of test harness that uses the FreePascal version as a reference, so I can clean up the code and still be (reasonably) sure I'm being bug-compatible.
 - The implementation currently does the Mandelbrot render from Preposterous Machines in 34 minutes. My recorded time for this render on the FPC Linux Reconstruction is 50 minutes.
+- I still have to import the changes to fuzz branch's editor.
 
 Current test failures:
-- ./testcase/crash/CNOSTAT.ZZT
-- ./testcase/crash/CR12.ZZT
-- ./testcase/crash/CR14_DUP.ZZT
-- ./testcase/crash/CR16.ZZT
-- ./testcase/crash/CR19.ZZT
-- ./testcase/crash/CR5.ZZT
-- ./testcase/crash/CR6.ZZT
-- ./testcase/crash/CR8.ZZT
-- ./testcase/crash/CYCLE0.ZZT
 - ./testcase/crash/INVAR6.ZZT
 - ./testcase/crash/LONG.ZZT
-- ./testcase/crash/OBJ_OOB.ZZT
-- ./testcase/crash/OOBSHOT.ZZT
-- ./testcase/crash/STRANGE.ZZT
+- ./testcase/crash/RLEFLOW.ZZT
 - ./testcase/EDLEAK2.ZZT
-- ./testcase/hang/CYCLE0.ZZT
-- ./testcase/hang/PLAYER0.ZZT
-- ./testcase/LEAK.ZZT
-- ./testcase/MISALLOC.ZZT
-- ./testcase/MONIBOMB.ZZT
-- ./testcase/NOSTATS.ZZT
-- ./testcase/OVERFLOW.ZZT
-

@@ -472,7 +472,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		if (length(ElementDefs[element].Param1Name) != 0)  {
 			if (length(ElementDefs[element].ParamTextName) == 0)  {
 				SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param1Name,
-					with.P1);
+					with.P1, 256);
 			} else {
 				if (with.P1 == 0) {
 					with.P1 = World.EditorStatSettings[element].P1;
@@ -499,7 +499,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			(length(ElementDefs[element].Param2Name) != 0)) {
 			promptByte = (with.P2 % 0x80);
 			SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name,
-				promptByte);
+				promptByte, 127);
 			if (selected)  {
 				with.P2 = (with.P2 & 0x80) + promptByte;
 				World.EditorStatSettings[element].P2 = with.P2;

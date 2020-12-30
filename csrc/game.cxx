@@ -50,17 +50,13 @@
 #include "testing.h"
 
 boolean ValidCoord(integer x, integer y) {
-	boolean ValidCoord_result;
 	if ((x < 0) || (y < 0))  {
-		ValidCoord_result = false;
-		return ValidCoord_result;
+		return false;
 	}
 	if ((x > BOARD_WIDTH+1) || (y > BOARD_HEIGHT+1))  {
-		ValidCoord_result = false;
-		return ValidCoord_result;
+		return false;
 	}
-	ValidCoord_result = true;
-	return ValidCoord_result;
+	return true;
 }
 
 boolean CoordInsideViewport(integer x, integer y) {
@@ -205,11 +201,10 @@ void WorldCreate() {
 void TransitionDrawToFill(char chr_, integer color) {
 	integer i;
 
-	for (i = 1; i <= TransitionTableSize; i ++)
-		video.write(TransitionTable[i].X - 1,
-			TransitionTable[i].Y - 1,
-			color,
-			chr_);
+	for (i = 1; i <= TransitionTableSize; ++i) {
+		video.write(TransitionTable[i].X - 1, TransitionTable[i].Y - 1,
+			color, chr_);
+	}
 }
 
 void BoardDrawTile(integer x, integer y) {
@@ -314,9 +309,11 @@ void SidebarPromptCharacter(boolean editable, integer x, integer y,
 }
 
 void SidebarPromptSlider(boolean editable, integer x, integer y,
-	string prompt, byte & value) {
+	string prompt, byte & value, integer maximum) {
 	integer newValue;
+	boolean newValInBounds, oldValInBounds;
 	char startChar, endChar;
+	string S;
 
 	if (prompt[length(prompt) - 2] == ';')  {
 		startChar = prompt[length(prompt) - 1];
@@ -331,12 +328,20 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 	video.write(x, y, (integer)(editable) + 0x1e, prompt);
 	SidebarClearLine(y + 1);
 	SidebarClearLine(y + 2);
-	video.write(x, y + 2, 0x1e,
-		string(startChar) + "....:...." + endChar);
+	video.write(x, y + 2, 0x1e, string(startChar) + "....:...." + endChar);
 
 	do {
 		if (editable)  {
-			video.write(x + value + 1, y + 1, 0x9f, "\37");
+			if (value > 8)  {
+				str(value, S);
+				video.write(x, y + 2, 0x1e,
+					string(startChar) + "  (" + S + ")  " + endChar);
+			} else {
+				video.write(x, y + 2, 0x1e, string(startChar) + "....:...." + endChar);
+				video.write(x + value + 1, y + 1, 0x9f, "\37");
+			}
+
+			Delay(10);
 
 			keyboard.update();
 			if ((keyboard.InputKeyPressed >= '1')
@@ -345,8 +350,11 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 				SidebarClearLine(y + 1);
 			} else {
 				newValue = value + keyboard.InputDeltaX;
-				if ((value != newValue) && (newValue >= 0) && (newValue <= 8))  {
-					value = newValue;
+				newValInBounds = (newValue >= 0) && (newValue <= 8);
+				oldValInBounds = (value >= 0) && (value <= 8);
+				if ((value != newValue) && (newValue <= maximum) && ((! oldValInBounds)
+						|| (newValInBounds && oldValInBounds)))  {
+					value = newValue % 256;
 					SidebarClearLine(y + 1);
 				}
 			}
@@ -355,7 +363,9 @@ void SidebarPromptSlider(boolean editable, integer x, integer y,
 			|| (keyboard.InputKeyPressed == E_KEY_ESCAPE) || ! editable
 			|| keyboard.InputShiftPressed));
 
-	video.write(x + value + 1, y + 1, 0x1f, "\37");
+	if (value <= 8) {
+		video.write(x + value + 1, y + 1, 0x1f, "\37");
+	}
 }
 
 void SidebarPromptChoice(boolean editable, integer y, string prompt,
@@ -432,6 +442,11 @@ void PromptString(integer x, integer y, integer arrowColor,
 
 	oldBuffer = buffer;
 	firstKeyPress = true;
+
+	if (test_mode_disable_text_input) {
+		buffer = "Fuzz mode";
+		return;
+	}
 
 	do {
 		for (i = 0; i <= (width - 1); i ++) {
@@ -1037,6 +1052,20 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 void RemoveStat(integer statId) {
 	integer i;
 
+	if (statId > MAX_STAT) {
+		throw std::logic_error("Trying to remove statId greater than MAX_STAT");
+	}
+	if (statId == -1) {
+		throw std::logic_error("Trying to remove noexisting stat (-1)");
+	}
+	if (statId == 0) {	// Can't remove the player.
+		return;
+	}
+	if (statId > Board.StatCount) {
+		return;    /* Already removed. */
+	}
+
+
 	Board.Stats[statId].data = NULL;	// deallocates if necessary
 
 	TStat & with = Board.Stats[statId];
@@ -1045,8 +1074,13 @@ void RemoveStat(integer statId) {
 		CurrentStatTicked = CurrentStatTicked - 1;
 	}
 
-	Board.Tiles[with.X][with.Y] = with.Under;
-	if (with.Y > 0) {
+	/* Don't remove the player if he's at the old position. This can
+	   happen with multiple stats with the same coordinate. */
+	if ((with.X != Board.Stats[0].X) || (with.Y != Board.Stats[0].Y)) {
+		Board.Tiles[with.X][with.Y] = with.Under;
+	}
+
+	if (CoordInsideViewport(with.X, with.Y)) {
 		BoardDrawTile(with.X, with.Y);
 	}
 
@@ -1068,6 +1102,7 @@ void RemoveStat(integer statId) {
 		}
 	}
 
+	Board.Stats[statId] = StatTemplateDefault;
 	for (i = (statId + 1); i <= Board.StatCount; i ++) {
 		Board.Stats[i - 1] = Board.Stats[i];
 	}
@@ -1102,6 +1137,11 @@ boolean BoardPrepareTileForPlacement(integer x, integer y) {
 	boolean result;
 
 	boolean BoardPrepareTileForPlacement_result;
+
+	if (! ValidCoord(x, y)) {
+		return false;
+	}
+
 	statId = GetStatIdAt(x, y);
 	if (statId > 0)  {
 		RemoveStat(statId);
@@ -1125,11 +1165,34 @@ void MoveStat(integer statId, integer newX, integer newY) {
 	integer oldX, oldY;
 	integer oldBgColor;
 
+	if (statId > MAX_STAT) {
+		throw std::logic_error("Trying to move statId greater than MAX_STAT");
+	}
+	if (statId == -1) {
+		throw std::logic_error("Trying to move noexisting stat (-1)");
+	}
+	// No pint in moving a stat to its own tile
+	if ((Board.Stats[statId].X == newX) && (Board.Stats[statId].Y == newY)) {
+		return;
+	}
+	// And not allowed to move something outside of the viewport.
+	if (!CoordInsideViewport(newX, newY)) {
+		return;
+	}
+
 	TStat & with = Board.Stats[statId];
 	oldBgColor = Board.Tiles[newX][newY].Color & 0xf0;
 
 	iUnder = Board.Stats[statId].Under;
 	Board.Stats[statId].Under = Board.Tiles[newX][newY];
+
+	/* If trying to move atop the player, reject this. The object
+	   is simply destroyed instead, as if a player was set on top
+	   afterwards. */
+	if ((newX == Board.Stats[0].X) && (newY == Board.Stats[0].Y))  {
+		RemoveStat(statId);
+		return;
+	}
 
 	if (Board.Tiles[with.X][with.Y].Element == E_PLAYER) {
 		Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color;
@@ -1138,11 +1201,15 @@ void MoveStat(integer statId, integer newX, integer newY) {
 			0xf;
 	else
 		Board.Tiles[newX][newY].Color = (Board.Tiles[with.X][with.Y].Color &
-				0xf)
-			+ (Board.Tiles[newX][newY].Color & 0x70);
+				0xf) + (Board.Tiles[newX][newY].Color & 0x70);
 
 	Board.Tiles[newX][newY].Element = Board.Tiles[with.X][with.Y].Element;
-	Board.Tiles[with.X][with.Y] = iUnder;
+	/* Don't remove the player if he's at the old position. This can
+	happen with multiple stats with the same coordinate. */
+	if ((statId == 0) || (with.X != Board.Stats[0].X)
+		|| (with.Y != Board.Stats[0].Y)) {
+		Board.Tiles[with.X][with.Y] = iUnder;
+	}
 
 	oldX = with.X;
 	oldY = with.Y;
@@ -1323,16 +1390,18 @@ void DamageStat(integer attackerStatId) {
 					SoundQueue(4, "\40\1\43\1\47\1\60\1\20\1");
 
 					/* Move player to start */
-					Board.Tiles[with.X][with.Y].Element = E_EMPTY;
-					BoardDrawTile(with.X, with.Y);
 					oldX = with.X;
 					oldY = with.Y;
-					with.X = Board.Info.StartPlayerX;
-					with.Y = Board.Info.StartPlayerY;
+					if (ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY)) {
+						MoveStat(0, Board.Info.StartPlayerX, Board.Info.StartPlayerY);
+					}
+					BoardDrawTile(oldX, oldY);
 					DrawPlayerSurroundings(oldX, oldY, 0);
 					DrawPlayerSurroundings(with.X, with.Y, 0);
 
+					//if (! FuzzMode) {
 					GamePaused = true;
+					//}
 				}
 				SoundQueue(4, "\20\1\40\1\23\1\43\1");
 			} else {
@@ -1392,6 +1461,11 @@ boolean BoardShoot(byte element, integer tx, integer ty,
 	integer deltaX,
 	integer deltaY, integer source) {
 	boolean BoardShoot_result;
+
+	if (! ValidCoord(tx + deltaX, ty + deltaY)) {
+		return false;
+	}
+
 	if (ElementDefs[Board.Tiles[tx + deltaX][ty +
 							   deltaY].Element].Walkable
 		|| (Board.Tiles[tx + deltaX][ty + deltaY].Element == E_WATER)) {
@@ -1485,16 +1559,31 @@ void BoardPassageTeleport(integer x, integer y) {
 	col = Board.Tiles[x][y].Color;
 
 	oldBoard = World.Info.CurrentBoard;
-	BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
 
+	/* Handle passages without stats. */
+	if (GetStatIdAt(x, y) < 0) {
+		BoardChange(oldBoard);
+	} else {
+		BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
+	}
+
+	/* Set a default position that's outside the viewport, so that if
+	there's no passage of the appropriate color at the destination
+	board, the player appears at his initial location at the
+	destination. (Do what DOS ZZT does, but without
+	relying on out-of-bounds memory access...) */
 	newX = 0;
-	for (ix = 1; ix <= BOARD_WIDTH; ix ++)
-		for (iy = 1; iy <= BOARD_HEIGHT; iy ++)
+	newY = 0;
+
+	for (ix = 1; ix <= BOARD_WIDTH; ix ++) {
+		for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
 			if ((Board.Tiles[ix][iy].Element == E_PASSAGE)
-				&& (Board.Tiles[ix][iy].Color == col))  {
+				&& (Board.Tiles[ix][iy].Color == col)) {
 				newX = ix;
 				newY = iy;
 			}
+		}
+	}
 
 	/* Move the player onto the passage. */
 	MoveStat(0, newX, newY);
@@ -1611,7 +1700,7 @@ static void GameDrawSidebar() {
 		video.write(62, 23, 0x70, " Q ");
 		video.write(65, 23, 0x1f, " Quit");
 	} else if (GameStateElement == E_MONITOR)  {
-		SidebarPromptSlider(false, 66, 21, "Game speed:;FS", TickSpeed);
+		SidebarPromptSlider(false, 66, 21, "Game speed:;FS", TickSpeed, 256);
 		video.write(62, 21, 0x70, " S ");
 		video.write(62, 7, 0x30, " W ");
 		video.write(65, 7, 0x1e, " World:");
@@ -1680,22 +1769,27 @@ void GamePlayLoop(boolean boardChanged) {
 	GamePlayExitRequested = false;
 	exitLoop = false;
 
+	// if (!FuzzMode) {
 	CurrentTick = Random(100);
 	CurrentStatTicked = Board.StatCount + 1;
+	// }
 
 	pauseBlink = true;
 
 	do {
 		if (GamePaused)  {
 			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
-				pauseBlink = ! pauseBlink;
+				pauseBlink = !pauseBlink;
 			}
 
-			if (pauseBlink)  {
+			// Don't blink an out-of-bounds player.
+			if (pauseBlink && CoordInsideViewport(Board.Stats[0].X,
+					Board.Stats[0].Y)) {
 				video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
 					ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 			} else {
-				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
+				if (CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y)
+					&& Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
 					E_PLAYER)
 					video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf,
 						" ");
@@ -1711,19 +1805,22 @@ void GamePlayLoop(boolean boardChanged) {
 				GamePromptEndPlay();
 			}
 
-			if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
-				ElementDefs[Board.Tiles[Board.Stats[0].X +
-													 keyboard.InputDeltaX][Board.Stats[0].Y +
-													 keyboard.InputDeltaY].Element].TouchProc(
-							Board.Stats[0].X + keyboard.InputDeltaX,
-							Board.Stats[0].Y + keyboard.InputDeltaY, 0,
-							keyboard.InputDeltaX, keyboard.InputDeltaY);
+			if (((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0)) &&
+				ValidCoord(Board.Stats[0].X + keyboard.InputDeltaX,
+					Board.Stats[0].Y + keyboard.InputDeltaY))  {
+				ElementDefs[Board.Tiles[Board.Stats[0].X + keyboard.InputDeltaX]
+												 [Board.Stats[0].Y + keyboard.InputDeltaY].Element].TouchProc(
+						Board.Stats[0].X + keyboard.InputDeltaX,
+						Board.Stats[0].Y + keyboard.InputDeltaY, 0,
+						keyboard.InputDeltaX, keyboard.InputDeltaY);
 			}
 
 			if (((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))
-				&& ElementDefs[Board.Tiles[Board.Stats[0].X +
-													 keyboard.InputDeltaX][Board.Stats[0].Y
-													 + keyboard.InputDeltaY].Element].Walkable) {
+				&& ValidCoord(Board.Stats[0].X +keyboard.InputDeltaX,
+					Board.Stats[0].Y + keyboard.InputDeltaY)
+				&& ElementDefs[Board.Tiles[Board.Stats[0].X
+						+keyboard.InputDeltaX][Board.Stats[0].Y
+						+ keyboard.InputDeltaY].Element].Walkable) {
 				/* Move player */
 				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
 					E_PLAYER)
@@ -1752,15 +1849,20 @@ void GamePlayLoop(boolean boardChanged) {
 
 		} else {       /* not GamePaused */
 			if (CurrentStatTicked <= Board.StatCount)  {
-				{
-					TStat & with = Board.Stats[CurrentStatTicked];
-					if ((with.Cycle != 0)
-						&& ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle)))
-						ElementDefs[Board.Tiles[with.X][with.Y].Element].TickProc(
-							CurrentStatTicked);
+				TStat & with = Board.Stats[CurrentStatTicked];
+				/* IMP: The game element (at stat 0) can always call a tick,
+				   but it can only act - affect the world - if the cycle is
+				   right. See ElementPlayerTick for more info. */
+				if ((CurrentStatTicked == 0) ||
+					((with.Cycle != 0)
+						&& ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle))))
 
-					CurrentStatTicked = CurrentStatTicked + 1;
+				{
+					ElementDefs[Board.Tiles[with.X][with.Y].Element].TickProc(
+						CurrentStatTicked);
 				}
+
+				CurrentStatTicked = CurrentStatTicked + 1;
 			}
 		}
 
@@ -1770,7 +1872,7 @@ void GamePlayLoop(boolean boardChanged) {
 			if (SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration))  {
 				/* next cycle */
 				CurrentTick = CurrentTick + 1;
-				if (CurrentTick > 420) {
+				if (CurrentTick > MAX_CYCLE) {
 					CurrentTick = 1;
 				}
 				CurrentStatTicked = 0;
@@ -1779,8 +1881,6 @@ void GamePlayLoop(boolean boardChanged) {
 				video.redraw();
 			}
 		}
-
-		// Imported from fuzz branch for easier debugging:
 
 		/* Crash if the invariant that the player (or monitor) must exist
 		    and be at the X,Y given by stat 0 is violated. We have to check
@@ -1870,7 +1970,7 @@ void GameTitleLoop() {
 					}
 					break;
 				case 'S': {
-					SidebarPromptSlider(true, 66, 21, "Game speed:;FS", TickSpeed);
+					SidebarPromptSlider(true, 66, 21, "Game speed:;FS", TickSpeed, 256);
 					keyboard.InputKeyPressed = '\0';
 				}
 				break;

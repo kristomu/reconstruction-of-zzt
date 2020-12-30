@@ -1,4 +1,3 @@
-
 /*
 	Copyright (c) 2020 Adrian Siekierka
 
@@ -33,17 +32,15 @@
 
 #include "elements.h"
 #include "ptoc.h"
-#include "gamevars.h"
-#include "board.h"
-
 #include "world.h"
 #include "video.h"
 #include "sounds.h"
+#include "input.h"
 #include "txtwind.h"
 #include "editor.h"
 #include "oop.h"
 #include "game.h"
-#include "gamevars.h"
+#include "minmax.h"
 
 #include "hardware.h"
 
@@ -51,11 +48,38 @@ const std::string TransporterNSChars = "^~^-v_v-";
 const std::string TransporterEWChars = "(<(\263)>)\263";
 const std::string StarAnimChars = "\263/\304\\";
 
+/* For keeping track of what boards we've visited when going
+	gallivanting across board edges. */
+std::array<bool, MAX_BOARD> BoardEdgeSeen;
+
+boolean ValidStatIdx(integer x) {
+	boolean ValidStatIdx_result;
+	ValidStatIdx_result = (x >= 0) && (x < Board.StatCount);
+	return ValidStatIdx_result;
+}
+
+void SetElement(integer x, integer y, byte element) {
+	/* Not if it's the player. */
+	if ((Board.Stats[0].X == x) && (Board.Stats[0].Y == y)) {
+		return;
+	}
+	Board.Tiles[x][y].Element = element;
+}
+
+void ColorCycle(integer x, integer y) {
+	Board.Tiles[x][y].Color = (Board.Tiles[x][y].Color + 1) % 255;
+	if (Board.Tiles[x][y].Color > 15) {
+		Board.Tiles[x][y].Color = 9;
+	}
+}
+
 void ElementDefaultTick(integer statId) {
+	;
 }
 
 void ElementDefaultTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
+	;
 }
 
 void ElementDefaultDraw(integer x, integer y, byte & ch) {
@@ -82,6 +106,7 @@ void ElementMessageTimerTick(integer statId) {
 	}
 }
 
+
 void ElementDamagingTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	BoardAttack(sourceStatId, x, y);
@@ -96,6 +121,10 @@ void ElementLionTick(integer statId) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
 			CalcDirectionSeek(with.X, with.Y, deltaX, deltaY);
+		}
+
+		if (! ValidCoord(with.X + deltaX, with.Y + deltaY)) {
+			return;
 		}
 
 		if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
@@ -156,6 +185,10 @@ void ElementRuffianTick(integer statId) {
 				CalcDirectionSeek(with.X, with.Y, with.StepX, with.StepY);
 			}
 
+			if (! ValidCoord(with.X+with.StepX, with.Y+with.StepY)) {
+				return;
+			}
+
 			{
 				TTile & with1 = Board.Tiles[with.X + with.StepX][with.Y + with.StepY];
 				if (with1.Element == E_PLAYER)  {
@@ -197,7 +230,12 @@ void ElementBearTick(integer statId) {
 			deltaY = 0;
 		}
 
-LMovement: {
+LMovement:
+		if (! ValidCoord(with.X+deltaX, with.Y+deltaY)) {
+			return;
+		}
+
+		{
 			TTile & with1 = Board.Tiles[with.X + deltaX][with.Y + deltaY];
 			if (ElementDefs[with1.Element].Walkable)  {
 				MoveStat(statId, with.X + deltaX, with.Y + deltaY);
@@ -214,6 +252,12 @@ void ElementCentipedeHeadTick(integer statId) {
 	integer ix, iy;
 	integer tx, ty;
 	integer tmp;
+	array<0,MAX_STAT,boolean> seenFollower;
+
+
+	for (tmp = 0; tmp <= MAX_STAT; tmp ++) {
+		seenFollower[tmp] = false;
+	}
 
 	{
 		TStat & with = Board.Stats[statId];
@@ -228,27 +272,31 @@ void ElementCentipedeHeadTick(integer statId) {
 			CalcDirectionRnd(with.StepX, with.StepY);
 		}
 
-		if (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
-									   with.StepY].Element].Walkable
-			&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element !=
-				E_PLAYER)) {
+		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
+			&& (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+										   with.StepY].Element].Walkable
+				&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element !=
+					E_PLAYER))) {
 			ix = with.StepX;
 			iy = with.StepY;
 			tmp = ((Random(2) * 2) - 1) * with.StepY;
 			with.StepY = ((Random(2) * 2) - 1) * with.StepX;
 			with.StepX = tmp;
-			if (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
-										   with.StepY].Element].Walkable
-				&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element !=
-					E_PLAYER)) {
-				with.StepX = -with.StepX;
-				with.StepY = -with.StepY;
-				if (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+			if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
+				&& (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
 											   with.StepY].Element].Walkable
 					&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element !=
-						E_PLAYER)) {
-					if (ElementDefs[Board.Tiles[with.X - ix][with.Y - iy].Element].Walkable
-						|| (Board.Tiles[with.X - ix][with.Y - iy].Element == E_PLAYER)) {
+						E_PLAYER))) {
+				with.StepX = -with.StepX;
+				with.StepY = -with.StepY;
+				if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
+					&& (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+												   with.StepY].Element].Walkable
+						&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element !=
+							E_PLAYER))) {
+					if (ValidCoord(with.X-ix, with.Y-iy)
+						&& (ElementDefs[Board.Tiles[with.X - ix][with.Y - iy].Element].Walkable
+							|| (Board.Tiles[with.X - ix][with.Y - iy].Element == E_PLAYER))) {
 						with.StepX = -ix;
 						with.StepY = -iy;
 					} else {
@@ -260,29 +308,43 @@ void ElementCentipedeHeadTick(integer statId) {
 		}
 
 		if ((with.StepX == 0) && (with.StepY == 0))  {
-			Board.Tiles[with.X][with.Y].Element = E_CENTIPEDE_SEGMENT;
+			SetElement(with.X, with.Y, E_CENTIPEDE_SEGMENT);
 			with.Leader = -1;
-			while (Board.Stats[statId].Follower > 0)  {
+			while (ValidStatIdx(statId) && (Board.Stats[statId].Follower > 0))  {
 				tmp = Board.Stats[statId].Follower;
 				Board.Stats[statId].Follower = Board.Stats[statId].Leader;
 				Board.Stats[statId].Leader = tmp;
 				statId = tmp;
+
+				/* Avoid infinite follower loops. */
+				if (seenFollower[tmp]) {
+					statId = -1;
+				} else {
+					seenFollower[tmp] = true;
+				}
 			}
-			Board.Stats[statId].Follower = Board.Stats[statId].Leader;
-			Board.Tiles[Board.Stats[statId].X][Board.Stats[statId].Y].Element =
-				E_CENTIPEDE_HEAD;
-		} else if (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element ==
-			E_PLAYER)  {
-			if (with.Follower != -1)  {
-				Board.Tiles[Board.Stats[with.Follower].X][Board.Stats[with.Follower].Y].Element
-					= E_CENTIPEDE_HEAD;
+			if (ValidStatIdx(statId))  {
+				Board.Stats[statId].Follower = Board.Stats[statId].Leader;
+				SetElement(Board.Stats[statId].X, Board.Stats[statId].Y, E_CENTIPEDE_HEAD);
+			}
+		} else if (ValidCoord(with.X + with.StepX, with.Y + with.StepY)
+			&& (Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element ==
+				E_PLAYER))  {
+			if (ValidStatIdx(with.Follower)
+				&& ValidCoord(Board.Stats[with.Follower].X,
+					Board.Stats[with.Follower].Y))  {
+				SetElement(Board.Stats[with.Follower].X, Board.Stats[with.Follower].Y,
+					E_CENTIPEDE_HEAD);
 				Board.Stats[with.Follower].StepX = with.StepX;
 				Board.Stats[with.Follower].StepY = with.StepY;
 				BoardDrawTile(Board.Stats[with.Follower].X, Board.Stats[with.Follower].Y);
 			}
 			BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
 		} else {
-			MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
+			if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)) {
+				MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
+			}
+
 			tx = with.X - with.StepX;
 			ty = with.Y - with.StepY;
 			ix = with.StepX;
@@ -295,28 +357,44 @@ void ElementCentipedeHeadTick(integer statId) {
 					ty = with1.Y - with1.StepY;
 					ix = with1.StepX;
 					iy = with1.StepY;
+
 					if (with1.Follower < 0)  {
-						if ((Board.Tiles[tx - ix][ty - iy].Element == E_CENTIPEDE_SEGMENT)
+						if (ValidCoord(tx - ix, ty - iy)
+							&& (Board.Tiles[tx - ix][ty - iy].Element == E_CENTIPEDE_SEGMENT)
+							&& (GetStatIdAt(tx - ix, ty - iy) >= 0)
 							&& (Board.Stats[GetStatIdAt(tx - ix, ty - iy)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx - ix, ty - iy);
-						} else if ((Board.Tiles[tx - iy][ty - ix].Element == E_CENTIPEDE_SEGMENT)
+						} else if (ValidCoord(tx - iy, ty - ix)
+							&& (Board.Tiles[tx - iy][ty - ix].Element == E_CENTIPEDE_SEGMENT)
+							&& (GetStatIdAt(tx - iy, ty - ix) >= 0)
 							&& (Board.Stats[GetStatIdAt(tx - iy, ty - ix)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx - iy, ty - ix);
-						} else if ((Board.Tiles[tx + iy][ty + ix].Element == E_CENTIPEDE_SEGMENT)
+						} else if (ValidCoord(tx + iy, ty + ix)
+							&& (Board.Tiles[tx + iy][ty + ix].Element == E_CENTIPEDE_SEGMENT)
+							&& (GetStatIdAt(tx + iy, ty + ix) >= 0)
 							&& (Board.Stats[GetStatIdAt(tx + iy, ty + ix)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx + iy, ty + ix);
 						}
 					}
 
-					if (with1.Follower > 0)  {
+					if ((with1.Follower > 0) && ValidStatIdx(with1.Follower))  {
 						Board.Stats[with1.Follower].Leader = statId;
 						Board.Stats[with1.Follower].P1 = with1.P1;
 						Board.Stats[with1.Follower].P2 = with1.P2;
 						Board.Stats[with1.Follower].StepX = tx - Board.Stats[with1.Follower].X;
 						Board.Stats[with1.Follower].StepY = ty - Board.Stats[with1.Follower].Y;
-						MoveStat(with1.Follower, tx, ty);
+						if (ValidCoord(tx, ty)) {
+							MoveStat(with1.Follower, tx, ty);
+						}
 					}
-					statId = with1.Follower;
+
+					/* Avoid infinite follower loops. */
+					if ((with1.Follower < 0) || seenFollower[with1.Follower]) {
+						statId = -1;
+					} else {
+						statId = with1.Follower;
+						seenFollower[with1.Follower] = true;
+					}
 				}
 			} while (!(statId == -1));
 		}
@@ -328,7 +406,7 @@ void ElementCentipedeSegmentTick(integer statId) {
 		TStat & with = Board.Stats[statId];
 		if (with.Leader < 0)  {
 			if (with.Leader < -1) {
-				Board.Tiles[with.X][with.Y].Element = E_CENTIPEDE_HEAD;
+				SetElement(with.X, with.Y, E_CENTIPEDE_HEAD);
 			} else {
 				with.Leader = with.Leader - 1;
 			}
@@ -350,6 +428,13 @@ void ElementBulletTick(integer statId) {
 LTryMove:
 		ix = with.X + with.StepX;
 		iy = with.Y + with.StepY;
+		if (! ValidCoord(ix, iy))  {
+			with.StepX = 0;
+			with.StepY = 0;
+			ix = with.X;
+			iy = with.Y;
+		}
+
 		iElem = Board.Tiles[ix][iy].Element;
 
 		if (ElementDefs[iElem].Walkable || (iElem == E_WATER))  {
@@ -377,7 +462,8 @@ LTryMove:
 			return;
 		}
 
-		if ((Board.Tiles[with.X + with.StepY][with.Y + with.StepX].Element ==
+		if (ValidCoord(with.X+with.StepY, with.Y+with.StepX)
+			&& (Board.Tiles[with.X + with.StepY][with.Y + with.StepX].Element ==
 				E_RICOCHET) && firstTry)  {
 			ix = with.StepX;
 			with.StepX = -with.StepY;
@@ -388,7 +474,8 @@ LTryMove:
 			return;
 		}
 
-		if ((Board.Tiles[with.X - with.StepY][with.Y - with.StepX].Element ==
+		if (ValidCoord(with.X-with.StepY, with.Y-with.StepX)
+			&& (Board.Tiles[with.X - with.StepY][with.Y - with.StepX].Element ==
 				E_RICOCHET) && firstTry)  {
 			ix = with.StepX;
 			with.StepX = with.StepY;
@@ -429,7 +516,7 @@ void ElementLineDraw(integer x, integer y, byte & ch) {
 		}
 		shift = shift << 1;
 	}
-	ch = LineChars[v-1];
+	ch = ord(LineChars[v-1]);
 }
 
 void ElementSpinningGunTick(integer statId) {
@@ -492,6 +579,10 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 	canMove = true;
 	i = iMin;
 	do {
+		if (! ValidCoord(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i])) {
+			return;
+		}
+
 		tiles[i] = Board.Tiles[x + DiagonalDeltaX[i]][y + DiagonalDeltaY[i]];
 		statsIndices[i] = GetStatIdAt(x + DiagonalDeltaX[i],
 				y + DiagonalDeltaY[i]);
@@ -502,6 +593,13 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 			} else if (! ElementDefs[with.Element].Pushable) {
 				canMove = false;
 			}
+			/* Everything outside the viewport is treated as unpushable
+			to prevent anything from going to (0,0), which is the
+					  exclusive domain of the message tile. Redoing the logic
+					  (e.g. a MoveStat function that rejects moving anything
+					   to (0, 0)) would be better, but I can't be bothered. */
+			canMove = canMove && CoordInsideViewport(x + DiagonalDeltaX[i],
+					y + DiagonalDeltaY[i]);
 		}
 		i = i + direction;
 	} while (!(i == iMax));
@@ -523,7 +621,11 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 						iStat = statsIndices[i];
 						Board.Tiles[srcx][srcy] = tiles[i];
 						Board.Tiles[destx][desty].Element = E_EMPTY;
-						MoveStat(iStat, destx, desty);
+						/* If the object should have stats but doesn't...
+						don't crash! */
+						if (iStat != -1) {
+							MoveStat(iStat, destx, desty);
+						}
 						Board.Tiles[srcx][srcy] = tmpTile;
 					} else {
 						Board.Tiles[destx][desty] = tiles[i];
@@ -539,6 +641,8 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 			} else if (! ElementDefs[with.Element].Pushable) {
 				canMove = false;
 			}
+			canMove = canMove && CoordInsideViewport(x + DiagonalDeltaX[i],
+					y + DiagonalDeltaY[i]);
 		}
 		i = i + direction;
 	} while (!(i == iMax));
@@ -546,7 +650,7 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 	/* Draw everything to be sure that every char is updated. Doing
 	BoardDraw inside the loop above can lead to tiles at some
 		  relative coordinates not getting drawn. */
-	for (i = 0; i <= DiagonalDeltaX.size()-1; i ++) {
+	for (i = 0; i < DiagonalDeltaX.size(); i ++) {
 		BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
 	}
 }
@@ -586,12 +690,16 @@ void ElementConveyorCCWTick(integer statId) {
 }
 
 void ElementBombDraw(integer x, integer y, byte & ch) {
+	if (GetStatIdAt(x, y) < 0)  {
+		ch = 11;
+		return;
+	}
 	{
 		TStat & with = Board.Stats[GetStatIdAt(x, y)];
 		if (with.P1 <= 1) {
 			ch = 11;
 		} else {
-			ch = 48 + with.P1;
+			ch = (48 + with.P1) % 256;
 		}
 	}
 }
@@ -602,7 +710,7 @@ void ElementBombTick(integer statId) {
 	{
 		TStat & with = Board.Stats[statId];
 		if (with.P1 > 0)  {
-			with.P1 = with.P1 - 1;
+			with.P1 = (with.P1 - 1);
 			BoardDrawTile(with.X, with.Y);
 
 			if (with.P1 == 1)  {
@@ -626,6 +734,10 @@ void ElementBombTick(integer statId) {
 
 void ElementBombTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
+	if (GetStatIdAt(x, y) < 0) {
+		return;
+	}
+
 	{
 		TStat & with = Board.Stats[GetStatIdAt(x, y)];
 		if (with.P1 == 0)  {
@@ -646,6 +758,13 @@ void ElementTransporterMove(integer x, integer y, integer deltaX,
 	integer iStat;
 	boolean finishSearch;
 	boolean isValidDest;
+
+	if (GetStatIdAt(x + deltaX, y + deltaY) < 0) {
+		return;
+	}
+	if ((deltaX == 0) && (deltaY == 0)) {
+		return;
+	}
 
 	{
 		TStat & with = Board.Stats[GetStatIdAt(x + deltaX, y + deltaY)];
@@ -679,13 +798,13 @@ void ElementTransporterMove(integer x, integer y, integer deltaX,
 					}
 					if (with1.Element == E_TRANSPORTER)  {
 						iStat = GetStatIdAt(ix, iy);
-						if ((Board.Stats[iStat].StepX == -deltaX)
+						if ((iStat >= 0) && (Board.Stats[iStat].StepX == -deltaX)
 							&& (Board.Stats[iStat].StepY == -deltaY)) {
 							isValidDest = true;
 						}
 					}
 				}
-			} while (!finishSearch);
+			} while (!(finishSearch || (! ValidCoord(ix + deltaX, iy + deltaY))));
 			if (newX != -1)  {
 				ElementMove(with.X - deltaX, with.Y - deltaY, newX, newY);
 				SoundQueue(3, "\60\1\102\1\64\1\106\1\70\1\112\1\100\1\122\1");
@@ -709,41 +828,53 @@ void ElementTransporterTick(integer statId) {
 }
 
 void ElementTransporterDraw(integer x, integer y, byte & ch) {
-	{
-		TStat & with = Board.Stats[GetStatIdAt(x, y)];
-		if (with.StepX == 0)
-			ch = ord(TransporterNSChars[with.StepY * 2 + 3 + (CurrentTick / with.Cycle)
-								   % 4-1]);
-		else
-			ch = ord(TransporterEWChars[with.StepX * 2 + 3 + (CurrentTick / with.Cycle)
-								   % 4-1]);
+	if (GetStatIdAt(x, y) < 0)  {
+		ch = ord(' ');  /* What DOS ZZT draws. */
+		return;
+	}
+
+	TStat & with = Board.Stats[GetStatIdAt(x, y)];
+	if (with.StepX == 0) {
+		ch = TransporterNSChars[with.StepY * 2 + 3 +
+						   (CurrentTick / with.Cycle) % 4-1];
+	} else {
+		ch = TransporterEWChars[with.StepX * 2 + 3 +
+						   (CurrentTick / with.Cycle) % 4-1];
 	}
 }
 
 void ElementStarDraw(integer x, integer y, byte & ch) {
-	ch = ord(StarAnimChars[(CurrentTick % 4) + 1-1]);
-	Board.Tiles[x][y].Color = Board.Tiles[x][y].Color + 1;
-	if (Board.Tiles[x][y].Color > 15) {
-		Board.Tiles[x][y].Color = 9;
-	}
+	ch = ord(StarAnimChars[(CurrentTick % 4)]);
+	ColorCycle(x, y);
 }
 
 void ElementStarTick(integer statId) {
+	integer newStatId;
+
 	{
 		TStat & with = Board.Stats[statId];
-		with.P2 = with.P2 - 1;
+		if (with.P2 == 0) {
+			with.P2 = 255;
+		} else {
+			with.P2 = with.P2 - 1;
+		}
+
 		if (with.P2 <= 0)  {
 			RemoveStat(statId);
 		} else if ((with.P2 % 2) == 0)  {
 			CalcDirectionSeek(with.X, with.Y, with.StepX, with.StepY);
+			if (! ValidCoord(with.X + with.StepX, with.Y + with.StepY)) {
+				return;
+			}
 			{
 				TTile & with1 = Board.Tiles[with.X + with.StepX][with.Y + with.StepY];
 				if ((with1.Element == E_PLAYER) || (with1.Element == E_BREAKABLE))  {
 					BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
 				} else {
-					if (! ElementDefs[with1.Element].Walkable)
+					if (! ElementDefs[with1.Element].Walkable) {
 						ElementPushablePush(with.X + with.StepX, with.Y + with.StepY, with.StepX,
 							with.StepY);
+					}
 
 					if (ElementDefs[with1.Element].Walkable || (with1.Element == E_WATER)) {
 						MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
@@ -830,7 +961,9 @@ void ElementSlimeTouch(integer x, integer y, integer sourceStatId,
 	integer color;
 
 	color = Board.Tiles[x][y].Color;
-	DamageStat(GetStatIdAt(x, y));
+	if (GetStatIdAt(x, y) >= 0) {
+		DamageStat(GetStatIdAt(x, y));
+	}
 	Board.Tiles[x][y].Element = E_BREAKABLE;
 	Board.Tiles[x][y].Color = color;
 	BoardDrawTile(x, y);
@@ -846,6 +979,10 @@ void ElementSharkTick(integer statId) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
 			CalcDirectionSeek(with.X, with.Y, deltaX, deltaY);
+		}
+
+		if (! ValidCoord(with.X + deltaX, with.Y + deltaY)) {
+			return;
 		}
 
 		if (Board.Tiles[with.X + deltaX][with.Y + deltaY].Element == E_WATER) {
@@ -870,7 +1007,7 @@ void ElementBlinkWallTick(integer statId) {
 	{
 		TStat & with = Board.Stats[statId];
 		if (with.P3 == 0) {
-			with.P3 = with.P1 + 1;
+			with.P3 = (with.P1 + 1) % 256;
 		}
 		if (with.P3 == 1)  {
 			ix = with.X + with.StepX;
@@ -882,13 +1019,17 @@ void ElementBlinkWallTick(integer statId) {
 				el = E_BLINK_RAY_NS;
 			}
 
-			while ((Board.Tiles[ix][iy].Element == el)
+			if (! ValidCoord(ix, iy)) {
+				return;
+			}
+
+			while (ValidCoord(ix, iy) && (Board.Tiles[ix][iy].Element == el)
 				&& (Board.Tiles[ix][iy].Color == Board.Tiles[with.X][with.Y].Color)) {
 				Board.Tiles[ix][iy].Element = E_EMPTY;
 				BoardDrawTile(ix, iy);
 				ix = ix + with.StepX;
 				iy = iy + with.StepY;
-				with.P3 = (with.P2) * 2 + 1;
+				with.P3 = ((with.P2) * 2 + 1) % 256;
 			}
 
 			if (((with.X + with.StepX) == ix) && ((with.Y + with.StepY) == iy))  {
@@ -901,25 +1042,29 @@ void ElementBlinkWallTick(integer statId) {
 
 					if (Board.Tiles[ix][iy].Element == E_PLAYER)  {
 						playerStatId = GetStatIdAt(ix, iy);
-						if (with.StepX != 0)  {
-							if (Board.Tiles[ix][iy - 1].Element == E_EMPTY) {
-								MoveStat(playerStatId, ix, iy - 1);
-							} else if (Board.Tiles[ix][iy + 1].Element == E_EMPTY) {
-								MoveStat(playerStatId, ix, iy + 1);
-							}
+						if (playerStatId == -1) {
+							BoardDamageTile(ix, iy);
 						} else {
-							if (Board.Tiles[ix + 1][iy].Element == E_EMPTY) {
-								MoveStat(playerStatId, ix + 1, iy);
-							} else if (Board.Tiles[ix - 1][iy].Element == E_EMPTY) {
-								MoveStat(playerStatId, ix + 1, iy);
+							if (with.StepX != 0)  {
+								if (Board.Tiles[ix][iy - 1].Element == E_EMPTY) {
+									MoveStat(playerStatId, ix, iy - 1);
+								} else if (Board.Tiles[ix][iy + 1].Element == E_EMPTY) {
+									MoveStat(playerStatId, ix, iy + 1);
+								}
+							} else {
+								if (Board.Tiles[ix + 1][iy].Element == E_EMPTY) {
+									MoveStat(playerStatId, ix + 1, iy);
+								} else if (Board.Tiles[ix - 1][iy].Element == E_EMPTY) {
+									MoveStat(playerStatId, ix + 1, iy);
+								}
 							}
-						}
 
-						if (Board.Tiles[ix][iy].Element == E_PLAYER)  {
-							while (World.Info.Health > 0) {
-								DamageStat(playerStatId);
+							if (Board.Tiles[ix][iy].Element == E_PLAYER)  {
+								while (World.Info.Health > 0) {
+									DamageStat(playerStatId);
+								}
+								hitBoundary = true;
 							}
-							hitBoundary = true;
 						}
 					}
 
@@ -933,12 +1078,14 @@ void ElementBlinkWallTick(integer statId) {
 
 					ix = ix + with.StepX;
 					iy = iy + with.StepY;
-				} while (!hitBoundary);
+				} while (!(hitBoundary || ! ValidCoord(ix, iy)));
 
-				with.P3 = (with.P2 * 2) + 1;
+				with.P3 = ((with.P2 * 2) + 1) % 256;
 			}
 		} else {
-			with.P3 = with.P3 - 1;
+			if (with.P3 > 0) {
+				with.P3 = with.P3 - 1;
+			}
 		}
 	}
 }
@@ -973,6 +1120,10 @@ void ElementPushablePush(integer x, integer y, integer deltaX,
 		if (((with.Element == E_SLIDER_NS) && (deltaX == 0))
 			|| ((with.Element == E_SLIDER_EW) && (deltaY == 0))
 			|| ElementDefs[with.Element].Pushable) {
+			if (! ValidCoord(x + deltaX, y + deltaY)) {
+				return;
+			}
+
 			if (Board.Tiles[x + deltaX][y + deltaY].Element == E_TRANSPORTER) {
 				ElementTransporterMove(x, y, deltaX, deltaY);
 			} else if (Board.Tiles[x + deltaX][y + deltaY].Element != E_EMPTY) {
@@ -993,6 +1144,15 @@ void ElementPushablePush(integer x, integer y, integer deltaX,
 }
 
 void ElementDuplicatorDraw(integer x, integer y, byte & ch) {
+	/*SANITY: If there are no stats, abort outright.
+	It might be better to replace GetStatIdAt with a function
+		 that returns an all-zeroes stat if there's nothing there.
+		 Later?*/
+	ch = 250;
+	if (GetStatIdAt(x, y) == -1) {
+		return;
+	}
+
 	{
 		TStat & with = Board.Stats[GetStatIdAt(x, y)];
 		switch (with.P1) {
@@ -1016,7 +1176,8 @@ void ElementObjectTick(integer statId) {
 		}
 
 		if ((with.StepX != 0) || (with.StepY != 0))  {
-			if (ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+			if (ValidCoord(with.X + with.StepX, with.Y + with.StepY)
+				&& ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
 										   with.StepY].Element].Walkable) {
 				MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 			} else {
@@ -1027,6 +1188,10 @@ void ElementObjectTick(integer statId) {
 }
 
 void ElementObjectDraw(integer x, integer y, byte & ch) {
+	ch = 1;
+	if (GetStatIdAt(x, y) == -1) {
+		return;
+	}
 	ch = Board.Stats[GetStatIdAt(x, y)].P1;
 }
 
@@ -1035,6 +1200,9 @@ void ElementObjectTouch(integer x, integer y, integer sourceStatId,
 	integer statId;
 	boolean retVal;
 
+	if (GetStatIdAt(x, y) == -1) {
+		return;
+	}
 	statId = GetStatIdAt(x, y);
 	retVal = OopSend(-statId, "TOUCH", false);
 }
@@ -1049,20 +1217,25 @@ void ElementDuplicatorTick(integer statId) {
 			BoardDrawTile(with.X, with.Y);
 		} else {
 			with.P1 = 0;
-			if (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element ==
-				E_PLAYER)  {
+			if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
+				&& ValidCoord(with.X + with.StepX, with.Y + with.StepY)
+				&& (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element ==
+					E_PLAYER))  {
 				ElementDefs[Board.Tiles[with.X + with.StepX][with.Y + with.StepY].Element]
 				.TouchProc(with.X + with.StepX, with.Y + with.StepY, 0,
 					keyboard.InputDeltaX,
 					keyboard.InputDeltaY);
 			} else {
-				if (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element !=
-					E_EMPTY)
+				if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
+					&& (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element !=
+						E_EMPTY)) {
 					ElementPushablePush(with.X - with.StepX, with.Y - with.StepY, -with.StepX,
 						-with.StepY);
+				}
 
-				if (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element ==
-					E_EMPTY)  {
+				if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
+					&& (Board.Tiles[with.X - with.StepX][with.Y - with.StepY].Element ==
+						E_EMPTY))  {
 					sourceStatId = GetStatIdAt(with.X + with.StepX, with.Y + with.StepY);
 					if (sourceStatId > 0)  {
 						if (Board.StatCount < 174)  {
@@ -1072,7 +1245,8 @@ void ElementDuplicatorTick(integer statId) {
 								Board.Stats[sourceStatId].Cycle, Board.Stats[sourceStatId]);
 							BoardDrawTile(with.X - with.StepX, with.Y - with.StepY);
 						}
-					} else if (sourceStatId != 0)  {
+					} else if ((sourceStatId != 0)
+						&& ValidCoord(with.X + with.StepX, with.Y + with.StepY))  {
 						Board.Tiles[with.X - with.StepX][with.Y - with.StepY]
 							= Board.Tiles[with.X + with.StepX][with.Y + with.StepY];
 						BoardDrawTile(with.X - with.StepX, with.Y - with.StepY);
@@ -1095,11 +1269,7 @@ void ElementDuplicatorTick(integer statId) {
 void ElementScrollTick(integer statId) {
 	{
 		TStat & with = Board.Stats[statId];
-		Board.Tiles[with.X][with.Y].Color = Board.Tiles[with.X][with.Y].Color + 1;
-		if (Board.Tiles[with.X][with.Y].Color > 0xf) {
-			Board.Tiles[with.X][with.Y].Color = 0x9;
-		}
-
+		ColorCycle(with.X, with.Y);
 		BoardDrawTile(with.X, with.Y);
 	}
 }
@@ -1112,18 +1282,23 @@ void ElementScrollTouch(integer x, integer y, integer sourceStatId,
 
 	statId = GetStatIdAt(x, y);
 
+	textWindow.Selectable = false;
+	textWindow.LinePos = 1;
+
+	SoundQueue(2, SoundParse("c-c+d-d+e-e+f-f+g-g"));
+
+	if (statId < 0)  {
+		Board.Tiles[x][y].Element = E_EMPTY;
+		return;
+	}
+
 	{
 		TStat & with = Board.Stats[statId];
-		textWindow.Selectable = false;
-		textWindow.LinePos = 1;
-
-		SoundQueue(2, SoundParse("c-c+d-d+e-e+f-f+g-g"));
-
 		with.DataPos = 0;
 		OopExecute(statId, with.DataPos, "Scroll");
 	}
 
-	RemoveStat(GetStatIdAt(x, y));
+	RemoveStat(statId);
 }
 
 void ElementKeyTouch(integer x, integer y, integer sourceStatId,
@@ -1214,6 +1389,10 @@ void ElementPushableTouch(integer x, integer y, integer sourceStatId,
 }
 
 void ElementPusherDraw(integer x, integer y, byte & ch) {
+	ch = 31;
+	if (GetStatIdAt(x, y) == -1) {
+		return;
+	}
 	{
 		TStat & with = Board.Stats[GetStatIdAt(x, y)];
 		if (with.StepX == 1) {
@@ -1236,24 +1415,34 @@ void ElementPusherTick(integer statId) {
 		startX = with.X;
 		startY = with.Y;
 
-		if (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
-									   with.StepY].Element].Walkable)  {
+		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
+			&& (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+										   with.StepY].Element].Walkable))  {
 			ElementPushablePush(with.X + with.StepX, with.Y + with.StepY, with.StepX,
 				with.StepY);
 		}
 	}
 
 	statId = GetStatIdAt(startX, startY);
+	if (statId < 0) {
+		return;
+	}
+
 	{
 		TStat & with = Board.Stats[statId];
-		if (ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
+		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
+			&& ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
 									   with.StepY].Element].Walkable)  {
 			MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 			SoundQueue(2, "\25\1");
 
-			if (Board.Tiles[with.X - (with.StepX * 2)][with.Y - (with.StepY *
-						2)].Element == E_PUSHER)  {
+			if ((ValidCoord(with.X - (with.StepX * 2), with.X - (with.StepX * 2)))
+				&& (Board.Tiles[with.X - (with.StepX * 2)][with.X - (with.StepX *
+							2)].Element == E_PUSHER))  {
 				i = GetStatIdAt(with.X - (with.StepX * 2), with.Y - (with.StepY * 2));
+				if (i == -1) {
+					return;
+				}
 				if ((Board.Stats[i].StepX == with.StepX)
 					&& (Board.Stats[i].StepY == with.StepY)) {
 					ElementDefs[E_PUSHER].TickProc(i);
@@ -1317,6 +1506,7 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 	integer neighborId;
 	integer boardId;
 	integer entryX, entryY;
+	integer destBoardId;
 
 	entryX = Board.Stats[0].X;
 	entryY = Board.Stats[0].Y;
@@ -1336,8 +1526,25 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 
 	if (Board.Info.NeighborBoards[neighborId] != 0)  {
 		boardId = World.Info.CurrentBoard;
-		BoardChange(Board.Info.NeighborBoards[neighborId]);
+		destBoardId = Board.Info.NeighborBoards[neighborId];
+
+		if (destBoardId > World.BoardCount) {
+			destBoardId = boardId;
+		}
+
+		/* Bail if going through leads to an infinite loop. */
+		if (BoardEdgeSeen[destBoardId]) {
+			return;
+		}
+
+		/* No need to swap in and out a new board if it's the board
+		we're on. */
+		if (destBoardId != boardId) {
+			BoardChange(destBoardId);
+		}
+
 		if (Board.Tiles[entryX][entryY].Element != E_PLAYER)  {
+			BoardEdgeSeen[destBoardId] = true;
 			ElementDefs[Board.Tiles[entryX][entryY].Element].TouchProc(
 				entryX, entryY, sourceStatId, keyboard.InputDeltaX, keyboard.InputDeltaY);
 		}
@@ -1355,6 +1562,11 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 		} else {
 			BoardChange(boardId);
 		}
+	}
+
+	/* Clean up. */
+	for (int i = 0; i <= MAX_BOARD; i ++) {
+		BoardEdgeSeen[i] = false;
 	}
 }
 
@@ -1419,9 +1631,21 @@ void ElementPlayerTick(integer statId) {
 	integer unk1, unk2, unk3;
 	integer i;
 	integer bulletCount;
+	boolean canAct;
 
+	/* IMP: The player, as a game element, is called every cycle, so it's
+	impossible to freeze the game by setting cycle 0 or very high.
+		  However, to otherwise be compatible with DOS ZZT, the player can
+		  only move or shoot or anything that impacts the world when the
+		  cycle is actually right - so setting a higher cycle on the player
+		  still slows him down, as in DOS ZZT. */
+	/* Running down energizer ticks or torch light counts as affecting
+	the world, even though it might make logical sense for torches. */
 	{
 		TStat & with = Board.Stats[statId];
+		canAct = (with.Cycle != 0)
+			&& ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle));
+
 		if (World.Info.EnergizerTicks > 0)  {
 			if (ElementDefs[E_PLAYER].Character == '\2') {
 				ElementDefs[E_PLAYER].Character = '\1';
@@ -1446,7 +1670,7 @@ void ElementPlayerTick(integer statId) {
 		if (World.Info.Health <= 0)  {
 			keyboard.InputDeltaX = 0;
 			keyboard.InputDeltaY = 0;
-			keyboard.InputShiftPressed = false; // ew
+			keyboard.InputShiftPressed = false;
 
 			if (GetStatIdAt(0,0) == -1) {
 				DisplayMessage(32000, " Game over  -  Press ESCAPE");
@@ -1462,7 +1686,7 @@ void ElementPlayerTick(integer statId) {
 				PlayerDirY = keyboard.InputDeltaY;
 			}
 
-			if ((PlayerDirX != 0) || (PlayerDirY != 0))  {
+			if (canAct && ((PlayerDirX != 0) || (PlayerDirY != 0)))  {
 				if (Board.Info.MaxShots == 0)  {
 					if (MessageNoShootingNotShown) {
 						DisplayMessage(200, "Can\47t shoot in this place!");
@@ -1499,30 +1723,33 @@ void ElementPlayerTick(integer statId) {
 			PlayerDirX = keyboard.InputDeltaX;
 			PlayerDirY = keyboard.InputDeltaY;
 
-			ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
-									   keyboard.InputDeltaY].Element].TouchProc(
-						with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY, 0,
-						keyboard.InputDeltaX, keyboard.InputDeltaY);
-			if ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))  {
+			if (ValidCoord(with.X+keyboard.InputDeltaX, with.Y+keyboard.InputDeltaY))
+				ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
+										   keyboard.InputDeltaY].Element].TouchProc(
+							with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY, 0,
+							keyboard.InputDeltaX, keyboard.InputDeltaY);
+			if (ValidCoord(with.X+keyboard.InputDeltaX, with.Y+keyboard.InputDeltaY)
+				&& canAct
+				&& ((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0)))  {
 				if (SoundEnabled && ! SoundIsPlaying) {
 					Sound(110);
 				}
 				if (ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
 											   keyboard.InputDeltaY].Element].Walkable)  {
 					if (SoundEnabled && ! SoundIsPlaying) {
-						NoSound();
+						NoSound;
 					}
 
 					MoveStat(0, with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY);
 				} else if (SoundEnabled && ! SoundIsPlaying)  {
-					NoSound();
+					NoSound;
 				}
 			}
 		}
 
-		switch (keyUpCase(keyboard.InputKeyPressed)) {
+		switch (upcase(keyboard.InputKeyPressed)) {
 			case 'T': {
-				if (World.Info.TorchTicks <= 0)  {
+				if (canAct && (World.Info.TorchTicks <= 0))  {
 					if (World.Info.Torches > 0)  {
 						if (Board.Info.IsDark)  {
 							World.Info.Torches = World.Info.Torches - 1;
@@ -1582,7 +1809,9 @@ void ElementPlayerTick(integer statId) {
 		}
 
 		if (World.Info.TorchTicks > 0)  {
-			World.Info.TorchTicks = World.Info.TorchTicks - 1;
+			if (canAct) {
+				World.Info.TorchTicks = World.Info.TorchTicks - 1;
+			}
 			if (World.Info.TorchTicks <= 0)  {
 				DrawPlayerSurroundings(with.X, with.Y, 0);
 				SoundQueue(3, "\60\1\40\1\20\1");
@@ -1594,7 +1823,9 @@ void ElementPlayerTick(integer statId) {
 		}
 
 		if (World.Info.EnergizerTicks > 0)  {
-			World.Info.EnergizerTicks = World.Info.EnergizerTicks - 1;
+			if (canAct) {
+				World.Info.EnergizerTicks = World.Info.EnergizerTicks - 1;
+			}
 
 			if (World.Info.EnergizerTicks == 10) {
 				SoundQueue(9, "\40\3\32\3\27\3\26\3\25\3\23\3\20\3");
@@ -1621,9 +1852,8 @@ void ElementPlayerTick(integer statId) {
 }
 
 void ElementMonitorTick(integer statId) {
-
-	if (set::of(E_KEY_ESCAPE, 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|',
-			eos).has(keyUpCase(keyboard.InputKeyPressed))) {
+	if (set::of('\33', 'A', 'E', 'H', 'N', 'P', 'Q', 'R', 'S', 'W', '|',
+			eos).has(upcase(keyboard.InputKeyPressed))) {
 		GamePlayExitRequested = true;
 	}
 }
@@ -2085,6 +2315,10 @@ void InitElementsEditor() {
 void InitElementsGame() {
 	InitElementDefs();
 	ForceDarknessOff = false;
+
+	for (int i = 0; i <= MAX_BOARD; i ++) {
+		BoardEdgeSeen[i] = false;
+	}
 }
 
 void InitEditorStatSettings() {

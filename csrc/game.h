@@ -29,7 +29,7 @@ void TransitionDrawToBoard();
 void SidebarPromptCharacter(boolean editable, integer x, integer y,
 	TString50 prompt, byte & value);
 void SidebarPromptSlider(boolean editable, integer x, integer y,
-	string prompt, byte & value);
+	string prompt, byte & value, integer maximum);
 void SidebarPromptChoice(boolean editable, integer y, string prompt,
 	string choiceStr, byte & result);
 void SidebarPromptDirection(boolean editable, integer y, string prompt,

@@ -81,8 +81,8 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 	// Dump eight zeroes - this is where the padding went in original
 	// ZZT and the pointer was put in FPC.
 	append_zeroes(8, out);
-	// Dump the data itself.
-	if (DataLen > 0) {
+	// Dump the data itself - if there is any.
+	if (DataLen > 0 && data) {
 		std::copy(data.get(), data.get() + DataLen,
 			std::back_inserter<std::vector<unsigned char> >(out));
 	}
@@ -116,13 +116,17 @@ std::vector<unsigned char>::const_iterator TStat::load(
 	ptr += 8; 								// Skip eight zeroes of padding
 
 	// We've loaded data length, now find out if we've got enough space
-	// to load it.
-	// TODO: Some kind of graceful recovery where, if there isn't enough
-	// space, we only read up to the end of the pointer? That's what the
-	// Pascal version does.
+	// to load it. If not, adjust DataLen accordingly.
+
+	// TODO? signal error somehow? this is off-spec and should be
+	// "rewarded" with a dialog box.
 
 	if (end - start_ptr < packed_size()) {
-		throw std::runtime_error("Insufficient data to load TStat contents");
+		DataLen = end - ptr;
+	}
+
+	if (DataPos > DataLen) {
+		DataPos = 0;
 	}
 
 	if (load_data && DataLen > 0) {
@@ -291,14 +295,29 @@ void TBoard::create() {
 	// the part of the board that the player can see. This visible
 	// region is surrounded by board edges.
 
+	// In a very rare situation, the player may be at (1,0) and try
+	// to go right. Then DOS ZZT will transport the player to the
+	// neighbor board's initial position because the player at (1,0)
+	// is preserved. Before this fix, it would cause a crash on Linux
+	// due to violating the player invariant (the edge would overwrite
+	// the player).
+
 	for (ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
-		Tiles[ix][0] = TileBoardEdge;
-		Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
+		if (Board.Tiles[ix][0].Element != E_PLAYER) {
+			Board.Tiles[ix][0] = TileBoardEdge;
+		}
+		if (Board.Tiles[ix][BOARD_HEIGHT+1].Element != E_PLAYER) {
+			Board.Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
+		}
 	}
 
 	for (iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
-		Tiles[0][iy] = TileBoardEdge;
-		Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
+		if (Board.Tiles[0][iy].Element != E_PLAYER) {
+			Board.Tiles[0][iy] = TileBoardEdge;
+		}
+		if (Board.Tiles[BOARD_WIDTH+1][iy].Element != E_PLAYER) {
+			Board.Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
+		}
 	}
 
 	// Fill the interior with empties.

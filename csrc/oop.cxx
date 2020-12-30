@@ -77,27 +77,73 @@ void OopReadWord(integer statId, integer & position) {
 void OopReadValue(integer statId, integer & position) {
 	varying_string<20> s;
 	integer code;
+	int32_t preliminaryVal;
+	boolean hasNoDigits;
 
+	hasNoDigits = true;
 	s = "";
 	do {
 		OopReadChar(statId, position);
 	} while (!(OopChar != ' '));
 
 	OopChar = upcase(OopChar);
+
+	/* Handle leading zeroes. */
+	while (OopChar == '0')  {
+		hasNoDigits = false;
+		OopReadChar(statId, position);
+	}
+
+	/* Read off remaining numbers */
 	while ((OopChar >= '0') && (OopChar <= '9'))  {
+		hasNoDigits = false;
 		s = s + OopChar;
 		OopReadChar(statId, position);
 		OopChar = upcase(OopChar);
 	}
 
 	if (position > 0) {
-		position = position - 1;
+		position -= 1;
 	}
 
-	if (length(s) != 0) {
-		val(s, OopValue, code);
-	} else {
+	if (hasNoDigits)  {
 		OopValue = -1;
+		return;
+	}
+
+	/* Now we need a somewhat complex set of rules to turn the value
+	into an integer the way DOS ZZT does. The rules are:
+
+		- If it doesn't fit into 31 bits, then it's zero.
+		- Otherwise, if it's greater than 32768 mod 65536, it's zero.
+		- Otherwise, it's the value mod 65536.
+	*/
+
+	if (length(s) > 10)  {		        /* Doesn't even fit into 32 */
+		OopValue = 0;
+		return;
+	}
+
+	/* Definitely doesn't fit into 31. */
+	if ((length(s) == 10) && (ord(s[1]) >= ord('3')))  {
+		OopValue = 0;
+		return;
+	}
+
+	/* We now know it fits in 32 bits, so transform it into a longword. */
+	preliminaryVal = atoi(s);
+
+	/* Doesn't fit in 31 bits. */
+	if (preliminaryVal >= 0x80000000)  {
+		OopValue = 0;
+		return;
+	}
+
+	preliminaryVal = preliminaryVal & 0xffff;   /* mod 65536 */
+	if (preliminaryVal >= 0x8000) {
+		OopValue = 0;
+	} else {
+		OopValue = preliminaryVal;
 	}
 }
 
@@ -172,6 +218,15 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 		dy = 0;
 		OopParseDirection_result = false;
 	}
+
+	if (! ValidCoord(Board.Stats[statId].X + dx,
+		Board.Stats[statId].Y + dy))  {
+
+		OopError(statId, "Direction out of bounds");
+		dx = 0;
+		dy = 0;
+	}
+
 	return OopParseDirection_result;
 }
 
@@ -370,22 +425,21 @@ boolean OopParseTile(integer & statId, integer & position, TTile & tile) {
 	boolean OopParseTile_result;
 	OopParseTile_result = false;
 	tile.Color = 0;
+	tile.Element = E_BOARD_EDGE;
 
 	OopReadWord(statId, position);
 	for (i = 1; i <= 7; i ++) {
 		if (OopWord == OopStringToWord(string(ColorNames[i].c_str())))  {
 			tile.Color = i + 0x8;
 			OopReadWord(statId, position);
-			goto LColorFound;
+			break;
 		}
 	}
-LColorFound:
 
 	for (i = 0; i <= MAX_ELEMENT; i ++) {
 		if (OopWord == OopStringToWord(ElementDefs[i].Name))  {
-			OopParseTile_result = true;
 			tile.Element = i;
-			return OopParseTile_result;
+			return true;
 		}
 	}
 	return OopParseTile_result;
@@ -426,10 +480,18 @@ boolean FindTileOnBoard(integer & x, integer & y, TTile tile) {
 	return FindTileOnBoard_result;
 }
 
+// XXX: Should this be board.cc's responsibility?
 void OopPlaceTile(integer x, integer y, TTile & tile) {
 	byte color;
 
-	if (Board.Tiles[x][y].Element != 4)  {
+	if (! ValidCoord(x, y)) {
+		return;
+	}
+
+	// Overwriting a player *or a monitor* should not be allowed, as it
+	// may hang the game.
+	if (Board.Tiles[x][y].Element != E_PLAYER &&
+		Board.Tiles[x][y].Element != E_MONITOR)  {
 		color = tile.Color;
 		if (ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN) {
 			color = ElementDefs[tile.Element].Color;
@@ -489,9 +551,13 @@ boolean OopCheckCondition(integer statId, integer & position) {
 		OopCheckCondition_result = (sqr(with.X - Board.Stats[0].X) + sqr(
 					with.Y - Board.Stats[0].Y)) == 1;
 	} else if (OopWord == "BLOCKED")  {
+		/* Out-of-bounds is always blocked.*/
 		OopReadDirection(statId, position, deltaX, deltaY);
-		OopCheckCondition_result = ! ElementDefs[Board.Tiles[with.X +
-									   deltaX][with.Y + deltaY].Element].Walkable;
+		if (! ValidCoord(with.X + deltaX, with.Y + deltaY)) {
+			return false;
+		}
+		return !ElementDefs[Board.Tiles[with.X + deltaX]
+			[with.Y + deltaY].Element].Walkable;
 	} else if (OopWord == "ENERGIZED")  {
 		OopCheckCondition_result = World.Info.EnergizerTicks > 0;
 	} else if (OopWord == "ANY")  {
@@ -540,6 +606,14 @@ boolean OopSend(integer statId, string sendLabel, boolean ignoreLock) {
 	OopSend_result = false;
 	iStat = 0;
 
+	/* Can't send to an ID that's out of bounds. This may happen if an
+	   object walks, then dies, then THUDs. OopFindLabel would then start
+	   going through a program that has been deallocated, which causes
+	   a read-after-free. */
+	if (statId > Board.StatCount) {
+		return OopSend_result;
+	}
+
 	while (OopFindLabel(statId, sendLabel, iStat, iDataPos, "\r:"))  {
 		if (((Board.Stats[iStat].P2 == 0) || (ignoreLock)) || ((statId == iStat)
 				&& ! ignoreSelfLock))  {
@@ -557,7 +631,7 @@ void OopExecute(integer statId, integer & position, TString50 name) {
 	TTextWindowState textWindow;
 	string textLine;
 	integer deltaX, deltaY;
-	integer ix, iy;
+	integer i, ix, iy;
 	boolean stopRunning;
 	boolean replaceStat;
 	boolean endOfProgram;
@@ -566,7 +640,7 @@ void OopExecute(integer statId, integer & position, TString50 name) {
 	integer lastPosition;
 	boolean repeatInsNextTick;
 	boolean lineFinished;
-	byte* labelPtr;
+	unsigned char* labelPtr;
 	integer labelDataPos;
 	integer labelStatId;
 	integer* counterPtr;
@@ -575,370 +649,407 @@ void OopExecute(integer statId, integer & position, TString50 name) {
 	integer insCount;
 	TTile argTile;
 	TTile argTile2;
+	boolean dataInUse;
 
 
-	TStat & with = Board.Stats[statId];
+
+
+	{
+		TStat & with = Board.Stats[statId];
 LStartParsing:
-	TextWindowInitState(textWindow);
-	textWindow.Selectable = false;
-	stopRunning = false;
-	repeatInsNextTick = false;
-	replaceStat = false;
-	endOfProgram = false;
-	insCount = 0;
-	do {
+		TextWindowInitState(textWindow);
+		textWindow.Selectable = false;
+		stopRunning = false;
+		repeatInsNextTick = false;
+		replaceStat = false;
+		endOfProgram = false;
+		insCount = 0;
+		do {
 LReadInstruction:
-		lineFinished = true;
-		lastPosition = position;
-		OopReadChar(statId, position);
-
-		/* skip labels */
-		while (OopChar == ':')  {
-			do {
-				OopReadChar(statId, position);
-			} while (!((OopChar == '\0') || (OopChar == '\15')));
+			lineFinished = true;
+			lastPosition = position;
 			OopReadChar(statId, position);
-		}
 
-		if (OopChar == '\47') { /* apostrophe */
-			OopSkipLine(statId, position);
-		} else if (OopChar == '@')  {
-			OopSkipLine(statId, position);
-		} else if ((OopChar == '/') || (OopChar == '?'))  {
-			if (OopChar == '/') {
-				repeatInsNextTick = true;
-			}
-
-			OopReadWord(statId, position);
-			if (OopParseDirection(statId, position, deltaX, deltaY))  {
-				if ((deltaX != 0) || (deltaY != 0))  {
-					if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable) {
-						ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
-					}
-
-					if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable)  {
-						MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-						repeatInsNextTick = false;
-					}
-				} else {
-					repeatInsNextTick = false;
-				}
-
+			/* skip labels */
+			while (OopChar == ':')  {
+				do {
+					OopReadChar(statId, position);
+				} while (!((OopChar == '\0') || (OopChar == '\15')));
 				OopReadChar(statId, position);
-				if (OopChar != '\15') {
-					position -= 1;
+			}
+
+			if (OopChar == '\47') { /* apostrophe */
+				OopSkipLine(statId, position);
+			} else if (OopChar == '@')  {
+				OopSkipLine(statId, position);
+			} else if ((OopChar == '/') || (OopChar == '?'))  {
+				if (OopChar == '/') {
+					repeatInsNextTick = true;
 				}
 
-				stopRunning = true;
-			} else {
-				OopError(statId, "Bad direction");
-			}
-		} else if (OopChar == '#')  {
-LReadCommand:
-			OopReadWord(statId, position);
-			if (OopWord == "THEN") {
 				OopReadWord(statId, position);
-			}
-			if (length(OopWord) == 0) {
-				goto LReadInstruction;
-			}
-			insCount += 1;
-			if (length(OopWord) != 0)  {
-				if (OopWord == "GO")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-
-					if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable) {
-						ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
-					}
-
-					if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable)  {
-						MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-					} else {
-						repeatInsNextTick = true;
-					}
-
-					stopRunning = true;
-				} else if (OopWord == "TRY")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-
-					if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable) {
-						ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
-					}
-
-					if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-												   deltaY].Element].Walkable)  {
-						MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-						stopRunning = true;
-					} else {
-						goto LReadCommand;
-					}
-				} else if (OopWord == "WALK")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-					with.StepX = deltaX;
-					with.StepY = deltaY;
-				} else if (OopWord == "SET")  {
-					OopReadWord(statId, position);
-					WorldSetFlag(OopWord);
-				} else if (OopWord == "CLEAR")  {
-					OopReadWord(statId, position);
-					WorldClearFlag(OopWord);
-				} else if (OopWord == "IF")  {
-					OopReadWord(statId, position);
-					if (OopCheckCondition(statId, position)) {
-						goto LReadCommand;
-					}
-				} else if (OopWord == "SHOOT")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-					if (BoardShoot(E_BULLET, with.X, with.Y, deltaX, deltaY,
-							SHOT_SOURCE_ENEMY)) {
-						SoundQueue(2, "\60\1\46\1");
-					}
-					stopRunning = true;
-				} else if (OopWord == "THROWSTAR")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-					if (BoardShoot(E_STAR, with.X, with.Y, deltaX, deltaY, SHOT_SOURCE_ENEMY))
-					{; }
-					stopRunning = true;
-				} else if ((OopWord == "GIVE") || (OopWord == "TAKE"))  {
-					if (OopWord == "TAKE") {
-						counterSubtract = true;
-					} else {
-						counterSubtract = false;
-					}
-
-					OopReadWord(statId, position);
-					if (OopWord == "HEALTH") {
-						counterPtr = &World.Info.Health;
-					} else if (OopWord == "AMMO") {
-						counterPtr = &World.Info.Ammo;
-					} else if (OopWord == "GEMS") {
-						counterPtr = &World.Info.Gems;
-					} else if (OopWord == "TORCHES") {
-						counterPtr = &World.Info.Torches;
-					} else if (OopWord == "SCORE") {
-						counterPtr = &World.Info.Score;
-					} else if (OopWord == "TIME") {
-						counterPtr = &World.Info.BoardTimeSec;
-					} else {
-						counterPtr = nil;
-					}
-
-					if (counterPtr != nil)  {
-						OopReadValue(statId, position);
-						if (OopValue > 0)  {
-							if (counterSubtract) {
-								OopValue = -OopValue;
-							}
-
-							if ((*counterPtr + OopValue) >= 0)  {
-								*counterPtr = *counterPtr + OopValue;
-							} else {
-								goto LReadCommand;
-							}
-						}
-					}
-
-					GameUpdateSidebar();
-				} else if (OopWord == "END")  {
-					position = -1;
-					OopChar = '\0';
-				} else if (OopWord == "ENDGAME")  {
-					World.Info.Health = 0;
-				} else if (OopWord == "IDLE")  {
-					stopRunning = true;
-				} else if (OopWord == "RESTART")  {
-					position = 0;
-					lineFinished = false;
-				} else if (OopWord == "ZAP")  {
-					OopReadWord(statId, position);
-
-					labelStatId = 0;
-					while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r:"))  {
-						labelPtr = Board.Stats[labelStatId].data.get();
-						labelPtr += labelDataPos + 1;
-
-						*labelPtr = '\47';
-					}
-				} else if (OopWord == "RESTORE")  {
-					OopReadWord(statId, position);
-
-					labelStatId = 0;
-					while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r\47"))
-						do {
-							labelPtr = Board.Stats[labelStatId].data.get();
-							labelPtr += labelDataPos + 1;
-
-							*labelPtr = ':';
-
-							labelDataPos = OopFindString(labelStatId,
-									string("\r\47") + OopWord + '\15');
-						} while (!(labelDataPos <= 0));
-				} else if (OopWord == "LOCK")  {
-					with.P2 = 1;
-				} else if (OopWord == "UNLOCK")  {
-					with.P2 = 0;
-				} else if (OopWord == "SEND")  {
-					OopReadWord(statId, position);
-					if (OopSend(statId, OopWord, false)) {
-						lineFinished = false;
-					}
-				} else if (OopWord == "BECOME")  {
-					if (OopParseTile(statId, position, argTile))  {
-						replaceStat = true;
-						replaceTile.Element = argTile.Element;
-						replaceTile.Color = argTile.Color;
-					} else {
-						OopError(statId, "Bad #BECOME");
-					}
-				} else if (OopWord == "PUT")  {
-					OopReadDirection(statId, position, deltaX, deltaY);
-					if ((deltaX == 0) && (deltaY == 0)) {
-						OopError(statId, "Bad #PUT");
-					} else if (! OopParseTile(statId, position, argTile)) {
-						OopError(statId, "Bad #PUT");
-					} else if (((with.X + deltaX) > 0)
-						&& ((with.X + deltaX) <= BOARD_WIDTH)
-						&& ((with.Y + deltaY) > 0)
-						&& ((with.Y + deltaY) < BOARD_HEIGHT)) {
+				if (OopParseDirection(statId, position, deltaX, deltaY))  {
+					if ((deltaX != 0) || (deltaY != 0))  {
 						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
 													   deltaY].Element].Walkable) {
 							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 						}
 
-						OopPlaceTile(with.X + deltaX, with.Y + deltaY, argTile);
-					}
-				} else if (OopWord == "CHANGE")  {
-					if (! OopParseTile(statId, position, argTile)) {
-						OopError(statId, "Bad #CHANGE");
-					}
-					if (! OopParseTile(statId, position, argTile2)) {
-						OopError(statId, "Bad #CHANGE");
-					}
-
-					ix = 0;
-					iy = 1;
-					if ((argTile2.Color == 0)
-						&& (ElementDefs[argTile2.Element].Color < COLOR_SPECIAL_MIN))
-
-					{
-						argTile2.Color = ElementDefs[argTile2.Element].Color;
-					}
-
-					while (FindTileOnBoard(ix, iy, argTile)) {
-						OopPlaceTile(ix, iy, argTile2);
-					}
-				} else if (OopWord == "PLAY")  {
-					textLine = SoundParse(OopReadLineToEnd(statId, position));
-					if (length(textLine) != 0) {
-						SoundQueue(-1, textLine);
-					}
-					lineFinished = false;
-				} else if (OopWord == "CYCLE")  {
-					OopReadValue(statId, position);
-					if (OopValue > 0) {
-						with.Cycle = OopValue;
-					}
-				} else if (OopWord == "CHAR")  {
-					OopReadValue(statId, position);
-					if ((OopValue > 0) && (OopValue <= 255))  {
-						with.P1 = OopValue;
-						BoardDrawTile(with.X, with.Y);
-					}
-				} else if (OopWord == "DIE")  {
-					replaceStat = true;
-					replaceTile.Element = E_EMPTY;
-					replaceTile.Color = 0xf;
-				} else if (OopWord == "BIND")  {
-					OopReadWord(statId, position);
-					bindStatId = 0;
-					if (OopIterateStat(statId, bindStatId, OopWord))  {
-						with.data = Board.Stats[bindStatId].data;
-						with.DataLen = Board.Stats[bindStatId].DataLen;
-						position = 0;
-					}
-				} else {
-					textLine = OopWord;
-					if (OopSend(statId, OopWord, false))  {
-						lineFinished = false;
+						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
+							&& (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable))  {
+							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
+							repeatInsNextTick = false;
+						}
 					} else {
-						if (pos(":", textLine) <= 0)  {
-							OopError(statId, string("Bad command ") + textLine);
+						repeatInsNextTick = false;
+					}
+
+					OopReadChar(statId, position);
+					if (OopChar != '\15') {
+						position -= 1;
+					}
+
+					stopRunning = true;
+				} else {
+					OopError(statId, "Bad direction");
+				}
+			} else if (OopChar == '#')  {
+LReadCommand:
+				OopReadWord(statId, position);
+				if (OopWord == "THEN") {
+					OopReadWord(statId, position);
+				}
+				if ((length(OopWord) == 0) && (position != with.DataLen-1)) {
+					goto LReadInstruction;
+				}
+				insCount += 1;
+				if (length(OopWord) != 0)  {
+					if (OopWord == "GO")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+
+						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+													   deltaY].Element].Walkable) {
+							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+						}
+
+						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
+							&& (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable))  {
+							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
+						} else {
+							repeatInsNextTick = true;
+						}
+
+						stopRunning = true;
+					} else if (OopWord == "TRY")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+
+						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+													   deltaY].Element].Walkable) {
+							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+						}
+
+						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
+							&& (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable))  {
+							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
+							stopRunning = true;
+						} else {
+							goto LReadCommand;
+						}
+					} else if (OopWord == "WALK")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+						with.StepX = deltaX;
+						with.StepY = deltaY;
+					} else if (OopWord == "SET")  {
+						OopReadWord(statId, position);
+						WorldSetFlag(OopWord);
+					} else if (OopWord == "CLEAR")  {
+						OopReadWord(statId, position);
+						WorldClearFlag(OopWord);
+					} else if (OopWord == "IF")  {
+						OopReadWord(statId, position);
+						if (OopCheckCondition(statId, position)) {
+							goto LReadCommand;
+						}
+					} else if (OopWord == "SHOOT")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+						if (BoardShoot(E_BULLET, with.X, with.Y, deltaX, deltaY,
+								SHOT_SOURCE_ENEMY)) {
+							SoundQueue(2, "\60\1\46\1");
+						}
+						stopRunning = true;
+					} else if (OopWord == "THROWSTAR")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+						if (BoardShoot(E_STAR, with.X, with.Y, deltaX, deltaY, SHOT_SOURCE_ENEMY))
+						{; }
+						stopRunning = true;
+					} else if ((OopWord == "GIVE") || (OopWord == "TAKE"))  {
+						if (OopWord == "TAKE") {
+							counterSubtract = true;
+						} else {
+							counterSubtract = false;
+						}
+
+						OopReadWord(statId, position);
+						if (OopWord == "HEALTH") {
+							counterPtr = &World.Info.Health;
+						} else if (OopWord == "AMMO") {
+							counterPtr = &World.Info.Ammo;
+						} else if (OopWord == "GEMS") {
+							counterPtr = &World.Info.Gems;
+						} else if (OopWord == "TORCHES") {
+							counterPtr = &World.Info.Torches;
+						} else if (OopWord == "SCORE") {
+							counterPtr = &World.Info.Score;
+						} else if (OopWord == "TIME") {
+							counterPtr = &World.Info.BoardTimeSec;
+						} else {
+							counterPtr = nil;
+						}
+
+						if (counterPtr != nil)  {
+							OopReadValue(statId, position);
+							if (OopValue > 0)  {
+								if (counterSubtract) {
+									OopValue = -OopValue;
+								}
+
+								if (((32767 - *counterPtr) > OopValue)
+									&& ((*counterPtr + OopValue) >= 0))  {
+									*counterPtr = *counterPtr + OopValue;
+								} else {
+									goto LReadCommand;
+								}
+							}
+						}
+
+						GameUpdateSidebar();
+					} else if (OopWord == "END")  {
+						position = -1;
+						OopChar = '\0';
+					} else if (OopWord == "ENDGAME")  {
+						World.Info.Health = 0;
+					} else if (OopWord == "IDLE")  {
+						stopRunning = true;
+					} else if (OopWord == "RESTART")  {
+						position = 0;
+						lineFinished = false;
+					} else if (OopWord == "ZAP")  {
+						OopReadWord(statId, position);
+
+						labelStatId = 0;
+						while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r:"))  {
+							labelPtr = Board.Stats[labelStatId].data.get();
+							labelPtr += labelDataPos + 1;
+
+							*labelPtr = '\47';
+						}
+					} else if (OopWord == "RESTORE")  {
+						OopReadWord(statId, position);
+
+						labelStatId = 0;
+						while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r\47"))
+							do {
+								labelPtr = Board.Stats[labelStatId].data.get();
+								labelPtr += labelDataPos + 1;
+
+								*labelPtr = ':';
+
+								labelDataPos = OopFindString(labelStatId,
+										string("\r\47") + OopWord + '\15');
+							} while (!(labelDataPos <= 0));
+					} else if (OopWord == "LOCK")  {
+						with.P2 = 1;
+					} else if (OopWord == "UNLOCK")  {
+						with.P2 = 0;
+					} else if (OopWord == "SEND")  {
+						OopReadWord(statId, position);
+						if (OopSend(statId, OopWord, false)) {
+							lineFinished = false;
+						}
+					} else if (OopWord == "BECOME")  {
+						if (OopParseTile(statId, position, argTile))  {
+							replaceStat = true;
+							replaceTile.Element = argTile.Element;
+							replaceTile.Color = argTile.Color;
+						} else {
+							OopError(statId, "Bad #BECOME");
+						}
+					} else if (OopWord == "PUT")  {
+						OopReadDirection(statId, position, deltaX, deltaY);
+						if ((deltaX == 0) && (deltaY == 0)) {
+							OopError(statId, "Bad #PUT");
+						} else if (! OopParseTile(statId, position, argTile)) {
+							OopError(statId, "Bad #PUT");
+						} else if (((with.X + deltaX) > 0)
+							&& ((with.X + deltaX) <= BOARD_WIDTH)
+							&& ((with.Y + deltaY) > 0)
+							&& ((with.Y + deltaY) < BOARD_HEIGHT)) {
+							if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable)  {
+								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+								statId = GetStatIdAt(with.X, with.Y);
+							}
+
+							OopPlaceTile(with.X + deltaX, with.Y + deltaY, argTile);
+						}
+					} else if (OopWord == "CHANGE")  {
+						if (! OopParseTile(statId, position, argTile)) {
+							OopError(statId, "Bad #CHANGE");
+						}
+						if (! OopParseTile(statId, position, argTile2)) {
+							OopError(statId, "Bad #CHANGE");
+						}
+
+						ix = 0;
+						iy = 1;
+						if ((argTile2.Color == 0)
+							&& (ElementDefs[argTile2.Element].Color < COLOR_SPECIAL_MIN))
+
+						{
+							argTile2.Color = ElementDefs[argTile2.Element].Color;
+						}
+
+						while (FindTileOnBoard(ix, iy, argTile)) {
+							OopPlaceTile(ix, iy, argTile2);
+						}
+					} else if (OopWord == "PLAY")  {
+						textLine = SoundParse(OopReadLineToEnd(statId, position));
+						if (length(textLine) != 0) {
+							SoundQueue(-1, textLine);
+						}
+						lineFinished = false;
+					} else if (OopWord == "CYCLE")  {
+						OopReadValue(statId, position);
+						if (OopValue > 0) {
+							with.Cycle = OopValue;
+						}
+					} else if (OopWord == "CHAR")  {
+						OopReadValue(statId, position);
+						if ((OopValue > 0) && (OopValue <= 255))  {
+							with.P1 = OopValue;
+							BoardDrawTile(with.X, with.Y);
+						}
+					} else if (OopWord == "DIE")  {
+						replaceStat = true;
+						replaceTile.Element = E_EMPTY;
+						replaceTile.Color = 0xf;
+					} else if (OopWord == "BIND")  {
+						OopReadWord(statId, position);
+						bindStatId = 0;
+						if (OopIterateStat(statId, bindStatId, OopWord))  {
+							dataInUse = false;
+
+							/* We can't bind if we're bound to someone else.
+							Do some reference counting to find out if
+												  that's the case. */
+							for (i = 0; i <= Board.StatCount; i ++) {
+								if ((i != statId) && (Board.Stats[i].data == with.data))  {
+									dataInUse = true;
+									break;
+								}
+							}
+
+							if (dataInUse)  {
+								OopError(statId, string("Can't bind to ") + OopWord +
+									" when someone is bound to you!");
+							} else {
+								/* Binding when someone's bound to us
+								would lead to a double free *here*.*/
+
+								/* Don't free our memory if we're "binding"
+								to ourselves, as that could cause a crash
+								later. */
+								if (bindStatId != statId) {
+									with.data = NULL;
+									with.DataLen = 0;
+								}
+								with.data = Board.Stats[bindStatId].data;
+								with.DataLen = Board.Stats[bindStatId].DataLen;
+								position = 0;
+							}
+						}
+					} else {
+						textLine = OopWord;
+						if (OopSend(statId, OopWord, false))  {
+							lineFinished = false;
+						} else {
+							if (pos(":", textLine) <= 0)  {
+								OopError(statId, string("Bad command ") + textLine);
+							}
 						}
 					}
 				}
+
+				if (lineFinished) {
+					OopSkipLine(statId, position);
+				}
+			} else if (OopChar == '\15')  {
+				if (textWindow.LineCount > 0) {
+					TextWindowAppend(textWindow, "");
+				}
+			} else if (OopChar == '\0')  {
+				endOfProgram = true;
+			} else {
+				/* The order of execution appears to be undefined for statements like
+				  x := y + f(z) where y is a global variable and f alters it. Turbo Pascal
+				  just happens to do it left-to-right, but FreePascal does not. Thus this
+				  somewhat inelegant fix. (Beware global variables, folks.) */
+				textLine = OopChar;
+				textLine = textLine + OopReadLineToEnd(statId, position);
+				TextWindowAppend(textWindow, textLine);
 			}
+		} while (!(endOfProgram || stopRunning || repeatInsNextTick || replaceStat
+				|| (insCount > 32)));
 
-			if (lineFinished) {
-				OopSkipLine(statId, position);
-			}
-		} else if (OopChar == '\15')  {
-			if (textWindow.LineCount > 0) {
-				TextWindowAppend(textWindow, "");
-			}
-		} else if (OopChar == '\0')  {
-			endOfProgram = true;
-		} else {
-			/* The order of execution appears to be undefined for statements like
-			  x := y + f(z) where y is a global variable and f alters it. Turbo Pascal
-			  just happens to do it left-to-right, but FreePascal does not. Thus this
-			  somewhat inelegant fix. (Beware global variables, folks.) */
-			textLine = OopChar;
-			textLine = textLine + OopReadLineToEnd(statId, position);
-			TextWindowAppend(textWindow, textLine);
-		}
-	} while (!(endOfProgram || stopRunning || repeatInsNextTick || replaceStat
-			|| (insCount > 32)));
-
-	if (repeatInsNextTick) {
-		position = lastPosition;
-	}
-
-	if (OopChar == '\0') {
-		position = -1;
-	}
-
-	if (textWindow.LineCount > 1)  {
-		namePosition = 0;
-		OopReadChar(statId, namePosition);
-		if (OopChar == '@')  {
-			name = OopReadLineToEnd(statId, namePosition);
+		if (repeatInsNextTick) {
+			position = lastPosition;
 		}
 
-		if (length(name) == 0) {
-			name = "Interaction";
+		if (OopChar == '\0') {
+			position = -1;
 		}
 
-		textWindow.Title = name;
-		TextWindowDrawOpen(textWindow);
-		TextWindowSelect(textWindow, true, false);
-		TextWindowDrawClose(textWindow);
-		TextWindowFree(textWindow);
-
-		if (length(textWindow.Hyperlink) != 0)
-			if (OopSend(statId, textWindow.Hyperlink, false)) {
-				goto LStartParsing;
+		if (textWindow.LineCount > 1)  {
+			namePosition = 0;
+			OopReadChar(statId, namePosition);
+			if (OopChar == '@')  {
+				name = OopReadLineToEnd(statId, namePosition);
 			}
-	} else if (textWindow.LineCount == 1)  {
-		DisplayMessage(200, *textWindow.Lines[1]);
-		TextWindowFree(textWindow);
-	}
 
-	if (replaceStat)  {
-		/*IMP: Fix runtime error with anything that destroys a
-		scroll "ahead of time". */
-		if (Board.Tiles[with.X][with.Y].Element == E_SCROLL) {
-			return;
+			if (length(name) == 0) {
+				name = "Interaction";
+			}
+
+			textWindow.Title = name;
+			TextWindowDrawOpen(textWindow);
+			TextWindowSelect(textWindow, true, false);
+			TextWindowDrawClose(textWindow);
+			TextWindowFree(textWindow);
+
+			if (length(textWindow.Hyperlink) != 0)
+				if (OopSend(statId, textWindow.Hyperlink, false)) {
+					goto LStartParsing;
+				}
+		} else if (textWindow.LineCount == 1)  {
+			DisplayMessage(200, *textWindow.Lines[1]);
+			TextWindowFree(textWindow);
 		}
 
-		ix = with.X;
-		iy = with.Y;
-		DamageStat(statId);
-		OopPlaceTile(ix, iy, replaceTile);
+		if (replaceStat)  {
+			/*IMP: Fix runtime error with anything that destroys a
+			scroll "ahead of time". */
+			if (Board.Tiles[with.X][with.Y].Element == E_SCROLL) {
+				return;
+			}
+
+			ix = with.X;
+			iy = with.Y;
+			DamageStat(statId);
+			OopPlaceTile(ix, iy, replaceTile);
+		}
 	}
 }
 

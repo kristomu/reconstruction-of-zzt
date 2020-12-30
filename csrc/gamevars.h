@@ -12,6 +12,7 @@ const integer TORCH_DURATION = 200;
 const integer TORCH_DX = 8;
 const integer TORCH_DY = 5;
 const integer TORCH_DIST_SQR = 50;
+const integer MAX_CYCLE = 420;
 
 typedef varying_string<50> TString50;
 struct TCoord {
