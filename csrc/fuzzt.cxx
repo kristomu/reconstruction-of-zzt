@@ -168,6 +168,8 @@ int main(int argc, const char* argv[]) {
 	test_mode_disable_video = true;
 	test_mode_disable_input = true;
 	test_mode_disable_delay = true;
+	test_mode_disable_dialog_boxes = true;
+	test_mode_disable_text_input = true;
 
 	WorldFileDescCount = 7;
 	WorldFileDescKeys[1] = "TOWN";
@@ -201,13 +203,11 @@ int main(int argc, const char* argv[]) {
 #endif
 	{
 		stub_ptr->set_key_responses({
-			// skip ZZT.DAT and corruption notices
-			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// run a few cycles doing nothing
 			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// play and go right a bunch
 			'P', E_KEY_UP, E_KEY_LEFT, E_KEY_DOWN, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
-			// get out of any scrolls
+			// more running cycles doing nothing
 			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// abort pause (??)
 			E_KEY_RIGHT,

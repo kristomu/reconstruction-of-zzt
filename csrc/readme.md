@@ -19,6 +19,4 @@ Other thoughts:
 - I still have to import the changes to fuzz branch's editor.
 
 Current test failures:
-- ./testcase/crash/INVAR6.ZZT
 - ./testcase/crash/RLEFLOW.ZZT
-- ./testcase/EDLEAK2.ZZT

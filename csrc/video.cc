@@ -61,6 +61,9 @@ void Video::go_to_xy(int x, int y) {
 
 /* The input x,y values are offset by 0, i.e. 0,0 is upper left. */
 void Video::write(int x, int y, const TTextChar & to_print) {
+	if (x < 0 || x >= 80 || y < 0 || y >= 25) {
+		return;
+	}
 	display_interface->print_ch(x, y, to_print.Color, to_print.Char);
 	primary_buffer[x][y] = to_print;
 }
@@ -137,6 +140,8 @@ bool Video::Configure(Input & key_input) {
 }
 
 void Video::install(dos_color borderColor, std::shared_ptr<io> io_in) {
+
+	assert(io_in != NULL);
 
 	display_interface = io_in;
 	display_interface->set_black_and_white(chose_monochrome);

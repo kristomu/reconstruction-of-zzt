@@ -353,10 +353,10 @@ LLabelMatched:
 			}
 		}
 		Delay(10);
-	} while ( keyboard.InputKeyPressed != E_KEY_ESCAPE
-			&& keyboard.InputKeyPressed != E_KEY_ENTER
-			&& !keyboard.InputShiftPressed
-			&& !test_mode_disable_dialog_boxes);
+	} while (keyboard.InputKeyPressed != E_KEY_ESCAPE
+		&& keyboard.InputKeyPressed != E_KEY_ENTER
+		&& !keyboard.InputShiftPressed
+		&& !test_mode_disable_dialog_boxes);
 	if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
 		keyboard.InputKeyPressed = '\0';
 		TextWindowRejected = true;

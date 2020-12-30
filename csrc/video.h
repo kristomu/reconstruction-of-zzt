@@ -16,6 +16,10 @@ struct TTextChar {
 	unsigned char Color;
 };
 
+// TODO: How does video know that we're interested in 80x25? Should be
+// parametric somehow. As it is, write will reject writing to coordinates
+// outside this buffer. Consider in particular the user changing the terminal
+// dimensions - how should video_buffer change?
 typedef std::array<std::array<TTextChar, 25>, 80> video_buffer;
 
 // Every coordinate specification is zero-based (i.e. (0,0) is upper left).

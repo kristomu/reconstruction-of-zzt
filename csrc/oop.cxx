@@ -220,7 +220,7 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 	}
 
 	if (! ValidCoord(Board.Stats[statId].X + dx,
-		Board.Stats[statId].Y + dy))  {
+			Board.Stats[statId].Y + dy))  {
 
 		OopError(statId, "Direction out of bounds");
 		dx = 0;
@@ -557,7 +557,7 @@ boolean OopCheckCondition(integer statId, integer & position) {
 			return false;
 		}
 		return !ElementDefs[Board.Tiles[with.X + deltaX]
-			[with.Y + deltaY].Element].Walkable;
+								   [with.Y + deltaY].Element].Walkable;
 	} else if (OopWord == "ENERGIZED")  {
 		OopCheckCondition_result = World.Info.EnergizerTicks > 0;
 	} else if (OopWord == "ANY")  {

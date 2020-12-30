@@ -50,7 +50,17 @@ const std::string StarAnimChars = "\263/\304\\";
 
 /* For keeping track of what boards we've visited when going
 	gallivanting across board edges. */
-std::array<bool, MAX_BOARD> BoardEdgeSeen;
+std::array<bool, MAX_BOARD+1> BoardEdgeSeen;
+
+int sign(int x) {
+	if (x > 0) {
+		return 1;
+	}
+	if (x < 0) {
+		return -1;
+	}
+	return 0;
+}
 
 boolean ValidStatIdx(integer x) {
 	boolean ValidStatIdx_result;
@@ -92,8 +102,10 @@ void ElementMessageTimerTick(integer statId) {
 		switch (with.X) {
 			case 0: {
 				video.write((60 - Board.Info.Message.size()) / 2, 24,
-					9 + (with.P2 % 7), " " + Board.Info.Message + " ");
-				with.P2 = with.P2 - 1;
+					9 + (with.P2 % 7), " "+Board.Info.Message + " ");
+				if (with.P2 > 0) {
+					with.P2 = with.P2 - 1;
+				}
 				if (with.P2 <= 0)  {
 					RemoveStat(statId);
 					CurrentStatTicked = CurrentStatTicked - 1;
@@ -105,7 +117,6 @@ void ElementMessageTimerTick(integer statId) {
 		}
 	}
 }
-
 
 void ElementDamagingTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
@@ -509,7 +520,7 @@ void ElementLineDraw(integer x, integer y, byte & ch) {
 
 	v = 1;
 	shift = 1;
-	for (i = 0; i <= 3; i ++) {
+	for (int i = 0; i <= 3; i ++) {
 		switch (Board.Tiles[x + NeighborDeltaX[i]][y +
 				NeighborDeltaY[i]].Element) {
 			case E_LINE: case E_BOARD_EDGE: v = v + shift; break;
@@ -650,7 +661,7 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 	/* Draw everything to be sure that every char is updated. Doing
 	BoardDraw inside the loop above can lead to tiles at some
 		  relative coordinates not getting drawn. */
-	for (i = 0; i < DiagonalDeltaX.size(); i ++) {
+	for (int i = 0; i < DiagonalDeltaX.size(); i ++) {
 		BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
 	}
 }
@@ -821,12 +832,11 @@ void ElementTransporterTouch(integer x, integer y, integer sourceStatId,
 }
 
 void ElementTransporterTick(integer statId) {
-	{
-		TStat & with = Board.Stats[statId];
-		BoardDrawTile(with.X, with.Y);
-	}
+	TStat & with = Board.Stats[statId];
+	BoardDrawTile(with.X, with.Y);
 }
 
+// TODO: Verify against DOS.
 void ElementTransporterDraw(integer x, integer y, byte & ch) {
 	if (GetStatIdAt(x, y) < 0)  {
 		ch = ord(' ');  /* What DOS ZZT draws. */
@@ -834,17 +844,21 @@ void ElementTransporterDraw(integer x, integer y, byte & ch) {
 	}
 
 	TStat & with = Board.Stats[GetStatIdAt(x, y)];
+	if (with.Cycle <= 0) {
+		with.Cycle = 1;
+	}
+
 	if (with.StepX == 0) {
-		ch = TransporterNSChars[with.StepY * 2 + 3 +
-						   (CurrentTick / with.Cycle) % 4-1];
+		ch = TransporterNSChars[sign(with.StepY) * 2 + 2 + (CurrentTick /
+									 with.Cycle) % 4];
 	} else {
-		ch = TransporterEWChars[with.StepX * 2 + 3 +
-						   (CurrentTick / with.Cycle) % 4-1];
+		ch = TransporterEWChars[sign(with.StepX) * 2 + 2 + (CurrentTick /
+									 with.Cycle) % 4];
 	}
 }
 
 void ElementStarDraw(integer x, integer y, byte & ch) {
-	ch = ord(StarAnimChars[(CurrentTick % 4)]);
+	ch = ord(StarAnimChars[(CurrentTick % 4) + 1-1]);
 	ColorCycle(x, y);
 }
 
@@ -1382,6 +1396,7 @@ void ElementDoorTouch(integer x, integer y, integer sourceStatId,
 	}
 }
 
+
 void ElementPushableTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	ElementPushablePush(x, y, deltaX, deltaY);
@@ -1581,9 +1596,9 @@ void DrawPlayerSurroundings(integer x, integer y, integer bombPhase) {
 	integer istat;
 	boolean result;
 
-	for (ix = ((x - TORCH_DX) - 1); ix <= ((x + TORCH_DX) + 1); ix ++)
+	for (int ix = ((x - TORCH_DX) - 1); ix <= ((x + TORCH_DX) + 1); ix ++)
 		if ((ix >= 1) && (ix <= BOARD_WIDTH))
-			for (iy = ((y - TORCH_DY) - 1); iy <= ((y + TORCH_DY) + 1); iy ++)
+			for (int iy = ((y - TORCH_DY) - 1); iy <= ((y + TORCH_DY) + 1); iy ++)
 				if ((iy >= 1) && (iy <= BOARD_HEIGHT)) {
 					TTile & with = Board.Tiles[ix][iy];
 					if ((bombPhase > 0) && ((sqr(ix-x) + sqr(iy-y)*2) < TORCH_DIST_SQR))  {
@@ -1699,7 +1714,7 @@ void ElementPlayerTick(integer statId) {
 					MessageOutOfAmmoNotShown = false;
 				} else {
 					bulletCount = 0;
-					for (i = 0; i <= Board.StatCount; i ++)
+					for (int i = 0; i <= Board.StatCount; i ++)
 						if ((Board.Tiles[Board.Stats[i].X][Board.Stats[i].Y].Element == E_BULLET)
 							&& (Board.Stats[i].P1 == 0)) {
 							bulletCount = bulletCount + 1;
@@ -1737,12 +1752,12 @@ void ElementPlayerTick(integer statId) {
 				if (ElementDefs[Board.Tiles[with.X + keyboard.InputDeltaX][with.Y +
 											   keyboard.InputDeltaY].Element].Walkable)  {
 					if (SoundEnabled && ! SoundIsPlaying) {
-						NoSound;
+						NoSound();
 					}
 
 					MoveStat(0, with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY);
 				} else if (SoundEnabled && ! SoundIsPlaying)  {
-					NoSound;
+					NoSound();
 				}
 			}
 		}
@@ -1875,7 +1890,7 @@ void ResetMessageNotShownFlags() {
 void InitElementDefs() {
 	integer i;
 
-	for (i = 0; i <= MAX_ELEMENT; i ++) {
+	for (int i = 0; i <= MAX_ELEMENT; i ++) {
 		TElementDef & with = ElementDefs[i];
 		with.Character = ' ';
 		with.Color = COLOR_CHOICE_ON_BLACK;
@@ -2327,7 +2342,7 @@ void InitEditorStatSettings() {
 	PlayerDirX = 0;
 	PlayerDirY = 0;
 
-	for (i = 0; i <= MAX_ELEMENT; i ++) {
+	for (int i = 0; i <= MAX_ELEMENT; i ++) {
 		TEditorStatSetting & with = World.EditorStatSettings[i];
 		with.P1 = 4;
 		with.P2 = 4;
