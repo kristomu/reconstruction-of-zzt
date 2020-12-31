@@ -675,6 +675,8 @@ std::vector<unsigned char> TBoard::dump_and_truncate(
 		RLEFLOW.ZZT), because AddStat should reject adding stats when
 		there's no room.; */
 	if (out.size() > MAX_BOARD_LEN) {
+		// Maybe I should try actually resizing this.... oops :-P
+		out.resize(MAX_BOARD_LEN);
 		out_load_error = load(out);
 		// Propagate the error by ignoring any error we get from the
 		// second dump.
