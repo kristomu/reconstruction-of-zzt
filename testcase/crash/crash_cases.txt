@@ -63,3 +63,4 @@ attempting to move a -1 stat.
 OBJ_OOB: Out-of-bounds object commands (FLOW and stepx, stepy out of bounds)
 causes a range error reading from outside of the board. (Can be triggered in
 many different ways; the file does a reasonably comprehensive test of them all.)
+SLIME: Out-of-bounds board access in slime propagation function.

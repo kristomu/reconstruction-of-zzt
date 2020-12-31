@@ -786,8 +786,7 @@ void EditorLoop() {
 		}
 
 		if (drawMode == TextEntry)  {
-			if ((keyboard.InputKeyPressed >= '\40')
-				&& (keyboard.InputKeyPressed < '\200'))  {
+			if (!keyboard.InputSpecialKeyPressed && keyboard.InputKeyPressed != 0) {
 				if (EditorPrepareModifyTile(cursorX, cursorY))  {
 					Board.Tiles[cursorX][cursorY].Element = (cursorColor - 9) + E_TEXT_MIN;
 					Board.Tiles[cursorX][cursorY].Color = ord(keyboard.InputKeyPressed);

@@ -135,6 +135,7 @@ template<typename Q> void load_lsb_from_file(std::istream & input,
 	Q & output) {
 
 	char temp_buffer[sizeof(output)];
+	bzero(temp_buffer, sizeof(output));
 	input.read(temp_buffer, sizeof(output));
 	load_lsb_element(temp_buffer, output);
 }

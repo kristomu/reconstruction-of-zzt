@@ -34,8 +34,22 @@
 
 #include <stdexcept>
 
+bool is_IO_error() {
+	return errno != 0;
+}
+
+std::string get_error_string() {
+	if (errno != 0) {
+		return strerror(errno);
+	}
+
+	throw std::logic_error("Tried to get error string without error");
+}
+
 std::ifstream OpenForRead(std::string name) {
+	// Clear any residual errors.
 	errno = 0;
+
 	// TODO: Test if this overwrites files, etc...
 	std::ifstream file(name);
 	return file;

@@ -547,10 +547,6 @@ void PauseOnError() {
 	Delay(2000);
 }
 
-bool is_IO_error() {
-	return errno != 0;
-}
-
 boolean DisplayIOError() {
 	varying_string<50> errorNumStr;
 	TTextWindowState textWindow;
@@ -735,6 +731,9 @@ boolean WorldLoad(std::string filename, std::string extension) {
 
 		f.read((char *)world_header.data(), 512);
 		ptr = world_header.begin();
+		// TODO? Somehow detect, in DisplayIOError, if we've tried to read
+		// past the end of the file. I'm not sure how to do that as errno
+		// doesn't trigger.
 		if (! DisplayIOError())  {
 			ptr = load_lsb_element(ptr, World.BoardCount);
 

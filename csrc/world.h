@@ -54,9 +54,9 @@ class TWorldInfo {
 
 class TWorld {
 	public:
-		integer BoardCount;
+		short BoardCount;
 		// dynamic board length.
-		std::array<std::vector<unsigned char>, MAX_BOARD> BoardData;
+		std::array<std::vector<unsigned char>, MAX_BOARD+1> BoardData;
 		/* KevEdit treats board length as unsigned, so to handle >32k
 			  boards without corrupting subsequent ones... */
 		array<0, MAX_BOARD,word> BoardLen;

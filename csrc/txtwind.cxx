@@ -269,7 +269,9 @@ void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
 	state.Hyperlink = "";
 	TextWindowDraw(state, false, viewingFile);
 	do {
-		keyboard.wait_for_key();
+		if (!test_mode_disable_dialog_boxes) {
+			keyboard.wait_for_key();
+		}
 		newLinePos = state.LinePos;
 		if (keyboard.InputDeltaY != 0)  {
 			newLinePos = newLinePos + keyboard.InputDeltaY;
