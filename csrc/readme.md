@@ -17,5 +17,4 @@ Other thoughts:
 - The implementation currently does the Mandelbrot render from Preposterous Machines in 34 minutes. My recorded time for this render on the FPC Linux Reconstruction is 50 minutes.
 - I still have to import the changes to fuzz branch's editor.
 
-Current test failures:
-- ./testcase/crash/SLIME.ZZT
+Current test failures: None.

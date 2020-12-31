@@ -519,7 +519,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		}
 
 		try {
-			// Don't load the data  inside the Stats serialization function
+			// Don't load the data inside the Stats serialization function
 			// since we want to be more careful about believing its
 			// metadata.
 			ptr = Stats[ix].load(ptr, source.end(), false);
@@ -558,11 +558,13 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		// boards with random junk in the padding - should that random junk
 		// be reproduced on output?
 
-		/*if ((with.X == 0) && (with.Y == 0))  {
+		// I'm breaking the invariant.
+
+		if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
 			with.Y = 1;
-			update(board_error, "Stat owner is at (0,0)");
-		}*/
+			//update(board_error, "Stat owner is at (0,0)");
+		}
 
 		if (with.DataLen > 0)
 			/* SANITY: If DataLen is too long, truncate it. */
