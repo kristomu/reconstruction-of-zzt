@@ -55,11 +55,15 @@ EDLEAK2.ZZT	Automated version of the previous test case: triggers valgrind
 		errors with FreePascal fuzzt.
 
 WRAPPED.ZZT	A board with a tile with element 0xFF. Triggers a crash in C++
-		zzt when element_t is defined as a signed char.
+		ZZT when element_t is defined as a signed char.
 
 LOAD.ZZT	Triggers a "jump on undefined value" error in valgrind with C++
 		fuzzt as loading the board length from file fails. Also causes
 		a memory leak when dumping a board.
+
+SLOW.ZZT	Slows down C++ ZZT by generating lots of objects with stats.
+		Each AddStat call leads to a serialization check which takes
+		a lot of time.
 
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
