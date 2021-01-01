@@ -1774,11 +1774,16 @@ void GamePlayLoop(boolean boardChanged) {
 	// }
 
 	pauseBlink = true;
+	bool initial_round = true;
 
 	do {
 		if (GamePaused)  {
-			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
+			// Only consume one key here instead of sometimes one,
+			// sometimes two. Helps keep the fuzz player synchronized.
+			if (initial_round || SoundHasTimeElapsed(TickTimeCounter, 25)) {
 				pauseBlink = !pauseBlink;
+				keyboard.update();
+				initial_round = false;
 			}
 
 			// Don't blink an out-of-bounds player.
@@ -1798,7 +1803,6 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 
 			video.write(64, 5, 0x1f, "Pausing...");
-			keyboard.update();
 
 			if (keyboard.InputKeyPressed == E_KEY_ESCAPE) {
 				GamePromptEndPlay();
@@ -1867,7 +1871,6 @@ void GamePlayLoop(boolean boardChanged) {
 
 		if ((CurrentStatTicked > Board.StatCount)
 			&& ! GamePlayExitRequested)  {
-			/* all stats ticked */
 			if (SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration))  {
 				/* next cycle */
 				CurrentTick = CurrentTick + 1;

@@ -178,7 +178,8 @@ boolean SoundHasTimeElapsed(integer & counter, integer duration) {
 		SoundHasTimeElapsed_result = false;
 		/* Duration seems to be in units of 100th seconds,
 		possibly influenced by the game speed slider.
-			  PLL later; for now, this ugly hack. */
+		Perhaps some kind of tick thread would be better,
+		because then querying for time would take no time. */
 		Delay(20);
 	}
 	return SoundHasTimeElapsed_result;
