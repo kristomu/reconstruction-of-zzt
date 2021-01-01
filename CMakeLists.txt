@@ -55,6 +55,7 @@ endif()
 # TODO: Cleanup
 
 add_executable(${ZZT_NAME}
+	csrc/random.cc
 	csrc/input.cc
 	csrc/testing.cc
 	csrc/zzt.cxx
@@ -78,6 +79,7 @@ add_executable(${ZZT_NAME}
 	csrc/world.cc)
 
 add_executable(${FUZZT_NAME}
+	csrc/random.cc
 	csrc/input.cc
 	csrc/testing.cc
 	csrc/fuzzt.cxx

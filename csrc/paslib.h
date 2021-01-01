@@ -167,17 +167,6 @@ template<typename T> T reallocmem(T & ptr, size_t size) {
 	return ptr;
 }
 
-extern "C" void     Randomize();
-extern "C" unsigned randint(unsigned range);
-extern "C" double   randreal();
-
-inline unsigned Random(unsigned range) {
-	return randint(range);
-}
-inline double   Random() {
-	return randreal();
-}
-
 #endif
 
 #endif

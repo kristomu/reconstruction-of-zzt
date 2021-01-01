@@ -387,7 +387,7 @@ static integer Partition(TTextWindowState & state, integer low,
 	/* Choose a random pivot. A cannae be bothered to do anything
 	  faster/more sophisticated. */
 	integer Partition_result;
-	pivot = state.Lines[Random(high-low) + low];
+	pivot = state.Lines[rnd.randint(high-low) + low];
 	i = low;
 	j = high;
 

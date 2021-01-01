@@ -192,7 +192,7 @@ int main(int argc, const char* argv[]) {
 
 	init_IO(Blue);
 
-	Randomize();
+	rnd.seed();
 
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";

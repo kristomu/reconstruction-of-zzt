@@ -26,6 +26,11 @@
 // Doesn't work yet on Linux -- will probably need a fresh implementation
 // that uses SDL or something to synthesize PC beeps.
 
+// If I don't end up using samples, the drum tables etc. should all be
+// determinized so they're completely reproducible. There's no reason for
+// the sound renderer to need randomness when it's dithering the same
+// sound all the time.
+
 #define __Sounds_implementation__
 
 #include "ptoc.h"
@@ -36,6 +41,7 @@
 /*#include "Dos.h"*/
 #include "minmax.h"
 #include "hardware.h"
+#include "gamevars.h"
 
 
 void SoundQueue(integer priority, string pattern) {
@@ -97,11 +103,11 @@ void SoundInitDrumTable() {
 		SoundDrumTable[2].Data[i] = (i % 2) * 1600 + 1600 + (i % 4) * 1600;
 	}
 	for (i = 1; i <= 14; i ++) {
-		SoundDrumTable[4].Data[i] = Random(5000) + 500;
+		SoundDrumTable[4].Data[i] = rnd.randint(5000) + 500;
 	}
 	for (i = 1; i <= 8; i ++) {
 		SoundDrumTable[5].Data[i * 2 - 1] = 1600;
-		SoundDrumTable[5].Data[i * 2] = Random(1600) + 800;
+		SoundDrumTable[5].Data[i * 2] = rnd.randint(1600) + 800;
 	}
 	for (i = 1; i <= 14; i ++) {
 		SoundDrumTable[6].Data[i] = ((i % 2) * 880) + 880 + ((i % 3) * 440);
@@ -110,10 +116,10 @@ void SoundInitDrumTable() {
 		SoundDrumTable[7].Data[i] = 700 - (i * 12);
 	}
 	for (i = 1; i <= 14; i ++) {
-		SoundDrumTable[8].Data[i] = (i * 20 + 1200) - Random(i * 40);
+		SoundDrumTable[8].Data[i] = (i * 20 + 1200) - rnd.randint(i * 40);
 	}
 	for (i = 1; i <= 14; i ++) {
-		SoundDrumTable[9].Data[i] = Random(440) + 220;
+		SoundDrumTable[9].Data[i] = rnd.randint(440) + 220;
 	}
 }
 

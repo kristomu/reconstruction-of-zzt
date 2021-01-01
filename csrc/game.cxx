@@ -99,7 +99,7 @@ void GenerateTransitionTable() {
 
 	/* shuffle */
 	for (ix = 1; ix <= TransitionTableSize; ix ++) {
-		iy = Random(TransitionTableSize) + 1;
+		iy = rnd.randint(TransitionTableSize) + 1;
 		t = TransitionTable[iy];
 		TransitionTable[iy] = TransitionTable[ix];
 		TransitionTable[ix] = t;
@@ -1498,10 +1498,10 @@ boolean BoardShoot(byte element, integer tx, integer ty,
 }
 
 void CalcDirectionRnd(integer & deltaX, integer & deltaY) {
-	deltaX = Random(3) - 1;
+	deltaX = rnd.randint(3) - 1;
 
 	if (deltaX == 0) {
-		deltaY = Random(2) * 2 - 1;
+		deltaY = rnd.randint(2) * 2 - 1;
 	} else {
 		deltaY = 0;
 	}
@@ -1512,7 +1512,7 @@ void CalcDirectionSeek(integer x, integer y, integer & deltaX,
 	deltaX = 0;
 	deltaY = 0;
 
-	if ((Random(2) < 1) || (Board.Stats[0].Y == y)) {
+	if ((rnd.randint(2) < 1) || (Board.Stats[0].Y == y)) {
 		deltaX = Signum(Board.Stats[0].X - x);
 	}
 
@@ -1769,7 +1769,7 @@ void GamePlayLoop(boolean boardChanged) {
 	exitLoop = false;
 
 	// if (!FuzzMode) {
-	CurrentTick = Random(100);
+	CurrentTick = rnd.randint(100);
 	CurrentStatTicked = Board.StatCount + 1;
 	// }
 
@@ -1845,7 +1845,7 @@ void GamePlayLoop(boolean boardChanged) {
 				/* Unpause */
 				GamePaused = false;
 				SidebarClearLine(5);
-				CurrentTick = Random(100);
+				CurrentTick = rnd.randint(100);
 				CurrentStatTicked = Board.StatCount + 1;
 				World.Info.IsSave = true;
 			}
@@ -2020,7 +2020,7 @@ void GamePrintRegisterMessage() {
 	string * strPtr;
 
 //	SetCBreak(false);
-	s = "END" + itos(49 + Random(4)) + ".MSG";
+	s = "END" + itos(49 + rnd.randint(4)) + ".MSG";
 	iy = 0;
 	color = 0xf;
 	word actuallyRead;

@@ -195,7 +195,7 @@ int main(int argc, const char* argv[]) {
 	ResetConfig = false;
 
 	IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
-	Randomize();	// TBD: Make deterministic.
+	rnd.seed(1);
 	GenerateTransitionTable();
 
 #ifdef __AFL_LOOP

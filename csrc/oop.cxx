@@ -184,9 +184,9 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 		CalcDirectionRnd(dx, dy);
 	} else if (OopWord == "RNDNS")  {
 		dx = 0;
-		dy = Random(2) * 2 - 1;
+		dy = rnd.randint(2) * 2 - 1;
 	} else if (OopWord == "RNDNE")  {
-		dx = Random(2);
+		dx = rnd.randint(2);
 		if (dx == 0) {
 			dy = -1;
 		} else {
@@ -203,7 +203,7 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 	} else if (OopWord == "RNDP")  {
 		OopReadWord(statId, position);
 		OopParseDirection_result = OopParseDirection(statId, position, dy, dx);
-		if (Random(2) == 0) {
+		if (rnd.randint(2) == 0) {
 			dx = -dx;
 		} else {
 			dy = -dy;

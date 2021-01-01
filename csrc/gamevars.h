@@ -4,6 +4,7 @@
 #include "ptoc.h"
 #include "board.h"
 #include <array>
+#include "random.h"
 
 const integer MAX_ELEMENT = 61;               /*E_TEXT_BLINK_WHITE;*/
 const integer MAX_BOARD = 100;
@@ -78,6 +79,8 @@ EXTERN integer PlayerDirX;
 EXTERN integer PlayerDirY;
 EXTERN integer unkVar_0476;
 EXTERN integer unkVar_0478;
+
+EXTERN rng rnd;
 
 EXTERN array<1, 80*25,TCoord> TransitionTable;
 EXTERN TString50 LoadedGameFileName;

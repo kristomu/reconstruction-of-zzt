@@ -128,7 +128,7 @@ void ElementLionTick(integer statId) {
 
 	{
 		TStat & with = Board.Stats[statId];
-		if (with.P1 < Random(10)) {
+		if (with.P1 < rnd.randint(10)) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
 			CalcDirectionSeek(with.X, with.Y, deltaX, deltaY);
@@ -159,7 +159,7 @@ void ElementTigerTick(integer statId) {
 			element = E_STAR;
 		}
 
-		if ((Random(10) * 3) <= (with.P2 % 0x80))  {
+		if ((rnd.randint(10) * 3) <= (with.P2 % 0x80))  {
 			if (Difference(with.X, Board.Stats[0].X) <= 2)  {
 				shot = BoardShoot(element, with.X, with.Y, 0,
 						Signum(Board.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
@@ -183,8 +183,8 @@ void ElementRuffianTick(integer statId) {
 	{
 		TStat & with = Board.Stats[statId];
 		if ((with.StepX == 0) && (with.StepY == 0))  {
-			if ((with.P2 + 8) <= Random(17))  {
-				if (with.P1 >= Random(9)) {
+			if ((with.P2 + 8) <= rnd.randint(17))  {
+				if (with.P1 >= rnd.randint(9)) {
 					CalcDirectionSeek(with.X, with.Y, with.StepX, with.StepY);
 				} else {
 					CalcDirectionRnd(with.StepX, with.StepY);
@@ -192,7 +192,7 @@ void ElementRuffianTick(integer statId) {
 			}
 		} else {
 			if (((with.Y == Board.Stats[0].Y) || (with.X == Board.Stats[0].X))
-				&& (Random(9) <= with.P1))  {
+				&& (rnd.randint(9) <= with.P1))  {
 				CalcDirectionSeek(with.X, with.Y, with.StepX, with.StepY);
 			}
 
@@ -206,7 +206,7 @@ void ElementRuffianTick(integer statId) {
 					BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
 				} else if (ElementDefs[with1.Element].Walkable)  {
 					MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
-					if ((with.P2 + 8) <= Random(17))  {
+					if ((with.P2 + 8) <= rnd.randint(17))  {
 						with.StepX = 0;
 						with.StepY = 0;
 					}
@@ -272,13 +272,13 @@ void ElementCentipedeHeadTick(integer statId) {
 
 	{
 		TStat & with = Board.Stats[statId];
-		if ((with.X == Board.Stats[0].X) && (Random(10) < with.P1))  {
+		if ((with.X == Board.Stats[0].X) && (rnd.randint(10) < with.P1))  {
 			with.StepY = Signum(Board.Stats[0].Y - with.Y);
 			with.StepX = 0;
-		} else if ((with.Y == Board.Stats[0].Y) && (Random(10) < with.P1))  {
+		} else if ((with.Y == Board.Stats[0].Y) && (rnd.randint(10) < with.P1))  {
 			with.StepX = Signum(Board.Stats[0].X - with.X);
 			with.StepY = 0;
-		} else if (((Random(10) * 4) < with.P2) || ((with.StepX == 0)
+		} else if (((rnd.randint(10) * 4) < with.P2) || ((with.StepX == 0)
 				&& (with.StepY == 0)))  {
 			CalcDirectionRnd(with.StepX, with.StepY);
 		}
@@ -290,8 +290,8 @@ void ElementCentipedeHeadTick(integer statId) {
 					E_PLAYER))) {
 			ix = with.StepX;
 			iy = with.StepY;
-			tmp = ((Random(2) * 2) - 1) * with.StepY;
-			with.StepY = ((Random(2) * 2) - 1) * with.StepX;
+			tmp = ((rnd.randint(2) * 2) - 1) * with.StepY;
+			with.StepY = ((rnd.randint(2) * 2) - 1) * with.StepX;
 			with.StepX = tmp;
 			if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
 				&& (! ElementDefs[Board.Tiles[with.X + with.StepX][with.Y +
@@ -544,8 +544,8 @@ void ElementSpinningGunTick(integer statId) {
 			element = E_STAR;
 		}
 
-		if (Random(9) < (with.P2 % 0x80))  {
-			if (Random(9) <= with.P1)  {
+		if (rnd.randint(9) < (with.P2 % 0x80))  {
+			if (rnd.randint(9) <= with.P1)  {
 				if (Difference(with.X, Board.Stats[0].X) <= 2)  {
 					shot = BoardShoot(element, with.X, with.Y, 0,
 							Signum(Board.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
@@ -989,7 +989,7 @@ void ElementSharkTick(integer statId) {
 
 	{
 		TStat & with = Board.Stats[statId];
-		if (with.P1 < Random(10)) {
+		if (with.P1 < rnd.randint(10)) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
 			CalcDirectionSeek(with.X, with.Y, deltaX, deltaY);
@@ -1616,7 +1616,7 @@ void DrawPlayerSurroundings(integer x, integer y, integer bombPhase) {
 
 							if ((with.Element == E_EMPTY) || (with.Element == E_BREAKABLE))  {
 								with.Element = E_BREAKABLE;
-								with.Color = 0x9 + Random(7);
+								with.Color = 0x9 + rnd.randint(7);
 								BoardDrawTile(ix, iy);
 							}
 						} else {
