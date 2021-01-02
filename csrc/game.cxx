@@ -119,8 +119,6 @@ template<typename T, typename Q> void MoveP(T & structureOne,
 
 void BoardClose(boolean showTruncationNote) {
 	World.BoardData[World.Info.CurrentBoard] = Board.dump_and_truncate();
-	World.BoardLen[World.Info.CurrentBoard] =
-		World.BoardData[World.Info.CurrentBoard].size();
 }
 
 /* Set worldIsDamaged to true if the BoardOpen is from a world load and
@@ -171,7 +169,7 @@ void WorldCreate() {
 
 	InitElementsGame();
 	World.BoardCount = 0;
-	World.BoardLen[0] = 0;
+	World.BoardData[0] = std::vector<unsigned char>();
 	InitEditorStatSettings();
 	ResetMessageNotShownFlags();
 	BoardCreate();
@@ -638,7 +636,7 @@ void WorldUnload() {
 	/* no need to show any notices if the world's to be unloaded. */
 	BoardClose(false);
 	for (i = 0; i <= World.BoardCount; i ++) {
-		World.BoardLen[i] = 0;
+		World.BoardData[i] = {};
 	}
 }
 
@@ -789,14 +787,13 @@ boolean WorldLoad(std::string filename, std::string extension) {
 				bool successful_board_read = load_board_from_file(
 						f, is_final_board, World.BoardData[boardId]);
 
-				World.BoardLen[boardId] = World.BoardData[boardId].size();
 				worldIsDamaged |= !successful_board_read;
 
 				// Display IO errors if any occurred during the board read.
 				DisplayIOError();
 
 				// If the board is empty, something went wrong,
-				if (World.BoardLen[boardId] == 0) {
+				if (World.BoardData[boardId].size() == 0) {
 					if (boardId == 0) {
 						WorldUnload();
 						return WorldLoad_result;
@@ -1002,9 +999,6 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 
 	Board.add_stat(tx, ty, element, color, tcycle, template_);
 
-	// Update board size.
-	World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
-
 	if (CoordInsideViewport(tx, ty)) {
 		BoardDrawTile(tx, ty);
 	}
@@ -1016,8 +1010,6 @@ void RemoveStat(integer statId) {
 	if (!Board.remove_stat(statId, x, y)) {
 		return;
 	}
-
-	World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
 
 	if (CoordInsideViewport(x, y)) {
 		BoardDrawTile(x, y);

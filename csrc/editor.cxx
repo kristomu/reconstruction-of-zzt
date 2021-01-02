@@ -52,7 +52,6 @@ void EditorAppendBoard() {
 
 		World.BoardCount = World.BoardCount + 1;
 		World.Info.CurrentBoard = World.BoardCount;
-		World.BoardLen[World.BoardCount] = 0;
 		BoardCreate();
 
 		TransitionDrawToBoard();
@@ -647,11 +646,8 @@ static void EditorTransferBoard() {
 						input_board_file, true,
 						World.BoardData[World.Info.CurrentBoard]);
 
-				World.BoardLen[World.Info.CurrentBoard] =
-					World.BoardData[World.Info.CurrentBoard].size();
-
 				if (DisplayIOError() &&
-					World.BoardLen[World.Info.CurrentBoard] == 0)  {
+					World.BoardData[World.Info.CurrentBoard].size() == 0)  {
 					BoardCreate();
 					EditorDrawRefresh();
 				} else {
@@ -679,10 +675,10 @@ static void EditorTransferBoard() {
 
 				BoardClose(true);
 
-				short board_len = World.BoardLen[i];
+				short board_len = World.BoardData[World.Info.CurrentBoard].size();
 				out_file.write((char *)&board_len, 2);
-				out_file.write((const char *)World.BoardData[i].data(),
-					World.BoardData[i].size());
+				out_file.write((const char *)World.BoardData[World.Info.CurrentBoard].data(),
+					World.BoardData[World.Info.CurrentBoard].size());
 
 				BoardOpen(World.Info.CurrentBoard, false);
 

@@ -206,7 +206,7 @@ int main(int argc, const char* argv[]) {
 			// run a few cycles doing nothing
 			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// play and go right a bunch
-			'P', E_KEY_UP, E_KEY_LEFT, E_KEY_DOWN, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
+			'P', E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
 			// more running cycles doing nothing
 			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// abort pause (??)
