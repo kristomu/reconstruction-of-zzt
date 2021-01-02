@@ -503,6 +503,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	try {
 		ptr = Info.load(ptr, source.end());
 	} catch (const std::runtime_error & e) {
+		adjust_board_stats();
 		return e.what();
 	}
 
@@ -525,6 +526,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 	}
 
 	if (source.end() - ptr < sizeof(StatCount)) {
+		adjust_board_stats();
 		return "Board is truncated after Info";
 	}
 
@@ -552,7 +554,8 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 			// metadata.
 			ptr = Stats[ix].load(ptr, source.end(), false);
 		} catch (const std::runtime_error & e) {
-			return "Stats[" + itos(ix) + "]: " + e.what();
+			update(board_error, "Stats[" + itos(ix) + "]: " + e.what());
+			break;
 		}
 
 		/* SANITY: If the element underneath is unknown, replace it

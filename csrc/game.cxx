@@ -642,8 +642,6 @@ void WorldUnload() {
 	}
 }
 
-boolean WorldLoad(std::string filename, std::string extension);
-
 static integer loadProgress;
 
 static void SidebarAnimateLoading() {
