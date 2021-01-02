@@ -211,8 +211,11 @@ int main(int argc, const char* argv[]) {
 			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
 			// abort pause (??)
 			E_KEY_RIGHT,
-			// quit from play, and quit the game.
-			E_KEY_ESCAPE, 'Y', 'Q', 'Y'});
+			// quit from play, and quit the game. There's some kind of
+			// desynchronization bug that makes the player sometimes go
+			// one step too far, so do enough ESC-Y combinations to be
+			// sure.
+			E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y'});
 
 		GameTitleExitRequested = false;
 		ParseArguments(argc, argv);

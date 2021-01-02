@@ -1572,8 +1572,6 @@ void GameAboutScreen() {
 	TextWindowDisplayFile("ABOUT.HLP", "About ZZT...");
 }
 
-void GamePlayLoop(boolean boardChanged);
-
 static void GameDrawSidebar() {
 	SidebarClear();
 	SidebarClearLine(0);
@@ -1685,17 +1683,16 @@ void GamePlayLoop(boolean boardChanged) {
 	// }
 
 	pauseBlink = true;
-	bool initial_round = true;
 
 	do {
 		if (GamePaused)  {
 			// Only consume one key here instead of sometimes one,
 			// sometimes two. Helps keep the fuzz player synchronized.
-			if (initial_round || SoundHasTimeElapsed(TickTimeCounter, 25)) {
+			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
 				pauseBlink = !pauseBlink;
-				keyboard.update();
-				initial_round = false;
 			}
+
+			keyboard.update();
 
 			// Don't blink an out-of-bounds player.
 			if (pauseBlink && CoordInsideViewport(Board.Stats[0].X,

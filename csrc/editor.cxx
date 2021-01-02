@@ -622,7 +622,7 @@ static void EditorTransferBoard() {
 
 	i = 1;
 	SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
-	std::string full_filename = std::string(SavedBoardFileName + ".BRD");
+	std::string full_filename;
 
 	if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 		if (i == 0)  {
@@ -633,6 +633,7 @@ static void EditorTransferBoard() {
 				PROMPT_ALPHANUM);
 			if ((keyboard.InputKeyPressed != E_KEY_ESCAPE)
 				&& (length(SavedBoardFileName) != 0))  {
+				full_filename = std::string(SavedBoardFileName + ".BRD");
 				std::ifstream input_board_file = OpenForRead(full_filename);
 				if (DisplayIOError()) {
 					goto LTransferEnd;
@@ -668,6 +669,7 @@ static void EditorTransferBoard() {
 				PROMPT_ALPHANUM);
 			if ((keyboard.InputKeyPressed != E_KEY_ESCAPE)
 				&& (length(SavedBoardFileName) != 0))  {
+				full_filename = std::string(SavedBoardFileName + ".BRD");
 				std::ofstream out_file =
 					OpenForWrite(full_filename);
 
