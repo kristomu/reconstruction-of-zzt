@@ -40,32 +40,60 @@ std::vector<unsigned char>::const_iterator TTile::load(
 	return ptr;
 }
 
-// TODO: Don't count the data itself if it exists somewhere else
-// (unless we're the first object???). For now it overestimates the
-// necessary size.
-
-// A better implementation may split away the size counting for stats
-// so that there's a separate object for the contents. That's what DOS
-// ZZT does "in effect", because it only considers sizeof(TStat) to be
-// the literal size, which treats the data piece as a 4-byte pointer.
-// Consider that in greater detail. For now, there'll be errors with
-// stats coming close to the max board limit.
-
-// I'm guessing I'll eventually end up using some kind of associative
-// array or something. Or maybe just as simple as serializing every time
-// AddStat is called to see if we exceed the limit...
-
-size_t TStat::packed_size() const {
-	// If it's a bound object, there's no data here.
+// This does what you expect. my_idx and owner_idx are indices to the
+// object array (e.g. the values that you'd negate when serializing).
+// If my_idx is owner_idx, then data is counted. Otherwise, it's not.
+// If the data is unique and my_idx != owner_idx, it throws an
+// exception. If DataLen < 0, it assumes the data is not unique.
+size_t TStat::packed_size(int my_idx, int owner_idx) const {
 	size_t space_for_data = 0;
+
+	// If it's a bound object, there's no data here.
 	if (DataLen > 0) {
-		space_for_data += DataLen;
+		if (data.unique() && my_idx != owner_idx) {
+			throw std::logic_error(
+				"TStat: my_idx != owner_idx with unique data");
+		}
+		if (data.unique() || my_idx == owner_idx) {
+			space_for_data += DataLen;
+		}
 	}
 
 	return sizeof(X) + sizeof(Y) + sizeof(StepX) + sizeof(StepY) +
 		sizeof(Cycle) + sizeof(P1) + sizeof(P2) + sizeof(P3) +
 		sizeof(Follower) + sizeof(Leader) + Under.packed_size() +
 		4 + sizeof(DataPos) + sizeof(DataLen) + space_for_data + 8;
+}
+
+// Don't count the data itself if it exists somewhere else.
+// This works as long as #BIND is strictly kept from binding to
+// objects on other boards; doing so will make the stat underestimate
+// its size if the resulting world is dumped on a board-by-board basis.
+
+// NOTE: this function will lie when serializing with TBoard::dump().
+// Suppose you have two objects, the latter bound to the former. Then
+// because TBoard::dump() doesn't invalidate pointers before copying,
+// both objects will count as having no data, even though one of them must
+// hold the data. But when used with AddStat and RemoveStat, everything
+// works as intended because they always concern themselves with the
+// object that's being added or removed, hence "marginal".
+
+size_t TStat::marginal_packed_size() const {
+	// If the data is unique, we're the owner by definition.
+	if (DataLen > 0 && data.unique()) {
+		return packed_size(-1, -1);
+	}
+
+	// On the margin, we're never the owner of a non-unique
+	// data chunk.
+	return packed_size(-1, -2);
+}
+
+// Always counts the data, e.g. if you're using a template that has
+// non-unique data but you know you're going to do a deep copy and
+// want to check if it'll fit before actually doing that copy.
+size_t TStat::upper_bound_packed_size() const {
+	return packed_size(-1, -1);
 }
 
 void TStat::dump(std::vector<unsigned char> & out) const {
@@ -95,7 +123,7 @@ std::vector<unsigned char>::const_iterator TStat::load(
 
 	std::vector<unsigned char>::const_iterator start_ptr = ptr;
 
-	if (end - start_ptr < packed_size()) {
+	if (end - start_ptr < marginal_packed_size()) {
 		throw std::runtime_error("Insufficient data to load TStat");
 	}
 
@@ -121,7 +149,7 @@ std::vector<unsigned char>::const_iterator TStat::load(
 	// TODO? signal error somehow? this is off-spec and should be
 	// "rewarded" with a dialog box.
 
-	if (end - start_ptr < packed_size()) {
+	if (end - start_ptr < marginal_packed_size()) {
 		DataLen = end - ptr;
 	}
 
@@ -134,7 +162,7 @@ std::vector<unsigned char>::const_iterator TStat::load(
 		std::copy(ptr, ptr + DataLen, data.get());
 
 		ptr += DataLen;
-		assert(ptr - start_ptr == packed_size());
+		assert(ptr - start_ptr == marginal_packed_size());
 	} else {
 		data = NULL;
 	}
@@ -198,8 +226,8 @@ void TBoard::adjust_board_stats() {
 
 	/* SANITY: Process referential DataLen variables. */
 
-	for (ix = 0; ix <= Board.StatCount; ix ++) {
-		TStat & with = Board.Stats[ix];
+	for (ix = 0; ix <= StatCount; ix ++) {
+		TStat & with = Stats[ix];
 		/* Deal with aliased objects. The two problems we can get are
 		   objects pointing to objects that themselves point to other
 		   objects; and objects pointing to objects that don't exist. */
@@ -217,15 +245,15 @@ void TBoard::adjust_board_stats() {
 			   object point to the player, the reference DataLen would be
 			   -0, which is the same as 0, and thus can't be detected as
 			   a reference to begin with. */
-			if ((ix == 0) || (-with.DataLen > Board.StatCount) ||
-				(Board.Stats[-with.DataLen].DataLen < 0)) {
+			if ((ix == 0) || (-with.DataLen > StatCount) ||
+				(Stats[-with.DataLen].DataLen < 0)) {
 				with.DataLen = 0;
 			}
 
 			// Dereference aliases
 			if (with.DataLen < 0)  {
-				with.data = Board.Stats[-with.DataLen].data;
-				with.DataLen = Board.Stats[-with.DataLen].DataLen;
+				with.data = Stats[-with.DataLen].data;
+				with.DataLen = Stats[-with.DataLen].DataLen;
 			}
 
 			// If it's still aliased (DataLen < 0), then we have a chain
@@ -242,12 +270,12 @@ void TBoard::adjust_board_stats() {
 	   range of the board area, and clamping these values helps
 	   avoid a ton of over/underflow problems whose fixes would
 	   otherwise clutter up the code... */
-	for (ix = 0; ix <= Board.StatCount; ix ++) {
-		TStat & with = Board.Stats[ix];
-		if (with.Follower > Board.StatCount) {
+	for (ix = 0; ix <= StatCount; ix ++) {
+		TStat & with = Stats[ix];
+		if (with.Follower > StatCount) {
 			with.Follower = 0;
 		}
-		if (with.Leader > Board.StatCount)	{
+		if (with.Leader > StatCount)	{
 			with.Leader = 0;
 		}
 
@@ -269,10 +297,10 @@ void TBoard::adjust_board_stats() {
 	/* SANITY: If there's neither a player nor a monitor at the position
 	   indicated by stats 0, place a player there to keep the invariant
 	   that one should always exist on every board. */
-	TStat & with = Board.Stats[0];
-	if ((Board.Tiles[with.X][with.Y].Element != E_PLAYER) &&
-		(Board.Tiles[with.X][with.Y].Element != E_MONITOR)) {
-		Board.Tiles[with.X][with.Y].Element = E_PLAYER;
+	TStat & with = Stats[0];
+	if ((Tiles[with.X][with.Y].Element != E_PLAYER) &&
+		(Tiles[with.X][with.Y].Element != E_MONITOR)) {
+		Tiles[with.X][with.Y].Element = E_PLAYER;
 	}
 }
 
@@ -303,20 +331,20 @@ void TBoard::create() {
 	// the player).
 
 	for (ix = 0; ix <= BOARD_WIDTH+1; ix ++) {
-		if (Board.Tiles[ix][0].Element != E_PLAYER) {
-			Board.Tiles[ix][0] = TileBoardEdge;
+		if (Tiles[ix][0].Element != E_PLAYER) {
+			Tiles[ix][0] = TileBoardEdge;
 		}
-		if (Board.Tiles[ix][BOARD_HEIGHT+1].Element != E_PLAYER) {
-			Board.Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
+		if (Tiles[ix][BOARD_HEIGHT+1].Element != E_PLAYER) {
+			Tiles[ix][BOARD_HEIGHT+1] = TileBoardEdge;
 		}
 	}
 
 	for (iy = 0; iy <= BOARD_HEIGHT+1; iy ++) {
-		if (Board.Tiles[0][iy].Element != E_PLAYER) {
-			Board.Tiles[0][iy] = TileBoardEdge;
+		if (Tiles[0][iy].Element != E_PLAYER) {
+			Tiles[0][iy] = TileBoardEdge;
 		}
-		if (Board.Tiles[BOARD_WIDTH+1][iy].Element != E_PLAYER) {
-			Board.Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
+		if (Tiles[BOARD_WIDTH+1][iy].Element != E_PLAYER) {
+			Tiles[BOARD_WIDTH+1][iy] = TileBoardEdge;
 		}
 	}
 
@@ -474,7 +502,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		Do the best we can, then exit with an error. */
 	try {
 		ptr = Info.load(ptr, source.end());
-	} catch (const std::exception & e) {
+	} catch (const std::runtime_error & e) {
 		return e.what();
 	}
 
@@ -511,7 +539,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 		with.DataLen = 0;
 
 		/* SANITY: Handle too few stats items for the stats count. */
-		if (source.end() - ptr < with.packed_size()) {
+		if (source.end() - ptr < with.marginal_packed_size()) {
 			StatCount = std::max(ix - 1, 0);
 			update(board_error,
 				"StatCount claims more stats than there is data");
@@ -523,7 +551,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 			// since we want to be more careful about believing its
 			// metadata.
 			ptr = Stats[ix].load(ptr, source.end(), false);
-		} catch (const std::exception & e) {
+		} catch (const std::runtime_error & e) {
 			return "Stats[" + itos(ix) + "]: " + e.what();
 		}
 
@@ -549,16 +577,8 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 			So if the stat is at (0,0) or another unavailable position, put
 			it into (1,1). */
 
-		// For now, don't fix this error since the "Lab 5" board of TOWN.ZZT
-		// exhibits it and TOWN shouldn't be considered corrupted. So we
-		// can't signal corruption here. But then fixing the bug would
-		// violate the invariant that Board.dump(load(x)) == x whenever
-		// there's no error reported. TODO: Find out how to deal with this
-		// conundrum. The invariant might be too strong, e.g. input ZZT
-		// boards with random junk in the padding - should that random junk
-		// be reproduced on output?
-
-		// I'm breaking the invariant.
+		// Fix the error quietly because TOWN.ZZT's Lab 5 board has it -
+		// and we don't want to throw an error on the included world.
 
 		if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
@@ -662,6 +682,14 @@ std::vector<unsigned char> TBoard::dump() const {
 	return out;
 }
 
+size_t TBoard::get_packed_size() const {
+	if (cached_packed_size == -1) {
+		cached_packed_size = dump().size();
+	}
+
+	return cached_packed_size;
+}
+
 std::vector<unsigned char> TBoard::dump_and_truncate(
 	std::string & out_load_error) {
 
@@ -693,4 +721,132 @@ std::vector<unsigned char> TBoard::dump_and_truncate(
 std::vector<unsigned char> TBoard::dump_and_truncate() {
 	std::string throwaway;
 	return (dump_and_truncate(throwaway));
+}
+
+bool TBoard::add_stat(size_t x, size_t y, element_t element,
+	unsigned char color, short cycle, TStat stat_template) {
+
+	/* First of all: check if we have space. If not, no can do! */
+	if (get_packed_size() + stat_template.upper_bound_packed_size() >
+		MAX_BOARD_LEN) {
+		return false;
+	}
+
+	/* Can't put anything on top of the player. */
+	if (x == Stats[0].X && y == Stats[0].Y) {
+		return false;
+	}
+
+	/* ... or out of bounds. */
+	if (!valid_coord(x, y)) {
+		return false;
+	}
+
+	// Can't make more than MAX_STAT stats.
+	if (StatCount >= MAX_STAT) {
+		return false;
+	}
+
+	++StatCount;
+	Stats[StatCount] = stat_template;
+
+	Stats[StatCount].X = x;
+	Stats[StatCount].Y = y;
+	Stats[StatCount].Cycle = cycle;
+	Stats[StatCount].Under = Tiles[x][y];
+	Stats[StatCount].DataPos = 0;
+
+	// Copy the data.
+	if (stat_template.DataLen > 0) {
+		Stats[StatCount].data = std::shared_ptr<unsigned char[]>(
+				new unsigned char[stat_template.DataLen]);
+
+		std::copy(stat_template.data.get(),
+			stat_template.data.get() + stat_template.DataLen,
+			Stats[StatCount].data.get());
+	}
+
+	if (ElementDefs[Tiles[x][y].Element].PlaceableOnTop) {
+		Tiles[x][y].Color = (color & 0xf) + (Tiles[x][y].Color & 0x70);
+	} else {
+		Tiles[x][y].Color = color;
+	}
+
+	Tiles[x][y].Element = element;
+
+	// Update board size.
+	if (cached_packed_size != -1) {
+		cached_packed_size += Stats[StatCount].marginal_packed_size();
+	}
+
+	return true;
+}
+
+bool TBoard::remove_stat(int statId, int & out_x, int & out_y) {
+	size_t i;
+
+	if (statId > MAX_STAT) {
+		throw std::logic_error(
+			"Trying to remove statId greater than MAX_STAT");
+	}
+	if (statId == -1) {
+		throw std::logic_error(
+			"Trying to remove noexisting stat (-1)");
+	}
+	if (statId == 0) {	// Can't remove the player.
+		return false;
+	}
+	if (statId > StatCount) {
+		return false;    /* Already removed. */
+	}
+
+	// Update board size and output parameters.
+	if (cached_packed_size != -1) {
+		cached_packed_size -= Stats[statId].marginal_packed_size();
+	}
+
+	out_x = Stats[statId].X;
+	out_y = Stats[statId].Y;
+
+	TStat & with = Stats[statId];
+
+	if (statId < CurrentStatTicked) {
+		CurrentStatTicked = CurrentStatTicked - 1;
+	}
+
+	/* Don't remove the player if he's at the old position. This can
+	   happen with multiple stats with the same coordinate. */
+	if ((with.X != Stats[0].X) || (with.Y != Stats[0].Y)) {
+		Tiles[with.X][with.Y] = with.Under;
+	}
+
+	// Update leaders and followers.
+	for (i = 1; i <= StatCount; i ++) {
+		if (Stats[i].Follower >= statId)  {
+			if (Stats[i].Follower == statId) {
+				Stats[i].Follower = -1;
+			} else {
+				Stats[i].Follower = Stats[i].Follower - 1;
+			}
+		}
+
+		if (Stats[i].Leader >= statId)  {
+			if (Stats[i].Leader == statId) {
+				Stats[i].Leader = -1;
+			} else {
+				Stats[i].Leader = Stats[i].Leader - 1;
+			}
+		}
+	}
+
+	// Clear the stat and deallocate data.
+	Stats[statId] = TStat();
+
+	// Shift every stat with a greater index one down.
+	for (i = statId + 1; i <= StatCount; ++i) {
+		Stats[i - 1] = Stats[i];
+	}
+	StatCount = StatCount - 1;
+
+	return true;
 }

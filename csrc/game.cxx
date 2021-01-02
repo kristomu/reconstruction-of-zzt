@@ -997,48 +997,12 @@ void CopyStatDataToTextWindow(integer statId,
 void AddStat(integer tx, integer ty, byte element, integer color,
 	integer tcycle, TStat template_) {
 	/* First of all: check if we have space. If not, no can do! */
-	if (Board.get_packed_size() + template_.packed_size() > MAX_BOARD_LEN) {
+	if (Board.get_packed_size() + template_.upper_bound_packed_size() >
+		MAX_BOARD_LEN) {
 		return;
 	}
 
-	/* Can't put anything on top of the player. */
-	if ((tx == Board.Stats[0].X) && (ty == Board.Stats[0].Y)) {
-		return;
-	}
-
-	// Can't make more than MAX_STAT stats.
-	if (Board.StatCount >= MAX_STAT) {
-		return;
-	}
-
-	Board.StatCount = Board.StatCount + 1;
-	Board.Stats[Board.StatCount] = template_;
-
-	TStat * new_stat = &Board.Stats[Board.StatCount];
-
-	new_stat->X = tx;
-	new_stat->Y = ty;
-	new_stat->Cycle = tcycle;
-	new_stat->Under = Board.Tiles[tx][ty];
-	new_stat->DataPos = 0;
-
-	// AddStat always does a deep copy.
-	if (template_.DataLen > 0) {
-		new_stat->data = std::shared_ptr<unsigned char[]>(
-				new unsigned char[template_.DataLen]);
-
-		std::copy(template_.data.get(),
-			template_.data.get() + template_.DataLen,
-			new_stat->data.get());
-	}
-
-	if (ElementDefs[Board.Tiles[tx][ty].Element].PlaceableOnTop)
-		Board.Tiles[tx][ty].Color = (color & 0xf) + (Board.Tiles[tx][ty].Color
-				& 0x70);
-	else {
-		Board.Tiles[tx][ty].Color = color;
-	}
-	Board.Tiles[tx][ty].Element = element;
+	Board.add_stat(tx, ty, element, color, tcycle, template_);
 
 	// Update board size.
 	World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
@@ -1049,70 +1013,17 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 }
 
 void RemoveStat(integer statId) {
-	integer i;
+	int x, y;
 
-	if (statId > MAX_STAT) {
-		throw std::logic_error("Trying to remove statId greater than MAX_STAT");
-	}
-	if (statId == -1) {
-		throw std::logic_error("Trying to remove noexisting stat (-1)");
-	}
-	if (statId == 0) {	// Can't remove the player.
+	if (!Board.remove_stat(statId, x, y)) {
 		return;
 	}
-	if (statId > Board.StatCount) {
-		return;    /* Already removed. */
+
+	World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
+
+	if (CoordInsideViewport(x, y)) {
+		BoardDrawTile(x, y);
 	}
-
-
-	Board.Stats[statId].data = NULL;	// deallocates if necessary
-
-	TStat & with = Board.Stats[statId];
-
-	if (statId < CurrentStatTicked) {
-		CurrentStatTicked = CurrentStatTicked - 1;
-	}
-
-	/* Don't remove the player if he's at the old position. This can
-	   happen with multiple stats with the same coordinate. */
-	if ((with.X != Board.Stats[0].X) || (with.Y != Board.Stats[0].Y)) {
-		Board.Tiles[with.X][with.Y] = with.Under;
-	}
-
-	if (CoordInsideViewport(with.X, with.Y)) {
-		BoardDrawTile(with.X, with.Y);
-	}
-
-	for (i = 1; i <= Board.StatCount; i ++) {
-		if (Board.Stats[i].Follower >= statId)  {
-			if (Board.Stats[i].Follower == statId) {
-				Board.Stats[i].Follower = -1;
-			} else {
-				Board.Stats[i].Follower = Board.Stats[i].Follower - 1;
-			}
-		}
-
-		if (Board.Stats[i].Leader >= statId)  {
-			if (Board.Stats[i].Leader == statId) {
-				Board.Stats[i].Leader = -1;
-			} else {
-				Board.Stats[i].Leader = Board.Stats[i].Leader - 1;
-			}
-		}
-	}
-
-	Board.Stats[statId] = StatTemplateDefault;
-	for (i = (statId + 1); i <= Board.StatCount; i ++) {
-		Board.Stats[i - 1] = Board.Stats[i];
-	}
-	Board.StatCount = Board.StatCount - 1;
-
-	// Update board size.
-	// NOTE: For now, this just slows everything down, so I've commented
-	// it out. We don't really *need* to know the packed board size when
-	// removing something, only when adding that something. And AddStat
-	// does that at the moment.
-	// World.BoardLen[World.Info.CurrentBoard] = Board.get_packed_size();
 }
 
 integer GetStatIdAt(integer x, integer y) {

@@ -57,7 +57,11 @@ class TStat {
 		short DataPos;
 		short DataLen;
 		std::shared_ptr<unsigned char[]> data;
-		size_t packed_size() const;
+
+		size_t packed_size(int my_idx, int owner_idx) const;
+		size_t marginal_packed_size() const;
+		size_t upper_bound_packed_size() const;
+
 		void dump(std::vector<unsigned char> & out) const;
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
@@ -101,6 +105,13 @@ class TBoard {
 	private:
 		void adjust_board_stats();
 
+		// Cached_packed_size starts off as -1 when we don't know what
+		// the packed size is. Any call to get_packed_size() will set it
+		// through dump() in that case. Note that it may also be wrong due
+		// to RLE shenanigans, like what RLEFLOW.ZZT exploits.
+		// (TODO: Fix later.)
+		mutable size_t cached_packed_size = -1;
+
 	public:
 		std::string Name;
 		matrix<0, BOARD_WIDTH + 1,0, BOARD_HEIGHT + 1,TTile> Tiles;
@@ -117,9 +128,7 @@ class TBoard {
 		// board itself.
 		std::vector<unsigned char> dump() const;
 
-		bool get_packed_size() const {
-			return dump().size();
-		}
+		size_t get_packed_size() const;
 
 		// Dump in a way that respects MAX_BOARD_LEN
 		std::vector<unsigned char> dump_and_truncate(
@@ -130,4 +139,13 @@ class TBoard {
 		std::string load(const std::vector<unsigned char> & source,
 			int board_num, int number_of_boards);
 		std::string load(const std::vector<unsigned char> & source);
+
+		// Add item with stats, copying data if required. Returns true
+		// if the addition was done, false otherwise.
+		bool add_stat(size_t x, size_t y, element_t element,
+			unsigned char color, short cycle, TStat stat_template);
+
+		// Remove an item with stats. out_x and out_y will be set
+		// to the coordinates where it resided. (Is that too hacky?)
+		bool remove_stat(int stat_id, int & out_x, int & out_y);
 };
