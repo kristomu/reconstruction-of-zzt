@@ -41,6 +41,8 @@
 #include "video.h"
 #include "hardware.h"
 
+#include <algorithm>
+
 string UpCaseString(string input) {
 	integer i;
 
@@ -109,78 +111,83 @@ void TextWindowDrawClose(TTextWindowState & state) {
 	}
 }
 
-void TextWindowDrawLine(TTextWindowState & state, integer lpos,
+void TextWindowDrawLine(TTextWindowState & state, short lpos,
 	boolean withoutFormatting, boolean viewingFile) {
-	integer lineY;
-	integer textOffset, textColor, textX;
-	integer displayLineLength;
+	short lineY;
+	short text_offset, textColor, textX;
+	short displayLineLength;
 
-	{
-		lineY = ((TextWindowY + lpos) - state.LinePos) + (TextWindowHeight / 2) +
-			1;
-		if (lpos == state.LinePos) {
-			video.write(TextWindowX + 2, lineY, 0x1c, text_window_str_inner_arrows);
+	lineY = ((TextWindowY + lpos) - state.LinePos) +
+		(TextWindowHeight / 2) + 1;
+
+	if (lpos == state.LinePos) {
+		video.write(TextWindowX + 2, lineY, 0x1c,
+			text_window_str_inner_arrows);
+	} else {
+		video.write(TextWindowX + 2, lineY, 0x1e,
+			text_window_str_inner_empty);
+	}
+
+	if (lpos > 0 && lpos <= state.LineCount)  {
+		std::string here = state.Lines[lpos]->str();
+
+		if (withoutFormatting)  {
+			video.write(TextWindowX + 4, lineY, 0x1e, here);
 		} else {
-			video.write(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_empty);
-		}
-		if ((lpos > 0) && (lpos <= state.LineCount))  {
-			if (withoutFormatting)  {
-				video.write(TextWindowX + 4, lineY, 0x1e, *state.Lines[lpos]);
-			} else {
-				textOffset = 1;
-				textColor = 0x1e;
-				textX = TextWindowX + 4;
-				displayLineLength = 0;
-				if (length(*state.Lines[lpos]) > 0)  {
-					/* IMP: Determine how many characters we can show
-					without making the line too long in the text box. */
-					displayLineLength = std::min(TextWindowWidth - 8,
-							length(*state.Lines[lpos]) - textOffset + 1);
-					switch ((*state.Lines[lpos])[1]) {
-						case '!': {
-							textOffset = pos(";", *state.Lines[lpos]) + 1;
-							video.write(textX + 2, lineY, 0x1d, "\20");
-							textX = textX + 5;
-							textColor = 0x1f;
+			text_offset = 0;
+			textColor = 0x1e;
+			textX = TextWindowX + 4;
+			displayLineLength = 0;
+			if (length(*state.Lines[lpos]) > 0)  {
+				/* IMP: Determine how many characters we can show
+				without making the line too long in the text box. */
+				displayLineLength = std::min((size_t)TextWindowWidth - 8,
+						here.size() - text_offset + 2);
 
-							displayLineLength = std::min(TextWindowWidth - 8,
-									length(*state.Lines[lpos]) - textOffset + 1);
-						}
-						break;
-						case ':': {
-							textOffset = pos(";", *state.Lines[lpos]) + 1;
-							textColor = 0x1f;
-							displayLineLength = std::min(TextWindowWidth - 8,
-									length(*state.Lines[lpos]) - textOffset + 1);
-						}
-						break;
-						case '$': {
-							textOffset = 2;
-							textColor = 0x1f;
-							displayLineLength = std::min(TextWindowWidth - 8,
-									length(*state.Lines[lpos]) - textOffset + 1);
+				switch ((*state.Lines[lpos])[1]) {
+					case '!': {
+						text_offset = string_pos(";", here) + 1;
+						video.write(textX + 2, lineY, 0x1d, "\20");
+						textX = textX + 5;
+						textColor = 0x1f;
 
-							textX = (textX - 4) + ((TextWindowWidth - displayLineLength) / 2);
-						}
-						break;
+						displayLineLength = std::min((size_t)TextWindowWidth - 8,
+								here.size() - text_offset + 1);
 					}
-				}
-				if (textOffset > 0)  {
-					video.write(textX, lineY, textColor,
-						copy(*state.Lines[lpos], textOffset, displayLineLength));
+					break;
+					case ':': {
+						text_offset = string_pos(";", here) + 1;
+						textColor = 0x1f;
+						displayLineLength = std::min((size_t)TextWindowWidth - 8,
+								here.size() - text_offset + 1);
+					}
+					break;
+					case '$': {
+						text_offset = 1;
+						textColor = 0x1f;
+						displayLineLength = std::min((size_t)TextWindowWidth - 8,
+								here.size() - text_offset + 1);
+
+						textX = (textX - 4) + ((TextWindowWidth - displayLineLength + 1) / 2);
+					}
+					break;
 				}
 			}
-		} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
-			video.write(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_sep);
-		} else if ((lpos == -4) && viewingFile)  {
-			video.write(TextWindowX + 2, lineY, 0x1a,
-				"   Use            to view text,");
-			video.write(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
-		} else if ((lpos == -3) && viewingFile)  {
-			video.write(TextWindowX + 2 + 1, lineY, 0x1a,
-				"                 to print.");
-			video.write(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
+			if (text_offset >= 0)  {
+				video.write(textX, lineY, textColor,
+					here.substr(text_offset));
+			}
 		}
+	} else if ((lpos == 0) || (lpos == (state.LineCount + 1)))  {
+		video.write(TextWindowX + 2, lineY, 0x1e, text_window_str_inner_sep);
+	} else if ((lpos == -4) && viewingFile)  {
+		video.write(TextWindowX + 2, lineY, 0x1a,
+			"   Use            to view text,");
+		video.write(TextWindowX + 2 + 7, lineY, 0x1f, "\30 \31, Enter");
+	} else if ((lpos == -3) && viewingFile)  {
+		video.write(TextWindowX + 2 + 1, lineY, 0x1a,
+			"                 to print.");
+		video.write(TextWindowX + 2 + 12, lineY, 0x1f, "Alt-P");
 	}
 }
 
@@ -216,7 +223,7 @@ void TextWindowFree(TTextWindowState & state) {
 
 void TextWindowPrint(TTextWindowState & state) {
 	integer iLine, iChar;
-	string line;
+	std::string line;
 
 	std::ofstream printout = OpenForWrite("PRINTOUT.DAT");
 	if (errno != 0) {
@@ -224,27 +231,25 @@ void TextWindowPrint(TTextWindowState & state) {
 	}
 
 	for (iLine = 1; iLine <= state.LineCount; iLine ++) {
-		line = *state.Lines[iLine];
-		if (length(line) > 0)  {
-			switch (line[1]) {
+		line = state.Lines[iLine]->str();
+		if (line.size() > 0)  {
+			switch (line[0]) {
 				case '$': {
-					Delete(line, 1, 1);
-					for (iChar = ((80 - length(line)) / 2); iChar >= 1; iChar --) {
-						line = string(' ') + line;
-					}
+					line = line.substr(1);
+					line = std::string(' ', (80 - line.size()) / 2) + line;
 				}
 				break;
 				case '!': case ':': {
-					iChar = pos(";", line);
+					iChar = string_pos(";", line);
 					if (iChar > 0) {
-						Delete(line, 1, iChar);
+						line = line.substr(iChar+1);
 					} else {
 						line = "";
 					}
 				}
 				break;
 				default:
-					line = string("          ") + line;
+					line = "          " + line;
 			}
 		}
 		printout << line << "\n";
@@ -290,7 +295,7 @@ void TextWindowSelect(TTextWindowState & state, boolean hyperlinkAsSelect,
 				if (pointerStr[1] == '-')  {
 					Delete(pointerStr, 1, 1);
 					TextWindowFree(state);
-					TextWindowOpenFile(pointerStr.body, state);
+					TextWindowOpenFile(pointerStr.str(), state);
 					if (state.LineCount == 0) {
 						return;
 					} else {
@@ -365,73 +370,13 @@ LLabelMatched:
 	}
 }
 
-void TextWindowSort(TTextWindowState & state);
-
-
-static void Swap(TTextWindowLine* & a, TTextWindowLine* & b) {
-	TTextWindowLine* c;
-
-	c = a;
-	a = b;
-	b = c;
-}
-
-
-
-/* Returns the location of the pivot after separating. */
-static integer Partition(TTextWindowState & state, integer low,
-	integer high) {
-	TTextWindowLine* pivot;
-	integer i, j;
-
-	/* Choose a random pivot. A cannae be bothered to do anything
-	  faster/more sophisticated. */
-	integer Partition_result;
-	pivot = state.Lines[rnd.randint(high-low) + low];
-	i = low;
-	j = high;
-
-	do {
-		while (*state.Lines[i] < *pivot) {
-			i += 1;
-		}
-		while (*state.Lines[j] > *pivot) {
-			j -= 1;
-		}
-
-		if (i <= j)  {
-			Swap(state.Lines[i], state.Lines[j]);
-
-			i += 1;
-			j -= 1;
-		}
-	} while (!(i > j));
-
-	Partition_result = i;
-	return Partition_result;
-}
-
-
-static void Quicksort(TTextWindowState & state, integer low,
-	integer high) {
-	integer pivotPt;
-
-	if (low < high)  {
-		pivotPt = Partition(state, low, high);
-		Quicksort(state, low, pivotPt-1);
-		Quicksort(state, pivotPt, high);
-	}
-}
-
 void TextWindowSort(TTextWindowState & state) {
-	integer i, j;
-	integer smallestIdx;
-
-
-	Quicksort(state, 1, state.LineCount);
+	std::sort(state.Lines.begin() + 1,
+		state.Lines.begin() + state.LineCount + 1,
+	[](TTextWindowLine * a, TTextWindowLine * b) {
+		return *a < *b;
+	});
 }
-
-void TextWindowEdit(TTextWindowState & state);
 
 static integer newLinePos;
 
@@ -762,7 +707,7 @@ void TextWindowSaveFile(TTextWindowLine filename,
 	TTextWindowState & state) {
 	integer i;
 
-	std::ofstream f = OpenForWrite(filename.body);
+	std::ofstream f = OpenForWrite(filename.str());
 	if (errno != 0) {
 		return;
 	}

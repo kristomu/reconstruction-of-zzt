@@ -22,6 +22,16 @@ std::string str_toupper(std::string s) {
 	return s;
 }
 
+size_t string_pos(const std::string needle, const std::string haystack) {
+	size_t h_pos = haystack.find(needle);
+
+	if (h_pos == std::string::npos) {
+		return 0;
+	}
+
+	return h_pos;
+}
+
 void update(std::string & to_update, std::string update_with) {
 	if (to_update == "") {
 		to_update = update_with;

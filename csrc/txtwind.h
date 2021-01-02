@@ -11,7 +11,7 @@ struct TTextWindowState {
 	boolean Selectable;
 	integer LineCount;
 	integer LinePos;
-	array<1, MAX_TEXT_WINDOW_LINES,TTextWindowLine*> Lines;
+	std::array<TTextWindowLine *, MAX_TEXT_WINDOW_LINES+1> Lines;
 	string Hyperlink;
 	TTextWindowLine Title;
 	string LoadedFilename;

@@ -3,6 +3,7 @@
 #include "ptoc.h"
 
 #ifdef __cplusplus
+#include <string>
 
 extern "C" char* lpsz(int low, int high, const char* ptr);
 
@@ -459,7 +460,7 @@ class varying_string : public varying_string_header {
 		STRING_FETCH_OPERATOR(unsigned, const);
 #undef STRING_FETCH_OPERTATOR
 
-		operator char const*() const {
+		const char * occ() const {
 			size_t len = length();
 			if (len < max_size) {
 				*((char*)body + len) = '\0';
@@ -467,6 +468,10 @@ class varying_string : public varying_string_header {
 			} else {
 				return lpsz(1, len, body);
 			}
+		}
+
+		operator char const*() const {
+			return occ();
 		}
 
 		void operator = (const char* str) {
@@ -477,6 +482,11 @@ class varying_string : public varying_string_header {
 			memcpy(body, str, len);
 			set_length(len);
 		}
+
+		std::string str() const {
+			return occ();
+		}
+
 		void operator = (char elem) {
 			body[0] = elem;
 			set_length(1);
