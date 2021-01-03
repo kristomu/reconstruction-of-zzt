@@ -22,6 +22,17 @@ void TTile::dump(std::vector<unsigned char> & out) const {
 	append_lsb_element(Color, out);
 }
 
+std::string TTile::dump_to_readable(int num_indents) const {
+	std::string out;
+
+	std::string indent(num_indents, '\t');
+
+	out += indent + "Element: " + ElementDefs[Element].Name + "\n";
+	out += indent + "Color: " + itos(Color) + "\n";
+
+	return out;
+}
+
 std::vector<unsigned char>::const_iterator TTile::load(
 	std::vector<unsigned char>::const_iterator ptr,
 	const std::vector<unsigned char>::const_iterator end) {
@@ -116,6 +127,43 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 	}
 }
 
+std::string TStat::dump_to_readable(int num_indents,
+	bool literal_data) const {
+
+	std::string out, indent(num_indents, '\t');
+
+	out += indent + "X: " + itos(X) + "\n";
+	out += indent + "Y: " + itos(Y) + "\n";
+	out += indent + "StepX: " + itos(StepX) + "\n";
+	out += indent + "StepY: " + itos(StepY) + "\n";
+	out += indent + "StepY: " + itos(StepY) + "\n";
+	out += indent + "P1: " + itos(P1) + "\n";
+	out += indent + "P2: " + itos(P2) + "\n";
+	out += indent + "P3: " + itos(P3) + "\n";
+	out += indent + "Follower: " + itos(Follower) + "\n";
+	out += indent + "Leader: " + itos(Leader) + "\n";
+	out += indent + "Under: " + itos(Leader) + "\n" +
+		Under.dump_to_readable(num_indents + 1);
+	out += indent + "DataLen: " + itos(DataLen) + "\n";
+	if (DataLen < 0 || !data) {
+		return out;
+	}
+	out += indent + "Data reference count: " + itos(data.use_count()) + "\n";
+	out += indent + "Data:";
+	if (literal_data) {
+		out += " ";
+		std::copy(data.get(), data.get() + DataLen,
+			std::back_inserter<std::string>(out));
+	} else {
+		for (size_t i = 0; i < DataLen; ++i) {
+			out += " " + str_toupper(itos_hex(data[i], 2));
+		}
+	}
+	out += "\n";
+
+	return out;
+}
+
 std::vector<unsigned char>::const_iterator TStat::load(
 	std::vector<unsigned char>::const_iterator ptr,
 	const std::vector<unsigned char>::const_iterator end,
@@ -189,6 +237,26 @@ void TBoardInfo::dump(std::vector<unsigned char> & out) const {
 	append_lsb_element(StartPlayerY, out);
 	append_lsb_element(TimeLimitSec, out);
 	append_zeroes(16, out);
+}
+
+std::string TBoardInfo::dump_to_readable(int num_indents) const {
+
+	std::string out, indent(num_indents, '\t');
+
+	out += indent + "Max shots: " + itos(MaxShots) + "\n";
+	out += indent + "Is dark: " + yes_no(IsDark) + "\n";
+	for (size_t i = 0; i < NeighborBoards.size(); ++i) {
+		out += indent + "Neighbor board " + itos(i) + ": " +
+			itos(NeighborBoards[i]) + "\n";
+	}
+	out += indent + "Reenter when zapped: " +
+		yes_no(ReenterWhenZapped) + "\n";
+	out += indent + "Message: " + Message + "\n";
+	out += indent + "Player starting X: " + itos(StartPlayerX) + "\n";
+	out += indent + "Player starting Y: " + itos(StartPlayerY) + "\n";
+	out += indent + "Time limit (secs): " + itos(TimeLimitSec) + "\n";
+
+	return out;
 }
 
 std::vector<unsigned char>::const_iterator TBoardInfo::load(
@@ -473,7 +541,7 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 			rle.Tile.Color = *ptr++;
 
 			if (rle.Count == 0)  {
-				detected_zero_RLE = true;
+				update(board_error, "Zero RLE count detected");
 				continue;
 			}
 		}
@@ -613,10 +681,6 @@ std::string TBoard::load(const std::vector<unsigned char> & source,
 
 	adjust_board_stats();
 
-	if (detected_zero_RLE) {
-		return "Zero RLE count detected";
-	}
-
 	return board_error;
 }
 
@@ -680,6 +744,29 @@ std::vector<unsigned char> TBoard::dump() const {
 		}
 
 		stat_to_dump.dump(out);
+	}
+
+	return out;
+}
+
+std::string TBoard::dump_to_readable(int num_indents) const {
+	std::string out, indent(num_indents, '\t');
+
+	out += indent + "Board name: " + Name + "\n";
+	out += indent + "Uncompressed tiles dump: " + "\n";
+	for (int iy = 1; iy <= BOARD_HEIGHT; ++iy) {
+		for (int ix = 1; ix <= BOARD_WIDTH; ++ix) {
+			out += indent + "\t(" + itos(ix) + ", " + itos(iy) + ")\n";
+			out += Tiles[ix][iy].dump_to_readable(num_indents+2);
+		}
+	}
+
+	out += Info.dump_to_readable(num_indents+1);
+
+	out += indent + "Number of stats: " + itos(StatCount) + "\n";
+	for (int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
+		out += indent + "\tStat number " + itos(stat_idx) + ":\n";
+		out += Stats[stat_idx].dump_to_readable(num_indents+2, false);
 	}
 
 	return out;

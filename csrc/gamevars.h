@@ -6,7 +6,6 @@
 #include <array>
 #include "random.h"
 
-const integer MAX_ELEMENT = 61;               /*E_TEXT_BLINK_WHITE;*/
 const integer MAX_BOARD = 100;
 const integer HIGH_SCORE_COUNT = 30;
 const integer TORCH_DURATION = 200;
@@ -23,37 +22,6 @@ struct TCoord {
 
 const std::array<std::string, 8> ColorNames =
 {"Black", "Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"};
-
-typedef void(*TElementDrawProc)(integer x, integer y, byte & ch);
-typedef void(*TElementTickProc)(integer statId);
-typedef void(*TElementTouchProc)(integer x, integer y,
-	integer sourceStatId, integer & deltaX, integer & deltaY);
-
-struct TElementDef {
-	char Character;
-	byte Color;
-	boolean Destructible;
-	boolean Pushable;
-	boolean VisibleInDark;
-	boolean PlaceableOnTop;
-	boolean Walkable;
-	boolean HasDrawProc;
-	TElementDrawProc DrawProc;
-	integer Cycle;
-	TElementTickProc TickProc;
-	TElementTouchProc TouchProc;
-	integer EditorCategory;
-	char EditorShortcut;
-	asciiz Name;
-	asciiz CategoryName;
-	asciiz Param1Name;
-	asciiz Param2Name;
-	asciiz ParamBulletTypeName;
-	asciiz ParamBoardName;
-	asciiz ParamDirName;
-	asciiz ParamTextName;
-	integer ScoreValue;
-};
 
 struct TEditorStatSetting {
 	byte P1, P2, P3;
@@ -77,8 +45,6 @@ typedef byte TIoTmpBuf;
 
 EXTERN integer PlayerDirX;
 EXTERN integer PlayerDirY;
-EXTERN integer unkVar_0476;
-EXTERN integer unkVar_0478;
 
 EXTERN rng rnd;
 
@@ -99,7 +65,6 @@ EXTERN boolean MessageForestNotShown;
 EXTERN boolean MessageFakeNotShown;
 EXTERN boolean MessageGemNotShown;
 EXTERN boolean MessageEnergizerNotShown;
-EXTERN array<0, 14,byte> unkVar_4ABA;
 
 EXTERN boolean GameTitleExitRequested;
 EXTERN boolean GamePlayExitRequested;
@@ -111,7 +76,7 @@ EXTERN byte TickSpeed;
 
 EXTERN TIoTmpBuf* IoTmpBuf;
 
-EXTERN array<0, MAX_ELEMENT,TElementDef> ElementDefs;
+EXTERN std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
 EXTERN integer EditorPatternCount;
 EXTERN array<1, 10,byte> EditorPatterns;
 

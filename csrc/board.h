@@ -26,6 +26,7 @@ class TTile {
 
 		size_t packed_size() const;
 		void dump(std::vector<unsigned char> & out) const;
+		std::string dump_to_readable(int num_indents) const;
 
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
@@ -63,6 +64,9 @@ class TStat {
 		size_t upper_bound_packed_size() const;
 
 		void dump(std::vector<unsigned char> & out) const;
+		std::string dump_to_readable(int num_indents,
+			bool literal_data) const;
+
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
 			const std::vector<unsigned char>::const_iterator end,
@@ -86,6 +90,8 @@ struct TBoardInfo {
 	size_t packed_size() const;
 
 	void dump(std::vector<unsigned char> & out) const;
+	std::string dump_to_readable(int num_indents) const;
+
 	std::vector<unsigned char>::const_iterator load(
 		std::vector<unsigned char>::const_iterator ptr,
 		const std::vector<unsigned char>::const_iterator end);
@@ -124,9 +130,8 @@ class TBoard {
 		void create();
 
 		// Serialize
-		// BLUESKY: Make these const, because output shouldn't alter the
-		// board itself.
 		std::vector<unsigned char> dump() const;
+		std::string dump_to_readable(int num_indents) const;
 
 		size_t get_packed_size() const;
 

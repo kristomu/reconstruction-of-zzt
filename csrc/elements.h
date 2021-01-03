@@ -4,6 +4,8 @@
 
 typedef unsigned char element_t;
 
+const size_t MAX_ELEMENT = 61;			/*E_TEXT_BLINK_WHITE;*/
+
 const element_t E_EMPTY = 0;
 const element_t E_BOARD_EDGE = 1;
 const element_t E_MESSAGE_TIMER = 2;
@@ -68,6 +70,36 @@ const element_t E_TEXT_BLINK_WHITE = 61;
 /**/
 const element_t E_TEXT_MIN = E_TEXT_BLUE;
 
+typedef void(*TElementDrawProc)(integer x, integer y, byte & ch);
+typedef void(*TElementTickProc)(integer statId);
+typedef void(*TElementTouchProc)(integer x, integer y,
+	integer sourceStatId, integer & deltaX, integer & deltaY);
+
+struct TElementDef {
+	char Character;
+	byte Color;
+	boolean Destructible;
+	boolean Pushable;
+	boolean VisibleInDark;
+	boolean PlaceableOnTop;
+	boolean Walkable;
+	boolean HasDrawProc;
+	TElementDrawProc DrawProc;
+	integer Cycle;
+	TElementTickProc TickProc;
+	TElementTouchProc TouchProc;
+	integer EditorCategory;
+	char EditorShortcut;
+	asciiz Name;
+	asciiz CategoryName;
+	asciiz Param1Name;
+	asciiz Param2Name;
+	asciiz ParamBulletTypeName;
+	asciiz ParamBoardName;
+	asciiz ParamDirName;
+	asciiz ParamTextName;
+	integer ScoreValue;
+};
 
 void ElementMove(integer oldX, integer oldY, integer newX, integer newY);
 void ElementPushablePush(integer x, integer y, integer deltaX,

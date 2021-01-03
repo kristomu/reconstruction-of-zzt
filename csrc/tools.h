@@ -9,3 +9,6 @@ std::string str_toupper(std::string s);
 size_t string_pos(const std::string needle, const std::string haystack);
 // update if the old string is empty.
 void update(std::string & to_update, std::string update_with);
+std::string yes_no(bool parameter);
+std::string itos_hex(int source);
+std::string itos_hex(int source, int maxlen);

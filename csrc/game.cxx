@@ -208,6 +208,10 @@ void TransitionDrawToFill(char chr_, integer color) {
 void BoardDrawTile(integer x, integer y) {
 	byte ch;
 
+	if (!CoordInsideViewport(x, y)) {
+		return;
+	}
+
 	TTile & with = Board.Tiles[x][y];
 	if (! Board.Info.IsDark
 		|| (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
@@ -1674,10 +1678,10 @@ void GamePlayLoop(boolean boardChanged) {
 
 	pauseBlink = true;
 
+	int i = 0;
+
 	do {
 		if (GamePaused)  {
-			// Only consume one key here instead of sometimes one,
-			// sometimes two. Helps keep the fuzz player synchronized.
 			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
 				pauseBlink = !pauseBlink;
 			}

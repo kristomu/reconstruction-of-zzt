@@ -123,3 +123,10 @@ DISCREP:	A discrepancy in C++ (and master branch FreePascal) loading can
 		in some cases load a board without placing a player or monitor
 		on it, thus violating the player invariant. This test case
 		exercises that bug.
+
+OUTDRAW:	If the player is on top of a board edge, the under tile is a
+		tile whose draw function interacts with neighboring tiles, and
+		there's a stat stacked on top of the player, then the player
+		moving off the tile may cause a crash in certain cases.
+		This is fixed by never trying to draw tiles outside of the
+		viewport (as they wouldn't be visible anyway).

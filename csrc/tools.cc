@@ -10,6 +10,20 @@ std::string itos(int source) {
 	return (q.str());
 }
 
+std::string itos_hex(int source) {
+	std::ostringstream q;
+	q.flags(std::ios::hex);
+	q << source;
+	return (q.str());
+}
+
+// Pads to maxlen if the hex is shorter than max.
+std::string itos_hex(int source, int maxlen) {
+	std::string unpadded = itos_hex(source);
+	return std::string(std::max(0, maxlen-(int)unpadded.size()), '0')
+		+ unpadded;
+}
+
 // Uppercase a string. From
 // https://en.cppreference.com/w/cpp/string/byte/toupper
 
@@ -36,4 +50,11 @@ void update(std::string & to_update, std::string update_with) {
 	if (to_update == "") {
 		to_update = update_with;
 	}
+}
+
+std::string yes_no(bool parameter) {
+	if (parameter) {
+		return "Yes";
+	}
+	return "No";
 }

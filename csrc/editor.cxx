@@ -677,7 +677,8 @@ static void EditorTransferBoard() {
 
 				short board_len = World.BoardData[World.Info.CurrentBoard].size();
 				out_file.write((char *)&board_len, 2);
-				out_file.write((const char *)World.BoardData[World.Info.CurrentBoard].data(),
+				out_file.write((const char *)
+					World.BoardData[World.Info.CurrentBoard].data(),
 					World.BoardData[World.Info.CurrentBoard].size());
 
 				BoardOpen(World.Info.CurrentBoard, false);
