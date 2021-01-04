@@ -364,7 +364,8 @@ LLabelMatched:
 		&& keyboard.InputKeyPressed != E_KEY_ENTER
 		&& !keyboard.InputShiftPressed
 		&& !test_mode_disable_dialog_boxes);
-	if (keyboard.InputKeyPressed == E_KEY_ESCAPE)  {
+	if (keyboard.InputKeyPressed == E_KEY_ESCAPE
+		|| test_mode_disable_dialog_boxes)  {
 		keyboard.InputKeyPressed = '\0';
 		TextWindowRejected = true;
 	}
