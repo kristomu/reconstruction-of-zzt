@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 3.1)
 
+# TODO? Separate out C++ ZZT into a library because the equality test
+# needs it too.
+
 set(CURSES_NEED_NCURSES TRUE)
 set(CURSES_NEED_WIDE TRUE)
 
@@ -23,6 +26,10 @@ else()
     set(CMAKE_CXX_COMPILER g++)
     set(ZZT_NAME "zzt")
 	set(FUZZT_NAME "fuzzt")
+
+	# Can't be made in AFL mode because it requires a Pascal library and
+	# FreePascal doesn't support AFL instrumentation.
+	set(EQUALZZT_NAME "fuzzt-equal")
 endif()
 
 # Parameters
@@ -48,8 +55,11 @@ if(AFL_FUZZER_DIR)
 	set_target_properties(ptoc
 		PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/afl-ptoc/libptoc.a)
 else()
+	add_library(paszzt_test SHARED IMPORTED)
 	set_target_properties(ptoc
 		PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/ptoc/libptoc.a)
+	set_target_properties(paszzt_test
+		PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/fpc-zzt/libpaszzt_test.so)
 endif()
 
 # TODO: Cleanup
@@ -110,3 +120,11 @@ add_executable(${FUZZT_NAME}
 
 target_link_libraries(${ZZT_NAME} ptoc -lncursesw)
 target_link_libraries(${FUZZT_NAME} ptoc -lncursesw)
+
+# Equality test
+
+if(EQUALZZT_NAME)
+	add_executable(${EQUALZZT_NAME}
+		csrc/equality_test.cc)
+	target_link_libraries(${EQUALZZT_NAME} ptoc paszzt_test -lncursesw)
+endif()
