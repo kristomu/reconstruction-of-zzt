@@ -143,7 +143,7 @@ function SetFailFlag(Addr: CodePointer) : ShortString;
 		SetFailFlag := '';
 	end;
 
-procedure EvolveZZT(CFilename: PChar; StringLen: Integer);
+procedure EvolveZZT(worldInput: PChar; worldInputLen: longint);
 	var
 		i: integer;
 	begin
@@ -167,10 +167,6 @@ procedure EvolveZZT(CFilename: PChar; StringLen: Integer);
 			InitialTextAttr := TextAttr;
 		end;
 
-		StartupWorldFileName := '';
-		for i := 0 to StringLen-1 do begin
-			StartupWorldFileName := StartupWorldFileName + Char(CFileName[i]);
-		end;
 		ResourceDataFileName := 'ZZT.DAT';
 		ResetConfig := false;
 		GameTitleExitRequested := false;
@@ -180,6 +176,7 @@ procedure EvolveZZT(CFilename: PChar; StringLen: Integer);
 			VideoHideCursor;
 			ClrScr;
 		end;
+
 
 		TextWindowInit(5, 3, 50, 18);
 
@@ -192,7 +189,7 @@ procedure EvolveZZT(CFilename: PChar; StringLen: Integer);
 		GenerateTransitionTable;
 		WorldCreate;
 
-		GameRunFewCycles(20);
+		GameRunFewCycles(20, worldInput, worldInputLen, false);
 
 		{ Go through every board to check that they can be loaded. }
 		for i := 0 to World.BoardCount do begin
@@ -201,7 +198,8 @@ procedure EvolveZZT(CFilename: PChar; StringLen: Integer);
 		end;
 
 		{LEAKFIX: Remember to dispose of *everything* in use. }
-		WorldUnload;
+		{There's a leak here somewhere. Find out how to deal with it.}
+		{WorldUnload;}
 		Dispose(IoTmpBuf);
 
 		if not SFuzzMode then begin

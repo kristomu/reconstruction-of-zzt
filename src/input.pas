@@ -77,7 +77,7 @@ interface
 	function InputConfigure: boolean;
 
 implementation
-uses Dos, Crt, Sounds, Termio, Unicode;
+uses Dos, Crt, Sounds, Termio, Unicode, Fuzz;
 
 const
 	PORT_JOYSTICK = $0201;
@@ -237,7 +237,7 @@ procedure InputReadWaitKey;
 		repeat
 			InputUpdate;
 			{ Don't busy-wait too much. }
-			Delay(10);
+			Wait(10);
 		until InputKeyPressed <> #0;
 	end;
 

@@ -799,9 +799,9 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 				end;
 
 				if InputJoystickMoved then
-					Delay(45)
+					Wait(45)
 				else
-					Delay(10);
+					Wait(10);
 
 				InputUpdate;
 				if (InputKeyPressed >= '1') and (InputKeyPressed <= '9') then begin

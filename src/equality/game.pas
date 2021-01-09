@@ -85,7 +85,8 @@ interface
 	procedure GameDebugPrompt;
 	procedure GameTitleLoop;
 	procedure GamePrintRegisterMessage;
-	procedure GameRunFewCycles(cycles:integer);
+	function WorldLoadFromChar(worldContents: PChar; contentsLen: Longint): boolean;
+	procedure GameRunFewCycles(cycles: integer; worldContents: PChar; contentsLen: longint; fromFile: boolean);
 const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -108,7 +109,7 @@ const
 	LineChars: string[16] = #249#208#210#186#181#188#187#185#198#200#201#204#205#202#203#206;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Editor, Oop, Minmax, Fileops, Fuzz;
 
 procedure SidebarClearLine(y: integer);
 	begin
@@ -276,8 +277,10 @@ procedure BoardChange(boardId: integer);
 	begin
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element := E_PLAYER;
 		Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color := ElementDefs[E_PLAYER].Color;
-		BoardClose;
-		BoardOpen(boardId);
+		if boardId <> World.BoardCount then begin
+			BoardClose;
+			BoardOpen(boardId);
+		end;
 	end;
 
 procedure BoardCreate;
@@ -444,7 +447,7 @@ procedure SidebarPromptCharacter(editable: boolean; x, y: integer; prompt: TStri
 				VideoWriteText(((x + i) - value) + 5, y + 2, $1E, Chr((i + $100) mod $100));
 
 			if editable then begin
-				Delay(25);
+				Wait(25);
 				InputUpdate;
 				if InputKeyPressed = KEY_TAB then
 					InputDeltaX := 9;
@@ -483,7 +486,7 @@ procedure SidebarPromptSlider(editable: boolean; x, y: integer; prompt: string; 
 		repeat
 			if editable then begin
 				if InputJoystickMoved then
-					Delay(45);
+					Wait(45);
 				VideoWriteText(x + value + 1, y + 1, $9F, #31);
 
 				InputUpdate;
@@ -530,7 +533,7 @@ procedure SidebarPromptChoice(editable: boolean; y: integer; prompt, choiceStr: 
 
 			if editable then begin
 				VideoWriteText(62 + i, y + 1, $9F, #31);
-				Delay(35);
+				Wait(35);
 				InputUpdate;
 
 				newResult := result + InputDeltaX;
@@ -659,7 +662,7 @@ procedure SidebarPromptString(prompt: string; extension: TString50; var filename
 procedure PauseOnError;
 	begin
 		SoundQueue(1, SoundParse('s004x114x9'));
-		Delay(2000);
+		Wait(2000);
 	end;
 
 function DisplayIOError: boolean;
@@ -701,6 +704,9 @@ procedure WorldUnload;
 		BoardClose;
 		for i := 0 to World.BoardCount do
 			FreeMem(World.BoardData[i], World.BoardLen[i]);
+
+		{ Set board count to zero to avoid double frees. }
+		World.BoardCount := 0;
 	end;
 
 function WorldLoad(filename, extension: TString50): boolean;
@@ -765,6 +771,62 @@ function WorldLoad(filename, extension: TString50): boolean;
 				HighScoresLoad;
 
 				SidebarClearLine(5);
+			end;
+		end;
+	end;
+
+function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
+	var
+		ptr: pointer;
+		fptr: PChar;
+		boardId: integer;
+		loadProgress: integer;
+	begin
+		WorldLoadFromChar := false;
+		loadProgress := 0;
+
+		fptr := WorldContents;
+
+		if ContentsLen >= 512 then begin
+			WorldUnload;
+			Move(fptr^, IoTmpBuf^, 512);
+			AdvancePointer(fptr, 512);
+
+			if not (fptr - WorldContents > ContentsLen) then begin
+				ptr := IoTmpBuf;
+				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
+				AdvancePointer(ptr, SizeOf(World.BoardCount));
+
+				if World.BoardCount < 0 then begin
+					if World.BoardCount <> -1 then begin
+						VideoWriteText(63, 5, $1E, 'You need a newer');
+						VideoWriteText(63, 6, $1E, ' version of ZZT!');
+						exit;
+					end else begin
+						Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
+						AdvancePointer(ptr, SizeOf(World.BoardCount));
+					end;
+				end;
+
+				Move(ptr^, World.Info, SizeOf(World.Info));
+				AdvancePointer(ptr, SizeOf(World.Info));
+
+				for boardId := 0 to World.BoardCount do begin
+					if (fptr + 2 - WorldContents > ContentsLen) then
+						Break;
+					Move(fptr^, World.BoardLen[boardId], 2);
+					AdvancePointer(fptr, 2);
+
+					if (fptr + World.BoardLen[boardId] - WorldContents > ContentsLen) then
+						Break;
+					GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
+					Move(fptr^, World.BoardData[boardId]^, World.BoardLen[boardId]);
+					AdvancePointer(fptr, World.BoardLen[boardId]);
+				end;
+
+				BoardOpen(World.Info.CurrentBoard);
+				LoadedGameFileName := 'NONE';
+				WorldLoadFromChar := true;
 			end;
 		end;
 	end;
@@ -1706,7 +1768,7 @@ procedure GameTitleLoop;
 		until GameTitleExitRequested;
 	end;
 
-procedure GameRunFewCycles(cycles:integer);
+procedure GameRunFewCycles(cycles: integer; worldContents: PChar; contentsLen: longint; fromFile: boolean);
 	var
 		boardChanged: boolean;
 		startPlay: boolean;
@@ -1717,7 +1779,13 @@ procedure GameRunFewCycles(cycles:integer);
 		ReturnBoardId := 0;
 		boardChanged := true;
 
-		if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
+		if fromFile then begin
+			if not WorldLoadFromChar(worldContents, contentsLen) then begin
+				WorldCreate;
+			end;
+		end else begin
+			if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
+		end;
 
 		ReturnBoardId := World.Info.CurrentBoard;
 		BoardChange(0);

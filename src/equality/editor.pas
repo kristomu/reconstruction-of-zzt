@@ -40,7 +40,7 @@ interface
 	function EditorSelectBoard(title: string; currentBoard: integer; titleScreenIsNone: boolean): integer;
 
 implementation
-uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops;
+uses Dos, Crt, Video, Sounds, Input, Elements, Oop, Game, Fileops, Fuzz, Minmax;
 
 type
 	TDrawMode = (DrawingOff, DrawingOn, TextEntry);
@@ -272,8 +272,6 @@ procedure EditorLoop;
 			state.LineCount := 9;
 			state.Selectable := true;
 			exitRequested := false;
-			for i := 1 to state.LineCount do
-				New(state.Lines[i]);
 
 			repeat
 				state.Selectable := true;
@@ -358,11 +356,13 @@ procedure EditorLoop;
 	procedure EditorEditStatText(statId: integer; prompt: string);
 		var
 			state: TTextWindowState;
-			iLine, iChar: integer;
-			unk1: array[0 .. 51] of byte;
+			iLine, iChar, iStat: integer;
+			unk1: TString50;
 			dataChar: char;
-			dataPtr: pointer;
+			oldDataPtr, dataPtr: pointer;
 		begin
+			{ TODO? Don't allow the editing to push the board size above
+			  20k. Going to be hard, though... }
 			with Board.Stats[statId] do begin
 				state.Title := prompt;
 				TextWindowDrawOpen(state);
@@ -370,6 +370,12 @@ procedure EditorLoop;
 				CopyStatDataToTextWindow(statId, state);
 
 				if DataLen > 0 then begin
+					{ Mark every other object that uses our data so that
+					  we can update its DataLen afterwards. }
+					for iStat := 0 to Board.StatCount do
+						if (Board.Stats[iStat].Data = Data) and (iStat <> statId) then
+							Board.Stats[iStat].DataLen := -1;
+
 					FreeMem(Data, DataLen);
 					DataLen := 0;
 				end;
@@ -379,6 +385,14 @@ procedure EditorLoop;
 				for iLine := 1 to state.LineCount do
 					DataLen := DataLen + Length(state.Lines[iLine]^) + 1;
 				GetMem(Data, DataLen);
+
+				{ Update every bound object to have our possibly new pointer
+					and new DataLen. }
+				for iStat := 0 to Board.StatCount do
+					if Board.Stats[iStat].DataLen = -1 then begin
+						Board.Stats[iStat].Data := Data;
+						Board.Stats[iStat].DataLen := DataLen;
+					end;
 
 				dataPtr := Data;
 				for iLine := 1 to state.LineCount do begin
@@ -407,9 +421,36 @@ procedure EditorLoop;
 			selectedBoard: byte;
 			iy: integer;
 			promptByte: byte;
+			hasCopiedTile: boolean;
+
+		procedure SaveStat(statId: integer);
+			begin
+				with Board.Stats[statId] do begin
+					copiedHasStat := true;
+					copiedStat := Board.Stats[statId];
+					copiedTile := Board.Tiles[X][Y];
+
+					{Copy data into temporary store if the tile has any,
+					  so the object can be moved between boards.}
+
+					if copiedDataLen > 0 then begin
+						FreeMem(copiedData, copiedDataLen);
+						copiedDataLen := 0;
+					end;
+					if dataLen > 0 then begin
+						GetMem(copiedData, DataLen);
+						copiedDataLen := DataLen;
+						Move(Data^, copiedData^, copiedDataLen);
+					end;
+					copiedX := X;
+					copiedY := Y;
+					hasCopiedTile := true;
+				end;
+			end;
 
 		procedure EditorEditStatSettings(selected: boolean);
 			begin
+
 				with Board.Stats[statId] do begin
 					InputKeyPressed := #0;
 					iy := 9;
@@ -482,10 +523,8 @@ procedure EditorLoop;
 								P3 := selectedBoard;
 								World.EditorStatSettings[element].P3 := World.Info.CurrentBoard;
 								if P3 > World.BoardCount then begin
+									SaveStat(statId);
 									EditorAppendBoard;
-									copiedHasStat := false;
-									copiedTile.Element := 0;
-									copiedTile.Color := $0F;
 								end;
 								World.EditorStatSettings[element].P3 := P3;
 							end else begin
@@ -500,6 +539,7 @@ procedure EditorLoop;
 			end;
 
 		begin
+			hasCopiedTile := false;
 			with Board.Stats[statId] do begin
 				SidebarClear;
 
@@ -521,26 +561,10 @@ procedure EditorLoop;
 				EditorEditStatSettings(false);
 				EditorEditStatSettings(true);
 
-				if InputKeyPressed <> KEY_ESCAPE then begin
-					copiedHasStat := true;
-					copiedStat := Board.Stats[statId];
-					copiedTile := Board.Tiles[X][Y];
-
-					{ Copy data into temporary store if the tile has any,
-					  so the object can be moved between boards. }
-
-					if copiedDataLen > 0 then begin
-						FreeMem(copiedData, copiedDataLen);
-						copiedDataLen := 0;
-					end;
-					if dataLen > 0 then begin
-						GetMem(copiedData, DataLen);
-						copiedDataLen := DataLen;
-						Move(Data^, copiedData^, copiedDataLen);
-					end;
-					copiedX := X;
-					copiedY := Y;
-				end;
+				{ hasCopiedTile is true if editing a passage changed the
+				  board so that statId is no longer valid. }
+				if (InputKeyPressed <> KEY_ESCAPE) and (not hasCopiedTile) then
+					SaveStat(statId);
 			end;
 		end;
 
@@ -560,6 +584,8 @@ procedure EditorLoop;
 						OpenForRead(f, 1);
 						if DisplayIOError then goto TransferEnd;
 
+						{ The old board is toast; no need to warn about
+						  data loss. }
 						BoardClose;
 						FreeMem(World.BoardData[World.Info.CurrentBoard], World.BoardLen[World.Info.CurrentBoard]);
 						BlockRead(f, World.BoardLen[World.Info.CurrentBoard], 2);
@@ -608,9 +634,9 @@ procedure EditorLoop;
 		var
 			i: integer;
 			tileAt: TTile;
-			toFill, filled: byte;
-			xPosition: array[0 .. 255] of integer;
-			yPosition: array[0 .. 255] of integer;
+			toFill, filled: integer;
+			xPosition: array[0 .. BOARD_WIDTH * BOARD_HEIGHT * 4] of integer;
+			yPosition: array[0 .. BOARD_WIDTH * BOARD_HEIGHT * 4] of integer;
 		begin
 			toFill := 1;
 			filled := 0;
@@ -618,8 +644,8 @@ procedure EditorLoop;
 				tileAt := Board.Tiles[x][y];
 				EditorPlaceTile(x, y);
 				if (Board.Tiles[x][y].Element <> tileAt.Element)
-					or (Board.Tiles[x][y].Color <> tileAt.Color) then
-					for i := 0 to 3 do
+					or (Board.Tiles[x][y].Color <> tileAt.Color) then begin
+					for i := 0 to 3 do begin
 						with Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]] do begin
 							if (Element = from.Element)
 								and ((from.Element = 0) or (Color = from.Color)) then
@@ -629,6 +655,8 @@ procedure EditorLoop;
 								toFill := toFill + 1;
 							end;
 						end;
+					end;
+				end;
 
 				filled := filled + 1;
 				x := xPosition[filled];
@@ -774,7 +802,7 @@ procedure EditorLoop;
 
 					VideoWriteText(cursorX - 1, cursorY - 1, $0F, #197);
 					if (InputKeyPressed = #0) and InputJoystickEnabled then
-						Delay(70);
+						Wait(70);
 					InputShiftAccepted := false;
 				end;
 
@@ -1114,6 +1142,7 @@ procedure HighScoresAdd(score: integer);
 		name: string[50];
 		i, listPos: integer;
 	begin
+		if FuzzMode then Exit;
 		listPos := 1;
 		while (listPos <= 30) and (score < HighScoreList[listPos].Score) do
 			listPos := listPos + 1;
@@ -1142,16 +1171,27 @@ procedure HighScoresAdd(score: integer);
 
 function EditorGetBoardName(boardId: integer; titleScreenIsNone: boolean): TString50;
 	var
-		boardData: pointer;
-		copiedName: string[50];
+		boardData: ^byte;
+		copiedName: TString50;
 	begin
 		if (boardId = 0) and titleScreenIsNone then
 			EditorGetBoardName := 'None'
 		else if (boardId = World.Info.CurrentBoard) then
 			EditorGetBoardName := Board.Name
+		else if (boardId > World.BoardCount) or (World.BoardLen[boardId] < 2) then
+			EditorGetBoardName := ''
 		else begin
 			boardData := World.BoardData[boardId];
-			Move(boardData^, copiedName, SizeOf(copiedName));
+
+			{ SANITY: Range check on board name length.
+			  It might be better to just do BoardOpen/BoardClose on every
+			  board after the world is loaded, since BoardClose ensures
+			  that the title length is of the proper size; but then again,
+			  that might be too slow. }
+			boardData^ := Min(boardData^, SizeOf(copiedName)-1);
+			boardData^ := Min(boardData^, World.BoardLen[boardId]-1);
+
+			Move(boardData^, copiedName, 1+(boardData^));
 			EditorGetBoardName := copiedName;
 		end;
 	end;

@@ -181,7 +181,7 @@ begin
 	GenerateTransitionTable;
 	WorldCreate;
 
-	GameRunFewCycles(20);
+	GameRunFewCycles(20, nil, 0, true);
 
 	{ Go through every board to check that they can be loaded. }
 	for i := 0 to World.BoardCount do begin
