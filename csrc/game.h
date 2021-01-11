@@ -46,8 +46,13 @@ void DisplayCorruptionNote(std::string corruption_type);
 void WorldUnload();
 bool load_board_from_file(std::istream & f, bool is_final_board,
 	std::vector<unsigned char> & out_packed_board);
-boolean WorldLoad(std::string filename, std::string extension);
+
+bool WorldLoad(std::istream & f, const std::string world_name);
+bool WorldLoad(std::string filename, std::string extension);
+bool WorldLoad(const std::vector<char> & input, std::string full_filename);
 void WorldSave(TString50 filename, TString50 extension);
+std::vector<char> WorldSaveVector();
+
 void GameWorldSave(TString50 prompt, TString50 & filename,
 	TString50 extension);
 boolean GameWorldLoad(TString50 extension);

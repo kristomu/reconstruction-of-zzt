@@ -160,11 +160,6 @@ void init_IO_fuzz(dos_color border_color) {
 }
 
 int main(int argc, const char* argv[]) {
-	// Example
-	// Separating the two former will require a pretty thorough refactoring
-	// of the curses classes, and combination with video and input classes
-	// resp. It might be due anyway, so I can start paring down the
-	// "catch-all" file hardware.cc.
 	test_mode_disable_video = true;
 	test_mode_disable_input = true;
 	test_mode_disable_delay = true;

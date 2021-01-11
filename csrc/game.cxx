@@ -28,6 +28,7 @@
 
 #include "ptoc.h"
 #include "serialization.h"
+#include "imemstream.h"
 
 #include <dirent.h>
 #include <iterator>
@@ -696,7 +697,7 @@ bool load_board_from_file(std::istream & f, bool is_final_board,
 	return successful_read;
 }
 
-boolean WorldLoad(std::string filename, std::string extension) {
+bool WorldLoad(std::istream & f, const std::string world_name) {
 
 	std::vector<unsigned char>::const_iterator ptr;
 	integer boardId;
@@ -715,12 +716,9 @@ boolean WorldLoad(std::string filename, std::string extension) {
 	SidebarClearLine(5);
 	video.write(62, 5, 0x1f, "Loading.....");
 
-	if (filename + extension == "")  {
+	if (world_name == "")  {
 		return WorldLoad_result;
 	}
-
-	std::string full_filename = std::string(filename + extension);
-	std::ifstream f = OpenForRead(full_filename);
 
 	if (! DisplayIOError())  {
 		// Unload the current error. TODO: Do RAII-style.
@@ -808,8 +806,6 @@ boolean WorldLoad(std::string filename, std::string extension) {
 				}
 			}
 
-			f.close();
-
 			/* More sanity checks. If the current board number is negative
 				or too high, set it to zero. (Maybe instead set it to the
 				actual number of boards read?) */
@@ -819,7 +815,7 @@ boolean WorldLoad(std::string filename, std::string extension) {
 			}
 
 			BoardOpen(World.Info.CurrentBoard, worldIsDamaged);
-			LoadedGameFileName = filename.c_str();
+			LoadedGameFileName = world_name.c_str();
 
 			// XXX: Once we add in editor.cxx
 			//HighScoresLoad();
@@ -828,6 +824,17 @@ boolean WorldLoad(std::string filename, std::string extension) {
 		}
 	}
 	return true;
+}
+
+bool WorldLoad(std::string filename, std::string extension) {
+	std::string full_filename = std::string(filename + extension);
+	std::ifstream f = OpenForRead(full_filename);
+	return WorldLoad(f, filename.c_str());
+}
+
+bool WorldLoad(const std::vector<char> & input, std::string full_filename) {
+	imemstream stream((const char*)input.data(), input.size());
+	return WorldLoad(stream, full_filename);
 }
 
 void WorldSave(TString50 filename, TString50 extension) {
@@ -892,6 +899,35 @@ LOnError:
 	// IMP? Give error message? But the above already does.
 	BoardOpen(World.Info.CurrentBoard, false);
 	SidebarClearLine(5);
+}
+
+std::vector<char> WorldSaveVector() {
+	int i;
+
+	BoardClose(true);
+
+	std::vector<unsigned char> output;
+
+	append_lsb_element((short)-1, output); // Version
+	append_lsb_element(World.BoardCount, output);
+	World.Info.dump(output);
+
+	// Pad to 512
+	output.resize(512, 0);
+
+	for (i = 0; i <= World.BoardCount; i ++) {
+		// TODO: Replace with a serialization procedure that's
+		// machine endian agnostic.
+		unsigned short board_len = World.BoardData[i].size();
+		append_lsb_element(board_len, output);
+		std::copy(World.BoardData[i].begin(), World.BoardData[i].end(),
+			std::back_inserter(output));
+	}
+
+	BoardOpen(World.Info.CurrentBoard, false);
+	std::vector<char> out_signed;
+	out_signed.assign(output.begin(), output.end());
+	return out_signed;
 }
 
 void GameWorldSave(TString50 prompt, TString50 & filename,
@@ -1829,7 +1865,6 @@ void GameTitleLoop() {
 	boolean startPlay;
 
 	GameTitleExitRequested = false;
-	JustStarted = true;
 	ReturnBoardId = 0;
 	boardChanged = true;
 	do {
@@ -1971,5 +2006,5 @@ class unit_Game_initialize {
 static unit_Game_initialize Game_constructor;
 
 unit_Game_initialize::unit_Game_initialize() {
-	;
+	JustStarted = true;
 }

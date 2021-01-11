@@ -125,6 +125,27 @@ target_link_libraries(${FUZZT_NAME} ptoc -lncursesw)
 
 if(EQUALZZT_NAME)
 	add_executable(${EQUALZZT_NAME}
+		csrc/random.cc
+		csrc/input.cc
+		csrc/testing.cc
+		csrc/gamevars.cxx
+		csrc/fileops.cxx
+		csrc/io/curses.cc
+		csrc/io/stub.cc
+		csrc/hardware.cc
+		csrc/video.cc
+		csrc/unicode.cc
+		csrc/txtwind.cxx
+		csrc/game.cxx
+		csrc/minmax.cxx
+		csrc/elements.cxx
+		csrc/oop.cxx
+		csrc/sounds.cxx
+		csrc/editor.cxx
+		csrc/tools.cc
+		csrc/board.cc
+		csrc/serialization.cc
+		csrc/world.cc
 		csrc/equality_test.cc)
 	target_link_libraries(${EQUALZZT_NAME} ptoc paszzt_test -lncursesw)
 endif()

@@ -87,6 +87,7 @@ interface
 	procedure GamePrintRegisterMessage;
 	function WorldLoadFromChar(worldContents: PChar; contentsLen: Longint): boolean;
 	procedure GameRunFewCycles(cycles: integer; worldContents: PChar; contentsLen: longint; fromFile: boolean);
+	function WorldSaveToChar(worldBuffer: PChar; maxLen: Longint): longint;
 const
 	ProgressAnimColors: array[0 .. 7] of byte = ($14, $1C, $15, $1D, $16, $1E, $17, $1F);
 	ProgressAnimStrings: array[0 .. 7] of string[5] =
@@ -792,7 +793,7 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 			Move(fptr^, IoTmpBuf^, 512);
 			AdvancePointer(fptr, 512);
 
-			if not (fptr - WorldContents > ContentsLen) then begin
+			if (fptr - WorldContents <= ContentsLen) then begin
 				ptr := IoTmpBuf;
 				Move(ptr^, World.BoardCount, SizeOf(World.BoardCount));
 				AdvancePointer(ptr, SizeOf(World.BoardCount));
@@ -880,6 +881,61 @@ procedure WorldSave(filename, extension: TString50);
 	OnError:
 		Close(f);
 		Erase(f);
+		BoardOpen(World.Info.CurrentBoard);
+		SidebarClearLine(5);
+	end;
+
+function WorldSaveToChar(worldBuffer: PChar; maxLen: Longint): longint;
+	var
+		fptr : PChar;
+		i: integer;
+		unk1: integer;
+		ptr: pointer;
+		version: integer;
+	label OnError;
+	begin
+		BoardClose;
+		VideoWriteText(63, 5, $1F, 'Saving...');
+		fptr := worldBuffer;
+
+		if maxLen >= 512 then begin
+			ptr := IoTmpBuf;
+			FillChar(IoTmpBuf^, 512, 0);
+			version := -1;
+			Move(version, ptr^, SizeOf(version));
+			AdvancePointer(ptr, SizeOf(version));
+
+			Move(World.BoardCount, ptr^, SizeOf(World.BoardCount));
+			AdvancePointer(ptr, SizeOf(World.BoardCount));
+
+			Move(World.Info, ptr^, SizeOf(World.Info));
+			AdvancePointer(ptr, SizeOf(World.Info));
+
+			Move(IoTmpBuf^, fptr^,512);
+			AdvancePointer(fptr, 512);
+
+			if fptr - worldBuffer > maxLen then goto OnError;
+
+			for i := 0 to World.BoardCount do begin
+
+				if fptr + 2 - worldBuffer > maxLen then goto OnError;
+				Move(World.BoardLen[i], fptr^, 2);
+				AdvancePointer(fptr, 2);
+
+				if fptr + World.BoardLen[i] - worldBuffer > maxLen then goto OnError;
+				Move(World.BoardData[i]^, fptr^, World.BoardLen[i]);
+				AdvancePointer(fptr, World.BoardLen[i]);
+			end;
+		end;
+
+		WorldSaveToChar := fptr - worldBuffer;
+
+		BoardOpen(World.Info.CurrentBoard);
+		SidebarClearLine(5);
+		exit;
+
+	OnError:
+		WorldSaveToChar := fptr - worldBuffer;
 		BoardOpen(World.Info.CurrentBoard);
 		SidebarClearLine(5);
 	end;
@@ -1780,11 +1836,11 @@ procedure GameRunFewCycles(cycles: integer; worldContents: PChar; contentsLen: l
 		boardChanged := true;
 
 		if fromFile then begin
+			if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
+		end else begin
 			if not WorldLoadFromChar(worldContents, contentsLen) then begin
 				WorldCreate;
 			end;
-		end else begin
-			if not WorldLoad(StartupWorldFileName, '.ZZT') then WorldCreate;
 		end;
 
 		ReturnBoardId := World.Info.CurrentBoard;

@@ -143,7 +143,7 @@ function SetFailFlag(Addr: CodePointer) : ShortString;
 		SetFailFlag := '';
 	end;
 
-procedure EvolveZZT(worldInput: PChar; worldInputLen: longint);
+function EvolveZZT(worldInput: PChar; worldInputLen: longint; worldOutput: PChar; maxOutputLen: longint): longint;
 	var
 		i: integer;
 	begin
@@ -190,6 +190,7 @@ procedure EvolveZZT(worldInput: PChar; worldInputLen: longint);
 		WorldCreate;
 
 		GameRunFewCycles(20, worldInput, worldInputLen, false);
+		EvolveZZT := WorldSaveToChar(worldOutput, maxOutputLen);
 
 		{ Go through every board to check that they can be loaded. }
 		for i := 0 to World.BoardCount do begin
@@ -198,8 +199,7 @@ procedure EvolveZZT(worldInput: PChar; worldInputLen: longint);
 		end;
 
 		{LEAKFIX: Remember to dispose of *everything* in use. }
-		{There's a leak here somewhere. Find out how to deal with it.}
-		{WorldUnload;}
+		WorldUnload;
 		Dispose(IoTmpBuf);
 
 		if not SFuzzMode then begin
