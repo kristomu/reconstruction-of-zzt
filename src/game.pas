@@ -1118,6 +1118,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 		if not DisplayIOError then begin
 			WorldUnload;
+			BoardCreate;
 			BlockRead(f, IoTmpBuf^, 512);
 
 			if not DisplayIOError then begin

@@ -141,6 +141,7 @@ function SetFailFlag(Addr: CodePointer) : ShortString;
 	begin
 		FailFlag := true;
 		SetFailFlag := '';
+		ExitCode := 0;
 	end;
 
 function EvolveZZT(worldInput: PChar; worldInputLen: longint; worldOutput: PChar; maxOutputLen: longint): longint;

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <iterator>
 #include <fstream>
+#include <sstream>
 #include <memory>
 #include <vector>
 #include <string>
@@ -29,7 +30,7 @@ void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
 	exit(0);
 }
 
-void disable_segv() {
+void disable_signals() {
 	struct sigaction sa;
 
 	memset(&sa, 0, sizeof(struct sigaction));
@@ -38,10 +39,15 @@ void disable_segv() {
 	sa.sa_flags   = SA_SIGINFO;
 
 	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGABRT, &sa, NULL);
+	sigaction(SIGBUS, &sa, NULL);
 }
 
-void enable_segv() {
+void enable_signals() {
 	signal(SIGSEGV, SIG_DFL);
+	signal(SIGSEGV, SIG_DFL);
+	signal(SIGABRT, SIG_DFL);
+	signal(SIGBUS, SIG_DFL);
 }
 
 // C++ ZZT
@@ -149,9 +155,13 @@ bool check_worlds(std::string world_filename) {
 	foo.write(world.data(), world.size());
 	foo.close();
 
-	std::vector<char> output(world.size()*2);
+	// Always provision enough space to write a standard yellow border world.
+	size_t max_len = std::max(world.size()*2, (size_t)1000);
 
-	disable_segv();
+	std::vector<char> output(max_len);
+
+	disable_signals();
+
 	int bytes_written = EvolveZZT(world.data(), world.size(), output.data(),
 			output.size());
 
@@ -168,7 +178,7 @@ bool check_worlds(std::string world_filename) {
 	baz.write(cpp_output.data(), cpp_output.size());
 	baz.close();
 
-	enable_segv();
+	enable_signals();
 
 	if (cpp_output != output) {
 		// The two worlds differ; crash.

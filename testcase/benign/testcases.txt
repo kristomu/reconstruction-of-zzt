@@ -13,3 +13,11 @@ FUTURE.ZZT	A "future version" stub (first two bytes make an LSB number
 		less than -1). This detects whether the implementation
 		creates a yellow border world when it can't load the world
 		in question.
+
+TRUNCATE.ZZT	A truncated world with nonstandard world data. ZZT reads
+		unallocated data if a byte with less than 512 bytes long is
+		read, due to a bug. I interpret this as meaning that the
+		previous world data should be preserved, which in the absence
+		of a previous world would be the standard yellow border world.
+		Pascal works that way, but C++ didn't; this testcase is to
+		test that.

@@ -745,6 +745,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 		if not DisplayIOError then begin
 			WorldUnload;
+			BoardCreate;
 			BlockRead(f, IoTmpBuf^, 512);
 
 			if not DisplayIOError then begin
@@ -770,6 +771,8 @@ function WorldLoad(filename, extension: TString50): boolean;
 				FillByte(World.Info.unkPad, SizeOf(World.Info.unkPad), 0);
 
 				for boardId := 0 to World.BoardCount do begin
+					if DisplayIOError then
+						Exit;
 					SidebarAnimateLoading;
 					BlockRead(f, World.BoardLen[boardId], 2);
 					GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
@@ -804,6 +807,7 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 
 		if ContentsLen >= 512 then begin
 			WorldUnload;
+			BoardCreate;
 			Move(fptr^, IoTmpBuf^, 512);
 			AdvancePointer(fptr, 512);
 
@@ -842,12 +846,12 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 
 				for boardId := 0 to World.BoardCount do begin
 					if (fptr + 2 - WorldContents > ContentsLen) then
-						Break;
+						exit;
 					Move(fptr^, World.BoardLen[boardId], 2);
 					AdvancePointer(fptr, 2);
 
 					if (fptr + World.BoardLen[boardId] - WorldContents > ContentsLen) then
-						Break;
+						exit;
 					GetMem(World.BoardData[boardId], World.BoardLen[boardId]);
 					Move(fptr^, World.BoardData[boardId]^, World.BoardLen[boardId]);
 					AdvancePointer(fptr, World.BoardLen[boardId]);
@@ -1580,6 +1584,7 @@ procedure GamePlayLoop(boardChanged: boolean);
 	var
 		exitLoop: boolean;
 		pauseBlink: boolean;
+		playerTileElem: byte;
 	procedure GameDrawSidebar;
 		begin
 			SidebarClear;
@@ -1756,6 +1761,25 @@ procedure GamePlayLoop(boardChanged: boolean);
 					InputUpdate;
 				end;
 			end;
+
+			{ Crash if the invariant that the player (or monitor) must exist
+			  and be at the X,Y given by stat 0 is violated. We have to check
+			  for both player and monitor no matter what the GameStateElement
+			  is in order to support Chronos' Forced Play hack. }
+			playerTileElem := Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+			if (playerTileElem <> E_PLAYER) and (playerTileElem <> E_MONITOR) then
+				RunError(500);
+
+			{ Ditto, if the player has been slowed down to an unreasonable extent,
+			  skip.}
+			if (Board.Stats[0].Cycle < 1) or (Board.Stats[0].Cycle > 3) then
+				RunError(500);
+
+			{ Ditto, if the stat count is wrong and thus never lets the player
+			  tick at all.}
+			if (Board.StatCount < 0) then
+				RunError(500);
+
 		until (exitLoop or GamePlayExitRequested) and GamePlayExitRequested;
 
 		SoundClearQueue;

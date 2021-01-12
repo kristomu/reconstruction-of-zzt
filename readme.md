@@ -20,10 +20,12 @@ are mentioned below; beyond these, any difference from DOS constitutes a bug.
 
 ## Linux status
 
-### Intentional differences between DOS and Linux C++ ZZT.
+### Intentional differences between DOS and Linux C++ ZZT
 
 - Padding bytes in .ZZT, .BRD, are set to zero on load, so as not to clutter the data structures too much. Under normal conditions, they make no difference as no ZZT object nor OOP command can read them or write to them.
 - Pointers may have a different size than in DOS; however, this is invisible for the same reason. No ZZT objects do pointer arithmetic in a way that's visible to the user.
+- It may be possible to perform arbitrary code execution by using out-of-bounds stats references to manipulate pointers. This is not supported for obvious reasons.
+- The UI (including the editor) may be different (e.g. may load a different world on I/O errors). While I'm attempting to adhere reasonably well to the original ZZT, it may behave differently in the details.
 
 ### Known missing features
 

@@ -1,0 +1,6 @@
+This directory contains test cases that crash an unaugmented Pascal ZZT, and
+thus shouldn't crash the equality tester.
+
+LONGBRD.ZZT	-	Causes double free with too long a board size. (DOS
+			manages to load the file with no apparent troubles,
+			but it may cause unpredictable behavior later.)

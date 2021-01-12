@@ -550,16 +550,24 @@ void PauseOnError() {
 	Delay(2000);
 }
 
-boolean DisplayIOError() {
+boolean DisplayIOError(bool is_error) {
 	varying_string<50> errorNumStr;
 	TTextWindowState textWindow;
 
-	if (!is_IO_error())  {
+	if (!is_error)  {
 		return false;		// no error
 	}
 
+	std::string error_title;
+
+	if (errno == 0) {
+		error_title = "Error";
+	} else {
+		error_title = "Error:" + std::string(strerror(errno));
+	}
+
 	/*IMP: Use explanations instead of numeric error codes. */
-	textWindow.Title = string("Error: ") + strerror(errno);
+	textWindow.Title = error_title.c_str();
 	TextWindowInitState(textWindow);
 	TextWindowAppend(textWindow, "$DOS Error: ");
 	TextWindowAppend(textWindow, "");
@@ -579,6 +587,17 @@ boolean DisplayIOError() {
 	errno = 0;
 
 	return true;
+}
+
+boolean DisplayIOError() {
+	return DisplayIOError(is_IO_error());
+}
+
+bool display_io_error(const std::istream & stream,
+	size_t expected_bytes_read) {
+
+	return DisplayIOError(is_IO_error() ||
+			stream.gcount() != expected_bytes_read);
 }
 
 void DisplayTruncationNote() {
@@ -729,10 +748,10 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 
 		f.read((char *)world_header.data(), 512);
 		ptr = world_header.begin();
-		// TODO? Somehow detect, in DisplayIOError, if we've tried to read
-		// past the end of the file. I'm not sure how to do that as errno
-		// doesn't trigger.
-		if (! DisplayIOError())  {
+
+		// If it's either an IO error or attempted read past end of file,
+		// signal error (as TP would).
+		if (!display_io_error(f, 512)) {
 			ptr = load_lsb_element(ptr, World.BoardCount);
 
 			// If the file starts FF, then the board count is next.
