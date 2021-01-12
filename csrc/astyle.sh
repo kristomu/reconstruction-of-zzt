@@ -3,4 +3,4 @@
 # put braces around one-liners, indent classes and case switches,
 # and keep one-line statements and if spacing to parens.
 
-astyle -T -A2 -j -o --mode=c -xC75 -W2 -C -S -U -xU -H $1
+astyle -T -A2 -j -o --mode=c -xC75 -W2 -C -S -U -xU -H $*

@@ -114,8 +114,9 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 	SavedBoardFileName = "TEMP";
 	JustStarted = false;
 
-	WorldCreate();
-	WorldLoad(world, "NONE");
+	if (!WorldLoad(world, "NONE")) {
+		WorldCreate();
+	}
 
 	ReturnBoardId = World.Info.CurrentBoard;
 	BoardChange(0);
@@ -153,6 +154,11 @@ bool check_worlds(std::string world_filename) {
 	disable_segv();
 	int bytes_written = EvolveZZT(world.data(), world.size(), output.data(),
 			output.size());
+
+	if (output.size() > bytes_written) {
+		output.resize(bytes_written);
+	}
+
 	std::ofstream bar("OUT2.DAT");
 	bar.write(output.data(), bytes_written);
 	bar.close();

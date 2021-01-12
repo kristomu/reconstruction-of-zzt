@@ -1,0 +1,15 @@
+EMPTY.ZZT	One completely empty board. Minimal test case.
+
+PADDING.ZZT	A world with stats, board info, and world info padding set to
+		0x55.
+
+FLAGPAD.ZZT	A world with every flag unset, and all bytes outside of the
+		string length set to 0x55.
+
+NAMEPAD.ZZT	A world with out-of-bounds name bytes (world name and board
+		names) set to 0x55.
+
+FUTURE.ZZT	A "future version" stub (first two bytes make an LSB number
+		less than -1). This detects whether the implementation
+		creates a yellow border world when it can't load the world
+		in question.

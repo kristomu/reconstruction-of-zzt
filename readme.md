@@ -11,12 +11,19 @@ as well as facilitate new, exciting developments.
 
 Here I'll try to make the Reconstruction compile with Free Pascal in general,
 and then on Linux in particular. As a consequence, I'll likely disable some
-features, at least to begin with, so that ZZT can work in a terminal.
+features, at least to begin with, so that ZZT can work in a terminal. Joystick
+and mouse control, is not supported; nor is sound.
 
-In particular, I'm likely going to disable sound because direct PC speaker
-access is hard, and mouse and joystick support for similar reasons.
+The cport branch is focused on making an almost-completely accurate
+reproduction of the original ZZT in modern C/C++. Any intentional differences
+are mentioned below; beyond these, any difference from DOS constitutes a bug.
 
 ## Linux status
+
+### Intentional differences between DOS and Linux C++ ZZT.
+
+- Padding bytes in .ZZT, .BRD, are set to zero on load, so as not to clutter the data structures too much. Under normal conditions, they make no difference as no ZZT object nor OOP command can read them or write to them.
+- Pointers may have a different size than in DOS; however, this is invisible for the same reason. No ZZT objects do pointer arithmetic in a way that's visible to the user.
 
 ### Known missing features
 
@@ -25,18 +32,9 @@ access is hard, and mouse and joystick support for similar reasons.
 
 ### Known bugs
 
-- Cursor is always shown, even when it's not desired.
-- Unicode characters are garbled at the right edge of the screen due to Crt having been coaxed into something it really doesn't support.
-- Duplicating something with stats onto the player causes a range check error. (game.pas:386, only intermittently)
-
 ### Known limitations
 
-- Crt really isn't made for Unicode output and so has strange corner cases (see above)
 - Even with the stdin-flushing fix, moving the player about by holding down a key is kinda janky. It probably can't be improved without going fully to ncurses or SDL.
-
-### Suspected bugs
-
-- Possible performance regressions involving SOUNDS timer.
 
 ### Notation
 

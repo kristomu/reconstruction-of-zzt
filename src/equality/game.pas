@@ -223,7 +223,7 @@ procedure BoardClose;
 procedure BoardOpen(boardId: integer);
 	var
 		ptr: pointer;
-		ix, iy: integer;
+		ix, iy, len: integer;
 		rle: TRleTile;
 	begin
 		if boardId > World.BoardCount then
@@ -233,6 +233,10 @@ procedure BoardOpen(boardId: integer);
 
 		Move(ptr^, Board.Name, SizeOf(Board.Name));
 		AdvancePointer(ptr, SizeOf(Board.Name));
+
+		{Board name padding shouldn't count.}
+		len := length(Board.Name);
+		FillByte(Board.Name[len+1], SizeOf(Board.Name) - len - 1, 0);
 
 		ix := 1;
 		iy := 1;
@@ -252,6 +256,9 @@ procedure BoardOpen(boardId: integer);
 		until iy > BOARD_HEIGHT;
 
 		Move(ptr^, Board.Info, SizeOf(Board.Info));
+		{Padding values shouldn't count.}
+		FillByte(Board.Info.unk1, SizeOf(Board.Info.unk1), 0);
+
 		AdvancePointer(ptr, SizeOf(Board.Info));
 
 		Move(ptr^, Board.StatCount, SizeOf(Board.StatCount));
@@ -260,6 +267,9 @@ procedure BoardOpen(boardId: integer);
 		for ix := 0 to Board.StatCount do
 			with Board.Stats[ix] do begin
 				Move(ptr^, Board.Stats[ix], SizeOf(TStat));
+				{Padding values and pointers shouldn't count.}
+				FillByte(Board.Stats[ix].unk1, SizeOf(Board.Stats[ix].unk1), 0);
+				FillByte(Board.Stats[ix].Data, SizeOf(Board.Stats[ix].Data), 0);
 				AdvancePointer(ptr, SizeOf(TStat));
 				if DataLen > 0 then begin
 					GetMem(Data, DataLen);
@@ -755,6 +765,9 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
+				{Padding values shouldn't count.}
+				FillByte(World.Info.unk1, SizeOf(World.Info.unk1), 0);
+				FillByte(World.Info.unkPad, SizeOf(World.Info.unkPad), 0);
 
 				for boardId := 0 to World.BoardCount do begin
 					SidebarAnimateLoading;
@@ -781,6 +794,7 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 		ptr: pointer;
 		fptr: PChar;
 		boardId: integer;
+		padId, len: integer;
 		loadProgress: integer;
 	begin
 		WorldLoadFromChar := false;
@@ -811,6 +825,20 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
+				{Padding values shouldn't count.}
+				FillByte(World.Info.unkPad, SizeOf(World.Info.unkPad), 0);
+
+				{Not flag padding either.}
+				for padId := 1 to MAX_FLAG do begin
+					len := length(World.Info.Flags[padId]);
+					FillByte(World.Info.Flags[padId][len+1],
+						SizeOf(World.Info.Flags[padId]) - len - 1, 0);
+				end;
+
+				{Not name padding either.}
+				len := length(World.Info.Name);
+				FillByte(World.Info.Name[len+1],
+					SizeOf(World.Info.Name) - len - 1, 0);
 
 				for boardId := 0 to World.BoardCount do begin
 					if (fptr + 2 - WorldContents > ContentsLen) then

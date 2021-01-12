@@ -832,7 +832,8 @@ bool WorldLoad(std::string filename, std::string extension) {
 	return WorldLoad(f, filename.c_str());
 }
 
-bool WorldLoad(const std::vector<char> & input, std::string full_filename) {
+bool WorldLoad(const std::vector<char> & input,
+	std::string full_filename) {
 	imemstream stream((const char*)input.data(), input.size());
 	return WorldLoad(stream, full_filename);
 }
@@ -1863,6 +1864,7 @@ void GamePlayLoop(boolean boardChanged) {
 void GameTitleLoop() {
 	boolean boardChanged;
 	boolean startPlay;
+	boolean wasSaveGame = World.Info.IsSave;
 
 	GameTitleExitRequested = false;
 	ReturnBoardId = 0;
@@ -1901,7 +1903,6 @@ void GameTitleLoop() {
 					GameAboutScreen();
 				}
 				break;
-				// XXX: Once we add in editor.cxx
 				case 'E': if (EditorEnabled)  {
 						EditorLoop();
 						ReturnBoardId = World.Info.CurrentBoard;
@@ -1945,6 +1946,10 @@ void GameTitleLoop() {
 			}
 		} while (!(boardChanged || GameTitleExitRequested));
 	} while (!GameTitleExitRequested);
+
+	/* IMP: When we stop playing, the world is no longer a save game
+	   unless it was loaded as one. */
+	World.Info.IsSave = wasSaveGame;
 }
 
 void GamePrintRegisterMessage() {
