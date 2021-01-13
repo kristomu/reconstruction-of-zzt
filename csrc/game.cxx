@@ -717,7 +717,6 @@ bool load_board_from_file(std::istream & f, bool is_final_board,
 }
 
 bool WorldLoad(std::istream & f, const std::string world_name) {
-
 	std::vector<unsigned char>::const_iterator ptr;
 	integer boardId;
 	word actuallyRead;
@@ -735,6 +734,10 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 	SidebarClearLine(5);
 	video.write(62, 5, 0x1f, "Loading.....");
 
+	// Handle a AFL-QEMU + FreePascal error where errno doesn't get set.
+	// BLUESKY: Report this error somehow because it was very hard to find.
+	errno = 0;
+
 	if (world_name == "")  {
 		return WorldLoad_result;
 	}
@@ -751,7 +754,9 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 
 		// If it's either an IO error or attempted read past end of file,
 		// signal error (as TP would).
-		if (!display_io_error(f, 512)) {
+		if (display_io_error(f, 512)) {
+			return false;
+		} else {
 			ptr = load_lsb_element(ptr, World.BoardCount);
 
 			// If the file starts FF, then the board count is next.

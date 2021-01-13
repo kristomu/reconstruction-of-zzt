@@ -120,8 +120,9 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 	SavedBoardFileName = "TEMP";
 	JustStarted = false;
 
+	WorldCreate();
 	if (!WorldLoad(world, "NONE")) {
-		WorldCreate();
+		BoardCreate();
 	}
 
 	ReturnBoardId = World.Info.CurrentBoard;
