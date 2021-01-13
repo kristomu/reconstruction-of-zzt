@@ -107,17 +107,6 @@ void GenerateTransitionTable() {
 	}
 }
 
-// Move from a structure to another pointed at by a pointer.
-template<typename T, typename Q> void Move(T & structureOne,
-	Q & ptrTwo, size_t length) {
-	bcopy(&structureOne, ptrTwo, length);
-}
-
-template<typename T, typename Q> void MoveP(T & structureOne,
-	Q & structureTwo, size_t length) {
-	bcopy(&structureOne, &structureTwo, length);
-}
-
 void BoardClose(boolean showTruncationNote) {
 	World.BoardData[World.Info.CurrentBoard] = Board.dump_and_truncate();
 }
@@ -162,7 +151,14 @@ void BoardChange(integer boardId) {
 }
 
 void BoardCreate() {
-	Board.create();
+	// Retain the title screen label if we're overwriting a title screen.
+	// Required to perform the same way as Pascal on TRUNCATE.ZZT.
+	if (Board.Name == "Title screen") {
+		Board.create();
+		Board.Name = "Title screen";
+	} else {
+		Board.Name = "";
+	}
 }
 
 void WorldCreate() {
