@@ -764,6 +764,8 @@ function WorldLoad(filename, extension: TString50): boolean;
 					end;
 				end;
 
+				if World.BoardCount < 0 then RunError(600);
+
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));
 				{Padding values shouldn't count.}
@@ -826,6 +828,8 @@ function WorldLoadFromChar(WorldContents: PChar; ContentsLen: Longint): boolean;
 						AdvancePointer(ptr, SizeOf(World.BoardCount));
 					end;
 				end;
+
+				if World.BoardCount < 0 then RunError(600);
 
 				Move(ptr^, World.Info, SizeOf(World.Info));
 				AdvancePointer(ptr, SizeOf(World.Info));

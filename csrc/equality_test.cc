@@ -147,14 +147,19 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 
 // Returns true upon a recoverable crash (e.g. out of bounds caught by
 // the compiler), false on no crash, and hard-crashes if there is one.
-bool check_worlds(std::string world_filename) {
+// Write_output writes three output files: the world as first processed,
+// the result by Pascal, and the result by C++ ZZT.
+bool check_worlds(std::string world_filename, bool write_output) {
 
 	std::ifstream world_file(world_filename, std::ios::in | std::ios::binary);
 	std::istreambuf_iterator<char> start(world_file), end;
 	std::vector<char> world(start, end);
-	std::ofstream foo("OUT.DAT");
-	foo.write(world.data(), world.size());
-	foo.close();
+
+	if (write_output) {
+		std::ofstream origfile("EQUAL_ORIG.ZZT");
+		origfile.write(world.data(), world.size());
+		origfile.close();
+	}
 
 	// Always provision enough space to write a standard yellow border world.
 	size_t max_len = std::max(world.size()*2, (size_t)1000);
@@ -170,18 +175,23 @@ bool check_worlds(std::string world_filename) {
 		output.resize(bytes_written);
 	}
 
-	std::ofstream bar("OUT2.DAT");
-	bar.write(output.data(), bytes_written);
-	bar.close();
+	if (write_output) {
+		std::ofstream pascalfile("EQUAL_PAS.ZZT");
+		pascalfile.write(output.data(), bytes_written);
+		pascalfile.close();
+	}
 
 	std::vector<char> cpp_output = evolve_zzt_cpp(world);
-	std::ofstream baz("OUT3.DAT");
-	baz.write(cpp_output.data(), cpp_output.size());
-	baz.close();
+
+	if (write_output) {
+		std::ofstream cppfile("EQUAL_CPP.ZZT");
+		cppfile.write(cpp_output.data(), cpp_output.size());
+		cppfile.close();
+	}
 
 	enable_signals();
 
-	if (cpp_output != output) {
+	if (!FailFlag && cpp_output != output) {
 		// The two worlds differ; crash.
 		int * x = 0;
 		x[3] = 0;
@@ -201,17 +211,29 @@ bool check_worlds(std::string world_filename) {
 int main(int argc, char** argv) {
 	if (argc < 2) {
 		std::cout << "Usage: " << argv[0] << " world_to_test.zzt\r\n";
+		std::cout << "   or: " << argv[0] << " -d world_to_test.zzt\r\n";
 		std::cout << "Will terminate normally if either the Pascal or C++ ";
 		std::cout << "implementation crashes,\r\n";
 		std::cout << "or if they both succeed and produce the same output. ";
 		std::cout << "Will crash if they both\r\n";
-		std::cout << "succeed but produce differing output.\r" << std::endl;
+		std::cout << "succeed but produce differing output.\r\n\r\n";
+		std::cout << "The -d option will write the original world, and the";
+		std::cout << " output from Pascal and C++\r\n";
+		std::cout << "to EQUAL_ORIG.ZZT, EQUAL_PAS.ZZT, and EQUAL_CPP.ZZT ";
+		std::cout << "respectively.\r" << std::endl;
+
 		return 0;
 	}
 
 	std::string world = argv[1];
+	bool dump = false;
 
-	if (check_worlds(world)) {
+	if (argc > 2 && std::string(argv[1]) == "-d") {
+		dump = true;
+		world = argv[2];
+	}
+
+	if (check_worlds(world, dump)) {
 		std::cout << world << " crashed" << std::endl;
 	} else {
 		std::cout << world << " finished successfully." << std::endl;

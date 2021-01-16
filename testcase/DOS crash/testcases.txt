@@ -1,0 +1,6 @@
+These cases should signal an error because they make DOS ZZT crash. If a
+different implementation behaves differently than either C++ or Pascal
+implementations here, it should not count against it.
+
+NEGABORD.ZZT	As EMPTY.ZZT, but the board count is negative. Causes DOS
+		ZZT to produce a runtime error.
