@@ -45,7 +45,9 @@ Experimental results for tiles with nonzero HasDrawProc:
 Some of these drastically slow down the editor or cause the game to behave
 unpredictably. All the objects will crash ZZT upon touch.
 
-The Dosbox debugger shows that e.g. element 75 calls 5247:4E41 (as given by its
+## Information gathered from the Dosbox debugger and Ghidra
+
+The Dosbox debugger shows that element 75 calls 5247:4E41 (as given by its
 DrawProc), which then lands in the middle of a zero sequence, which translates
 into add [bx+si],al, in turn repeatedly firing INT 6. Somehow, it manages to
 recover from the jump, but I guess that's what's slowing ZZT down.
