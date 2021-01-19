@@ -22,6 +22,8 @@
 !/**/
 !*/
 
-# Nor the test cases.
+# Nor the test cases or the info files.
 !/testcase/*
 !/testcase/**
+!/info/**
+!/info/**
