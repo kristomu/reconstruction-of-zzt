@@ -109,6 +109,11 @@ const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT *
 
 class TBoard {
 	private:
+		// The two parts to board serialization: trying to do our best
+		// with what's provided, and a final fixup that clamps stats,
+		// places the player, and in general ensures invariants are satisfied.
+		std::string parse_board(const std::vector<unsigned char> & source,
+			int cur_board_id, int number_of_boards);
 		void adjust_board_stats();
 
 		// Cached_packed_size starts off as -1 when we don't know what

@@ -286,6 +286,224 @@ std::vector<unsigned char>::const_iterator TBoardInfo::load(
 	return ptr;
 }
 
+// parse_board() loads the char representation of a board (given by the
+// source vector) into itself. If the board is corrupted, the function
+// reconstructs the board as best as it can and then returns an error
+// string; otherwise, it returns the empty string.
+
+// This function has an extreme number of checks against potential
+// corruption, so that it will pass every fuzzed crash test and deal
+// with corrupted boards as gracefully as possible.
+
+// NOTE: The serialized representation does not include the initial two
+// length bytes in Pascal; these are considered to be part of the world
+// structure, where the board structure is just the bytes that follow
+// the length integer.
+
+std::string TBoard::parse_board(const std::vector<unsigned char> & source,
+	int cur_board_id, int number_of_boards) {
+
+	std::vector<unsigned char>::const_iterator ptr = source.begin();
+	// We assume the vector has been set to reflect either the data
+	// read from the file, or the world boardLen parameter, whichever
+	// is smaller. The outside should check that boardLen matches.
+
+	short i, ix, iy;
+
+	std::string board_error = "";
+	bool truncated = false;
+
+	/* Create a default yellow border board, because we might need
+	to abort before the board is fully specced. */
+	create();
+
+	/* Check that the sanity check on board titles have been executed. */
+
+	/* SANITY: Reconstruct the title. We need at least a size of two bytes
+	   for the title: a size designation and the first letter of the title.
+	   If we don't even have that, let the title be blank.*/
+
+	// ---------------- Board name  ----------------
+	ptr = get_pascal_string(source.begin(), source.end(),
+			MAX_BOARD_NAME_LENGTH, true, Name, truncated);
+
+	if (truncated) {
+		/* This board is damaged. */
+		return "Board name is truncated";
+	}
+
+	// ---------------- RLE board layout  ----------------
+	TRleTile rle;
+	ix = 1;
+	iy = 1;
+	rle.Count = 0;
+	bool detected_zero_RLE = false;
+
+	do {
+		/* ZZT used to have a "feature" where an RLE count of 0 would
+		mean 256 repetitions of the tile. However, because it never
+		writes those RLE counts itself, it would get desynchronized
+		on a board close and crash. Therefore, we must simply ignore
+		such rle count 0 bytes, even though that is not what DOS ZZT
+		does. DOS ZZT would instead write past the bounds of the
+		scratch space when cleaning up, which means authors can't use
+		any RLE count 0 pairs without risking a glitch or crash
+		anyway.
+
+		BoardClose and BoardOpen may still desynchronize, but with dynamic
+		memory allocation being easy in 32 bit land, that's no longer a
+		problem. Allowing rle count 0 would cause forward compatibility
+		problems if the worlds thus created were opened in classical ZZT
+		instead, so we don't. */
+		if (rle.Count <= 0)  {
+			/* Not enough space? Get outta here. */
+			if (source.end() - ptr < sizeof(rle)) {
+				return "Abrupt end to RLE chunk";
+			}
+			rle.Count = *ptr++;
+			rle.Tile.Element = *ptr++;
+			rle.Tile.Color = *ptr++;
+
+			if (rle.Count == 0)  {
+				update(board_error, "Zero RLE count detected");
+				continue;
+			}
+		}
+
+		/* SANITY: If the element is unknown, replace it with a normal. */
+		if (rle.Tile.Element > MAX_ELEMENT)  {
+			rle.Tile.Element = E_NORMAL;
+			update(board_error, "RLE: Unknown element detected");
+		}
+
+		Tiles[ix++][iy] = rle.Tile;
+		if (ix > BOARD_WIDTH)  {
+			ix = 1;
+			iy = iy + 1;
+		}
+
+		rle.Count = rle.Count - 1;
+
+	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
+
+
+	// ---------------- Metadata and stats info  ----------------
+
+	/* SANITY: If reading board info and the stats count byte would
+		get us out of bounds, we have a board that's truncated too early.
+		Do the best we can, then exit with an error. */
+	try {
+		ptr = Info.load(ptr, source.end());
+	} catch (const std::runtime_error & e) {
+		return e.what();
+	}
+
+	/* Clamp out-of-bounds Info variables. They'll cause problems
+		in the editor otherwise. */
+	for (size_t i = 0; i < Info.NeighborBoards.size(); ++i) {
+		if (Info.NeighborBoards[i] > number_of_boards) {
+			Info.NeighborBoards[i] = cur_board_id;
+			update(board_error, "Neighboring board doesn't exist");
+		}
+	}
+
+	/* Clamp an out-of-board player location, if there is any.
+	   This is actually only damage in certain cases (save files with zap
+	   on entry, etc.) */
+	if (!valid_coord(Info.StartPlayerX, Info.StartPlayerY))  {
+		Info.StartPlayerX = 1;
+		Info.StartPlayerY = 1;
+		update(board_error, "Player is not at a valid coordinate");
+	}
+
+	if (source.end() - ptr < sizeof(StatCount)) {
+		return "Board is truncated after Info";
+	}
+
+	// This is just a short in little endian format.
+	ptr = load_lsb_element(ptr, StatCount);
+
+	// Clamp to be positive and to not exceed max_stat.
+	StatCount = std::max((short)0, std::min(StatCount, MAX_STAT));
+
+	for (ix = 0; ix <= StatCount; ++ix) {
+		TStat & with = Stats[ix];
+		with.DataLen = 0;
+
+		/* SANITY: Handle too few stats items for the stats count. */
+		if (source.end() - ptr < with.marginal_packed_size()) {
+			StatCount = std::max(ix - 1, 0);
+			update(board_error,
+				"StatCount claims more stats than there is data");
+			break;
+		}
+
+		try {
+			// Don't load the data inside the Stats serialization function
+			// since we want to be more careful about believing its
+			// metadata.
+			ptr = Stats[ix].load(ptr, source.end(), false);
+		} catch (const std::runtime_error & e) {
+			update(board_error, "Stats[" + itos(ix) + "]: " + e.what());
+			break;
+		}
+
+		/* SANITY: If the element underneath is unknown, replace it
+		with a normal. */
+		if (with.Under.Element > MAX_ELEMENT)  {
+			with.Under.Element = E_NORMAL;
+			update(board_error, "Stat has unknown element underneath");
+		}
+
+		/* SANITY: Handle objects that are out of bounds. */
+		if (!valid_coord(with.X, with.Y))  {
+			with.X = std::min(std::max((int)with.X, 0), BOARD_WIDTH+1);
+			with.Y = std::min(std::max((int)with.Y, 0), BOARD_HEIGHT+1);
+			update(board_error, "Stat owner is not at a valid coordinate");
+		}
+
+		/* The compromise to the Postelic position is probably to be
+			generous, but show a warning message that the board was
+			corrupted and attempted fixed. */
+
+		/* SANITY: (0,0) is not available: it's used by one-line messages.
+			So if the stat is at (0,0) or another unavailable position, put
+			it into (1,1). */
+
+		// Fix the error quietly because TOWN.ZZT's Lab 5 board has it -
+		// and we don't want to throw an error on the included world.
+
+		if ((with.X == 0) && (with.Y == 0))  {
+			with.X = 1;
+			with.Y = 1;
+			//update(board_error, "Stat owner is at (0,0)");
+		}
+
+		if (with.DataLen > 0)
+			/* SANITY: If DataLen is too long, truncate it. */
+			if (source.end() - ptr < with.DataLen)  {
+				with.DataLen = source.end() - ptr;
+				update(board_error, "Stat DataLen extends past end of board");
+			}
+
+		/* Only allocate if data length is still positive... */
+		if (with.DataLen > 0)  {
+			with.data = std::shared_ptr<unsigned char[]>(
+					new unsigned char[with.DataLen]);
+			std::copy(ptr, ptr + with.DataLen, with.data.get());
+
+			ptr += with.DataLen;
+		}
+
+		/* Otherwise, clear Data to avoid potential leaks later. */
+		if (with.DataLen == 0) {
+			with.data = NULL;
+		}
+	}
+
+	return board_error;
+}
+
 /* Clean up stats by processing DataLen reference chains, clamping out-of-
    bounds stat values, and placing a player on the board if there is none
    already. */
@@ -462,226 +680,13 @@ bool TBoard::valid_coord(short x, short y) const {
 	return x >= 0 && y >= 0 && x <= BOARD_WIDTH+1 && y <= BOARD_HEIGHT+1;
 }
 
-// load() loads the char representation of a board (given by the
-// source vector) into itself. If the board is corrupted, the function
-// reconstructs the board as best as it can and then returns an error
-// string; otherwise, it returns the empty string.
-
-// This function has an extreme number of checks against potential
-// corruption, so that it will pass every fuzzed crash test and deal
-// with corrupted boards as gracefully as possible.
-
-// NOTE: The serialized representation does not include the initial two
-// length bytes in Pascal; these are considered to be part of the world
-// structure, where the board structure is just the bytes that follow
-// the length integer.
-
 std::string TBoard::load(const std::vector<unsigned char> & source,
 	int cur_board_id, int number_of_boards) {
 
-	std::vector<unsigned char>::const_iterator ptr = source.begin();
-	// We assume the vector has been set to reflect either the data
-	// read from the file, or the world boardLen parameter, whichever
-	// is smaller. The outside should check that boardLen matches.
-
-	short i, ix, iy;
-
-	std::string board_error = "";
-	bool truncated = false;
-
-	/* Create a default yellow border board, because we might need
-	to abort before the board is fully specced. */
-	create();
-
-	/* Check that the sanity check on board titles have been executed. */
-
-	/* SANITY: Reconstruct the title. We need at least a size of two bytes
-	   for the title: a size designation and the first letter of the title.
-	   If we don't even have that, let the title be blank.*/
-
-	// ---------------- Board name  ----------------
-	ptr = get_pascal_string(source.begin(), source.end(),
-			MAX_BOARD_NAME_LENGTH, true, Name, truncated);
-
-	if (truncated) {
-		/* This board is damaged. */
-		return "Board name is truncated";
-	}
-
-	// ---------------- RLE board layout  ----------------
-	TRleTile rle;
-	ix = 1;
-	iy = 1;
-	rle.Count = 0;
-	bool detected_zero_RLE = false;
-
-	do {
-		/* ZZT used to have a "feature" where an RLE count of 0 would
-		mean 256 repetitions of the tile. However, because it never
-		writes those RLE counts itself, it would get desynchronized
-		on a board close and crash. Therefore, we must simply ignore
-		such rle count 0 bytes, even though that is not what DOS ZZT
-		does. DOS ZZT would instead write past the bounds of the
-		scratch space when cleaning up, which means authors can't use
-		any RLE count 0 pairs without risking a glitch or crash
-		anyway.
-
-		BoardClose and BoardOpen may still desynchronize, but with dynamic
-		memory allocation being easy in 32 bit land, that's no longer a
-		problem. Allowing rle count 0 would cause forward compatibility
-		problems if the worlds thus created were opened in classical ZZT
-		instead, so we don't. */
-		if (rle.Count <= 0)  {
-			/* Not enough space? Get outta here. */
-			if (source.end() - ptr < sizeof(rle)) {
-				return "Abrupt end to RLE chunk";
-			}
-			rle.Count = *ptr++;
-			rle.Tile.Element = *ptr++;
-			rle.Tile.Color = *ptr++;
-
-			if (rle.Count == 0)  {
-				update(board_error, "Zero RLE count detected");
-				continue;
-			}
-		}
-
-		/* SANITY: If the element is unknown, replace it with a normal. */
-		if (rle.Tile.Element > MAX_ELEMENT)  {
-			rle.Tile.Element = E_NORMAL;
-			update(board_error, "RLE: Unknown element detected");
-		}
-
-		Tiles[ix++][iy] = rle.Tile;
-		if (ix > BOARD_WIDTH)  {
-			ix = 1;
-			iy = iy + 1;
-		}
-
-		rle.Count = rle.Count - 1;
-
-	} while (!((iy > BOARD_HEIGHT) || (ptr == source.end())));
-
-
-	// ---------------- Metadata and stats info  ----------------
-
-	/* SANITY: If reading board info and the stats count byte would
-		get us out of bounds, we have a board that's truncated too early.
-		Do the best we can, then exit with an error. */
-	try {
-		ptr = Info.load(ptr, source.end());
-	} catch (const std::runtime_error & e) {
-		adjust_board_stats();
-		return e.what();
-	}
-
-	/* Clamp out-of-bounds Info variables. They'll cause problems
-		in the editor otherwise. */
-	for (size_t i = 0; i < Info.NeighborBoards.size(); ++i) {
-		if (Info.NeighborBoards[i] > number_of_boards) {
-			Info.NeighborBoards[i] = cur_board_id;
-			update(board_error, "Neighboring board doesn't exist");
-		}
-	}
-
-	/* Clamp an out-of-board player location, if there is any.
-	   This is actually only damage in certain cases (save files with zap
-	   on entry, etc.) */
-	if (!valid_coord(Info.StartPlayerX, Info.StartPlayerY))  {
-		Info.StartPlayerX = 1;
-		Info.StartPlayerY = 1;
-		update(board_error, "Player is not at a valid coordinate");
-	}
-
-	if (source.end() - ptr < sizeof(StatCount)) {
-		adjust_board_stats();
-		return "Board is truncated after Info";
-	}
-
-	// This is just a short in little endian format.
-	ptr = load_lsb_element(ptr, StatCount);
-
-	// Clamp to be positive and to not exceed max_stat.
-	StatCount = std::max((short)0, std::min(StatCount, MAX_STAT));
-
-	for (ix = 0; ix <= StatCount; ++ix) {
-		TStat & with = Stats[ix];
-		with.DataLen = 0;
-
-		/* SANITY: Handle too few stats items for the stats count. */
-		if (source.end() - ptr < with.marginal_packed_size()) {
-			StatCount = std::max(ix - 1, 0);
-			update(board_error,
-				"StatCount claims more stats than there is data");
-			break;
-		}
-
-		try {
-			// Don't load the data inside the Stats serialization function
-			// since we want to be more careful about believing its
-			// metadata.
-			ptr = Stats[ix].load(ptr, source.end(), false);
-		} catch (const std::runtime_error & e) {
-			update(board_error, "Stats[" + itos(ix) + "]: " + e.what());
-			break;
-		}
-
-		/* SANITY: If the element underneath is unknown, replace it
-		with a normal. */
-		if (with.Under.Element > MAX_ELEMENT)  {
-			with.Under.Element = E_NORMAL;
-			update(board_error, "Stat has unknown element underneath");
-		}
-
-		/* SANITY: Handle objects that are out of bounds. */
-		if (!valid_coord(with.X, with.Y))  {
-			with.X = std::min(std::max((int)with.X, 0), BOARD_WIDTH+1);
-			with.Y = std::min(std::max((int)with.Y, 0), BOARD_HEIGHT+1);
-			update(board_error, "Stat owner is not at a valid coordinate");
-		}
-
-		/* The compromise to the Postelic position is probably to be
-			generous, but show a warning message that the board was
-			corrupted and attempted fixed. */
-
-		/* SANITY: (0,0) is not available: it's used by one-line messages.
-			So if the stat is at (0,0) or another unavailable position, put
-			it into (1,1). */
-
-		// Fix the error quietly because TOWN.ZZT's Lab 5 board has it -
-		// and we don't want to throw an error on the included world.
-
-		if ((with.X == 0) && (with.Y == 0))  {
-			with.X = 1;
-			with.Y = 1;
-			//update(board_error, "Stat owner is at (0,0)");
-		}
-
-		if (with.DataLen > 0)
-			/* SANITY: If DataLen is too long, truncate it. */
-			if (source.end() - ptr < with.DataLen)  {
-				with.DataLen = source.end() - ptr;
-				update(board_error, "Stat DataLen extends past end of board");
-			}
-
-		/* Only allocate if data length is still positive... */
-		if (with.DataLen > 0)  {
-			with.data = std::shared_ptr<unsigned char[]>(
-					new unsigned char[with.DataLen]);
-			std::copy(ptr, ptr + with.DataLen, with.data.get());
-
-			ptr += with.DataLen;
-		}
-
-		/* Otherwise, clear Data to avoid potential leaks later. */
-		if (with.DataLen == 0) {
-			with.data = NULL;
-		}
-	}
-
+	std::string errors = parse_board(source, cur_board_id, number_of_boards);
 	adjust_board_stats();
 
-	return board_error;
+	return errors;
 }
 
 std::string TBoard::load(const std::vector<unsigned char> & source) {

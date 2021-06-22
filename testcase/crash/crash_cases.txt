@@ -130,3 +130,9 @@ OUTDRAW:	If the player is on top of a board edge, the under tile is a
 		moving off the tile may cause a crash in certain cases.
 		This is fixed by never trying to draw tiles outside of the
 		viewport (as they wouldn't be visible anyway).
+
+RLENOPL:	Exercises regression in C++ port: When going from one board
+		through a board edge, and the adjacent board is short enough
+		to stop in the middle of RLE data, the player might get
+		overwritten, but board::load() doesn't force a player tile
+		back onto the board.

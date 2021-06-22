@@ -73,6 +73,13 @@ template<typename T> T get_pascal_string(const T & ptr_start,
 	return ptr;
 }
 
+// clang may throw a "shift count greater than width of type" for sizeof(T) == 1
+// types. This is perfectly harmless because the for-loop terminates before the
+// corrupted value is ever used.
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshift-count-overflow"
+
 template<typename T> void append_lsb_element(T value,
 	std::vector<unsigned char> & append_to) {
 
@@ -81,6 +88,8 @@ template<typename T> void append_lsb_element(T value,
 		value >>= 8;
 	}
 }
+
+#pragma clang diagnostic pop
 
 template<typename T> void append_array(const T & arr, size_t elements,
 	std::vector<unsigned char> & append_to) {
