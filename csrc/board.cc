@@ -473,6 +473,13 @@ std::string TBoard::parse_board(const std::vector<unsigned char> & source,
 		// Fix the error quietly because TOWN.ZZT's Lab 5 board has it -
 		// and we don't want to throw an error on the included world.
 
+		// The "proper" way of doing this would be to force the board tile
+		// at 0,0 to be a messenger, because that's the only way you can get
+		// stats at 0,0 in ZZT. But then that would resume showing a one-
+		// liner message after loading a saved game, which doesn't happen
+		// in the original, and we're trying to behave exactly like it does,
+		// even if the original is strictly speaking wrong.
+
 		if ((with.X == 0) && (with.Y == 0))  {
 			with.X = 1;
 			with.Y = 1;

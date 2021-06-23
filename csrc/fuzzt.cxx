@@ -196,9 +196,9 @@ int main(int argc, const char* argv[]) {
 	TextWindowInit(5, 3, 50, 18);
 	ParseArguments(argc, argv);
 
-	#ifdef __AFL_HAVE_MANUAL_CONTROL
-		__AFL_INIT();
-	#endif
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+	__AFL_INIT();
+#endif
 
 	stub_ptr->set_key_responses({
 		// run a few cycles doing nothing

@@ -39,6 +39,9 @@ uses Sounds, TxtWind, Game, Elements;
 
 procedure OopError(statId: integer; message: string);
 	begin
+		// SANITY
+		if statId < 0 then statId := 0;
+
 		with Board.Stats[statId] do begin
 			DisplayMessage(200, 'ERR: ' + message);
 			SoundQueue(5, #80#10);
@@ -48,6 +51,9 @@ procedure OopError(statId: integer; message: string);
 
 procedure OopReadChar(statId: integer; var position: integer);
 	begin
+		OopChar := #0;
+		if statId < 0 then Exit;	{ Refuse to read stats that don't exist. }
+
 		with Board.Stats[statId] do begin
 			if (position >= 0) and (position < DataLen) then begin
 				Move((Data+position)^, OopChar, 1);
@@ -821,6 +827,12 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 								end;
 
 								OopPlaceTile(X + deltaX, Y + deltaY, argTile);
+
+								{ Sanity check (GHOSTCHK.ZZT). }
+								if statId < 0 then begin
+									OopError(0, 'Bad #PUT');
+									Exit;
+								end;
 							end;
 						end else if OopWord = 'CHANGE' then begin
 							if not OopParseTile(statId, position, argTile) then

@@ -38,6 +38,9 @@
 
 
 void OopError(integer statId, string message) {
+	// SANITY
+	if (statId < 0) { statId = 0; }
+
 	TStat & with = Board.Stats[statId];
 	DisplayMessage(200, string("ERR: ") + message);
 	SoundQueue(5, "\120\n");
@@ -45,6 +48,9 @@ void OopError(integer statId, string message) {
 }
 
 void OopReadChar(integer statId, integer & position) {
+	OopChar = '\0';
+	if (statId < 0) { return; }
+
 	TStat & with = Board.Stats[statId];
 	if ((position >= 0) && (position < with.DataLen))  {
 		OopChar = *(with.data.get() + position);
@@ -652,8 +658,6 @@ void OopExecute(integer statId, integer & position, TString50 name) {
 	boolean dataInUse;
 
 
-
-
 	{
 		TStat & with = Board.Stats[statId];
 LStartParsing:
@@ -890,10 +894,16 @@ LReadCommand:
 							if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
 														   deltaY].Element].Walkable)  {
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+
 								statId = GetStatIdAt(with.X, with.Y);
 							}
 
 							OopPlaceTile(with.X + deltaX, with.Y + deltaY, argTile);
+
+							if (statId < 0) {
+								OopError(0, "Bad #PUT");
+								return;
+							}
 						}
 					} else if (OopWord == "CHANGE")  {
 						if (! OopParseTile(statId, position, argTile)) {

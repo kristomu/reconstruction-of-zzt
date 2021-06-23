@@ -71,6 +71,16 @@ ENDGAME.ZZT	Fuzz mode key exhaustion crash by continuously duplicating
 		only gets it out of #endgame mode. Fixed by trying to quit
 		with both Escape and Q.
 
+HSLIME.ZZT	Creates an out of bounds access by placing a slime on (0,2).
+		This slime is placed by stats stacking: the player has an Under
+		property setting the tile to a slime, and then when the player
+		moves off, the second stat picks up the slack and animates the
+		slime.
+
+GHOSTCHK.ZZT	Keeps ZZT-OOP code running while destroying the object that
+		was running it, thus causing a range check error on a #PUT.
+		Detailed explanation in file.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
 

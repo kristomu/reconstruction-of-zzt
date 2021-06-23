@@ -941,6 +941,12 @@ void ElementSlimeTick(integer statId) {
 			changedTiles = 0;
 
 			for (dir = 0; dir <= 3; dir ++) {
+				// Don't examine an illegal tile. (HSLIME)
+				if (!ValidCoord(startX + NeighborDeltaX[dir], startY +
+						NeighborDeltaY[dir])) {
+					continue;
+				}
+
 				if (ElementDefs[Board.Tiles[startX + NeighborDeltaX[dir]][startY +
 											   NeighborDeltaY[dir]].Element].Walkable)  {
 					if (changedTiles == 0)  {

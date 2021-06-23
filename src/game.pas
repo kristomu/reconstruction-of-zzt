@@ -520,6 +520,15 @@ procedure BoardOpen(boardId: integer; worldIsDamaged: boolean);
 				  unavailable position, put it into (1,1). TODO? Make
 				  a note of which are thus placed, and place them on
 				  empty spots on the board instead if possible... }
+
+				{ The "proper" way of doing this would be to force the
+				  board tile at 0,0 to be a messenger, because that's
+				  the only way you can get stats at 0,0 in ZZT. But then
+				  that would resume showing a one-liner message after
+				  loading a saved game, which doesn't happen in the original,
+				  and we're trying to behave exactly like it does, even if
+				  the original is strictly speaking wrong. }
+
 				{ The compromise to the Postelic position is probably to
 				  be generous, but show a warning message that the board
 				  was corrupted and attempted fixed. }

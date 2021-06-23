@@ -843,6 +843,10 @@ procedure ElementSlimeTick(statId: integer);
 				changedTiles := 0;
 
 				for dir := 0 to 3 do begin
+					{ Skip out-of-bounds accesses. (HSLIME) }
+					if not ValidCoord(startX + NeighborDeltaX[dir],
+						startY + NeighborDeltaY[dir]) then Continue;
+
 					if ElementDefs[Board.Tiles[startX + NeighborDeltaX[dir]][startY + NeighborDeltaY[dir]].Element].Walkable then begin
 						if changedTiles = 0 then begin
 							MoveStat(statId, startX + NeighborDeltaX[dir], startY + NeighborDeltaY[dir]);

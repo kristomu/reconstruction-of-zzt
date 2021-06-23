@@ -1132,7 +1132,7 @@ void MoveStat(integer statId, integer newX, integer newY) {
 	if (statId == -1) {
 		throw std::logic_error("Trying to move noexisting stat (-1)");
 	}
-	// No pint in moving a stat to its own tile
+	// No point in moving a stat to its own tile
 	if ((Board.Stats[statId].X == newX) && (Board.Stats[statId].Y == newY)) {
 		return;
 	}
