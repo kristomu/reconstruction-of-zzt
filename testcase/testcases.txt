@@ -65,6 +65,12 @@ SLOW.ZZT	Slows down C++ ZZT by generating lots of objects with stats.
 		Each AddStat call leads to a serialization check which takes
 		a lot of time.
 
+ENDGAME.ZZT	Fuzz mode key exhaustion crash by continuously duplicating
+		player clones onto passages while the player has health 0.
+		This exhausts fuzz mode's Escape keypresses because escape
+		only gets it out of #endgame mode. Fixed by trying to quit
+		with both Escape and Q.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
 

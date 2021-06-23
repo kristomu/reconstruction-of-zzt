@@ -190,48 +190,54 @@ int main(int argc, const char* argv[]) {
 	ResetConfig = false;
 
 	IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+
 	rnd.seed(1);
 	GenerateTransitionTable();
+	TextWindowInit(5, 3, 50, 18);
+	ParseArguments(argc, argv);
 
-#ifdef __AFL_LOOP
-	while (__AFL_LOOP(1000))
-#endif
-	{
-		stub_ptr->set_key_responses({
-			// run a few cycles doing nothing
-			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
-			// play and go right a bunch
-			'P', E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
-			// more running cycles doing nothing
-			E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
-			// abort pause (??)
-			E_KEY_RIGHT,
-			// quit from play, and quit the game. There's some kind of
-			// desynchronization bug that makes the player sometimes go
-			// one step too far, so do enough ESC-Y combinations to be
-			// sure.
-			E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y'});
+	#ifdef __AFL_HAVE_MANUAL_CONTROL
+		__AFL_INIT();
+	#endif
 
-		GameTitleExitRequested = false;
-		ParseArguments(argc, argv);
-		TextWindowInit(5, 3, 50, 18);
+	stub_ptr->set_key_responses({
+		// run a few cycles doing nothing
+		E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+		// play and go right a bunch
+		'P', E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT, E_KEY_RIGHT,
+		// more running cycles doing nothing
+		E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER, E_KEY_ENTER,
+		// abort pause (??)
+		E_KEY_RIGHT,
+		// quit from play, and quit the game. There's some kind of
+		// desynchronization bug that makes the player sometimes go
+		// one step too far, so do enough ESC-Y combinations to be
+		// sure. In addition, use a Q (for quit) which helps fix problems
+		// where the player is continually being #ENDGAMEd. Q does nothing
+		// if we're already in a quit prompt, but escapes to a quit prompt
+		// if the ESCAPE got us out of a game over situation. I think that's
+		// what's happening in ENDGAME.ZZT.
+		E_KEY_ESCAPE, 'Q', 'Y', E_KEY_ESCAPE, 'Q', 'Y', E_KEY_ESCAPE, 'Q', 'Y',
+	});
 
-		if (!GameTitleExitRequested)  {
-			TTextWindowState textWindow;
+	GameTitleExitRequested = false;
+	//TextWindowInit(5, 3, 50, 18);
 
-			video.HideCursor();
-			video.ClrScr();
+	if (!GameTitleExitRequested)  {
+		TTextWindowState textWindow;
 
-			TickSpeed = 4;
-			DebugEnabled = false;
-			SavedGameFileName = "SAVED";
-			SavedBoardFileName = "TEMP";
+		video.HideCursor();
+		video.ClrScr();
 
-			WorldCreate();
-			GameTitleLoop();
+		TickSpeed = 4;
+		DebugEnabled = false;
+		SavedGameFileName = "SAVED";
+		SavedBoardFileName = "TEMP";
 
-			WorldUnload();
-		}
+		WorldCreate();
+		GameTitleLoop();
+
+		WorldUnload();
 	}
 
 	SoundUninstall();
