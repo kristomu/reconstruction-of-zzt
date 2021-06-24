@@ -1079,7 +1079,7 @@ void ElementBlinkWallTick(integer statId) {
 								}
 							}
 
-							if (Board.Tiles[ix][iy].Element == E_PLAYER)  {
+							if (Board.Tiles[ix][iy].Element == E_PLAYER && playerStatId == 0)  {
 								while (World.Info.Health > 0) {
 									DamageStat(playerStatId);
 								}

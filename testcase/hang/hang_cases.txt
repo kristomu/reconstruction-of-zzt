@@ -7,3 +7,5 @@ last byte being #, hangs the game. See the file for more info.
 ZAPVOID: Playing and then getting zapped with re-entry if zapped set outside of
 bounds causes a hang because ZZT can't place the player on the board again.
 DUPDOOM: Duplicating an idle transporter onto the player hangs the game.
+EVERZAP: Fooling a blinkwall into repeatedly zapping a player clone while
+thinking it's the real player hangs the game.

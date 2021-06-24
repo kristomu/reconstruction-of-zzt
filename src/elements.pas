@@ -964,7 +964,7 @@ procedure ElementBlinkWallTick(statId: integer);
 										MoveStat(playerStatId, ix + 1, iy);
 								end;
 
-								if Board.Tiles[ix][iy].Element = E_PLAYER then begin
+								if (Board.Tiles[ix][iy].Element = E_PLAYER) and (playerStatId = 0) then begin
 									while World.Info.Health > 0 do
 										DamageStat(playerStatId);
 									hitBoundary := true;
