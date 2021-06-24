@@ -117,7 +117,7 @@ void Video::writeln(std::string text) {
 
 bool Video::Configure(Input & key_input) {
 
-	bool MonochromeOnly = !has_colors();
+	bool MonochromeOnly = !display_interface->supports_colors();
 	if (MonochromeOnly)  {
 		chose_monochrome = true;
 		return true;

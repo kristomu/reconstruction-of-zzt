@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 # If you want to build a fuzzable binary, set AFL_FUZZER_DIR to the
 # directory that AFL lives in.
 
-set(AFL_FUZZER_DIR "" CACHE STRING "AFL fuzzer binary directory")
+set(AFL_FUZZER_DIR "")		# AFL fuzzer binary directory
 
 if(AFL_FUZZER_DIR)
 	set(CMAKE_C_COMPILER "${AFL_FUZZER_DIR}/afl-clang-fast")
@@ -40,7 +40,7 @@ endif()
 # (because it doesn't play nice with afl), and enable turbo mode so we can
 # test as many instances at once as possible.
 if(AFL_FUZZER_DIR)
-	set(CMAKE_CXX_FLAGS "-fsanitize-trap=undefined,integer 	-fno-omit-frame-pointer -O9 -march=native -ggdb -DTURBO_PASCAL")
+	set(CMAKE_CXX_FLAGS "-fsanitize-trap=undefined,integer -fno-omit-frame-pointer -O9 -march=native -ggdb -DTURBO_PASCAL -DFUZZ_DISABLE_CURSES")
 else()
 	set(CMAKE_CXX_FLAGS "-ggdb -DTURBO_PASCAL")
 endif()
@@ -95,7 +95,6 @@ add_executable(${FUZZT_NAME}
 	csrc/fuzzt.cxx
 	csrc/gamevars.cxx
 	csrc/fileops.cxx
-	csrc/io/curses.cc
 	csrc/io/stub.cc
 	csrc/hardware.cc
 	csrc/video.cc
@@ -112,14 +111,21 @@ add_executable(${FUZZT_NAME}
 	csrc/serialization.cc
 	csrc/world.cc)
 
-# For some bizarre reason, ncurses wide detection
-# (see commented-out lines above) doesn't work on my system, something
-# about ${CURSES_NCURSES_LIBRARY} already being defined before the
+# For some bizarre reason, ncurses wide detection doesn't work on my system,
+# something about ${CURSES_NCURSES_LIBRARY} already being defined before the
 # CURSES_NEED_WIDE check being done in FindCurses.cmake. As I have more
 # pressing things to do than chase a bug, I'll just kludge ncursesw in here.
 
 target_link_libraries(${ZZT_NAME} ptoc -lncursesw)
-target_link_libraries(${FUZZT_NAME} ptoc -lncursesw)
+
+# Don't add ncurses to the fuzzer if we disabled it, as we do in AFL mode.
+
+if(AFL_FUZZER_DIR)
+	target_link_libraries(${FUZZT_NAME} ptoc)
+else()
+	target_sources(${FUZZT_NAME} PRIVATE csrc/io/curses.cc)
+	target_link_libraries(${FUZZT_NAME} ptoc -lncursesw)
+endif()
 
 # Equality test
 

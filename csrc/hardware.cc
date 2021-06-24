@@ -13,7 +13,11 @@
 Input keyboard;
 Video video;
 
+// TODO? Refactor?
 void init_IO(dos_color border_color) {
+#ifdef FUZZ_DISABLE_CURSES
+	throw std::logic_error("init_IO: Can't use Curses-based init_IO if Curses is disabled!");
+#else
 	std::shared_ptr<stub_io> stub_ptr;
 	std::shared_ptr<curses_io> curses_ptr;
 
@@ -37,6 +41,7 @@ void init_IO(dos_color border_color) {
 	} else {
 		keyboard.set_interface(curses_ptr);
 	}
+#endif
 }
 
 /*void SoundUninstall() {}

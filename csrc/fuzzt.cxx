@@ -139,8 +139,12 @@ void GameConfigure() {
 std::shared_ptr<stub_io> stub_ptr;
 
 void init_IO_fuzz(dos_color border_color) {
-	std::shared_ptr<curses_io> curses_ptr = NULL;
 	stub_ptr = std::make_shared<stub_io>();
+#ifdef FUZZ_DISABLE_CURSES
+	video.install(border_color, stub_ptr);
+	keyboard.set_interface(stub_ptr);
+#else
+	std::shared_ptr<curses_io> curses_ptr = NULL;
 
 	if (!test_mode_disable_video || !test_mode_disable_input) {
 		curses_ptr = std::make_shared<curses_io>();
@@ -157,11 +161,14 @@ void init_IO_fuzz(dos_color border_color) {
 	} else {
 		keyboard.set_interface(curses_ptr);
 	}
+#endif
 }
 
 int main(int argc, const char* argv[]) {
+#ifdef FUZZ_DISABLE_CURSES
 	test_mode_disable_video = true;
 	test_mode_disable_input = true;
+#endif
 	test_mode_disable_delay = true;
 	test_mode_disable_dialog_boxes = true;
 	test_mode_disable_text_input = true;
