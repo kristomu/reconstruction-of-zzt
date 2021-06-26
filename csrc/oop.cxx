@@ -724,7 +724,11 @@ LReadCommand:
 				if (OopWord == "THEN") {
 					OopReadWord(statId, position);
 				}
-				if ((length(OopWord) == 0) && (position != with.DataLen-1)) {
+
+				// Fix hang in HASHSTOP
+				if ((length(OopWord) == 0) &&
+						(position != Board.Stats[statId].DataLen-1) &&
+						(position != with.DataLen-1)) {
 					goto LReadInstruction;
 				}
 				insCount += 1;

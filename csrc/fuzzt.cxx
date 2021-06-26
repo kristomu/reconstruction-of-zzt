@@ -164,11 +164,23 @@ void init_IO_fuzz(dos_color border_color) {
 #endif
 }
 
+// Opens a world and goes through each of its boards so as to patch
+// obvious errors with its format, then saves the world under a
+// different name. This makes it easier to analyze complex bugs without
+// e.g. KevEdit refusing to open the world due to simpler errors.
+void refine(std::string input_filename, std::string refined_world_filename) {
+	WorldLoad(input_filename, ".ZZT");
+	for (int i = 0; i < World.BoardCount; ++i) {
+		BoardChange(i);
+	}
+	BoardChange(0);
+	WorldSave(refined_world_filename, ".ZZT");
+
+}
+
 int main(int argc, const char* argv[]) {
-#ifdef FUZZ_DISABLE_CURSES
 	test_mode_disable_video = true;
 	test_mode_disable_input = true;
-#endif
 	test_mode_disable_delay = true;
 	test_mode_disable_dialog_boxes = true;
 	test_mode_disable_text_input = true;
@@ -229,6 +241,9 @@ int main(int argc, const char* argv[]) {
 
 	GameTitleExitRequested = false;
 	//TextWindowInit(5, 3, 50, 18);
+
+	// When running manually, it may be useful to do a refinement, like this:
+	// refine(StartupWorldFileName.str(), "REFINED");
 
 	if (!GameTitleExitRequested)  {
 		TTextWindowState textWindow;

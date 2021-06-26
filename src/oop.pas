@@ -671,7 +671,9 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 					OopReadWord(statId, position);
 					if OopWord = 'THEN' then
 						OopReadWord(statId, position);
-					if (Length(OopWord) = 0) and (position <> DataLen-1) then
+					{ Fix hang in HASHSTOP }
+					if (Length(OopWord) = 0) and (position <> DataLen-1) and
+							(position <> Board.Stats[statId].DataLen-1) then
 						goto ReadInstruction;
 					Inc(insCount);
 					if Length(OopWord) <> 0 then begin
