@@ -645,12 +645,13 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 						repeatInsNextTick := true;
 
 					OopReadWord(statId, position);
-					if OopParseDirection(statId, position, deltaX, deltaY) then begin
+					{ IMP: Verify that the direction is valid. Fixes INVADIR. }
+					if OopParseDirection(statId, position, deltaX, deltaY) and ValidCoord(X + deltaX, Y + deltaY) then begin
 						if (deltaX <> 0) or (deltaY <> 0) then begin
 							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
 								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
 
-							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
+							if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
 								MoveStat(statId, X + deltaX, Y + deltaY);
 								repeatInsNextTick := false;
 							end;
@@ -671,7 +672,8 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 					OopReadWord(statId, position);
 					if OopWord = 'THEN' then
 						OopReadWord(statId, position);
-					{ Fix hang in HASHSTOP }
+					{ IMP: Check that we're not reading beyond the end of the program.
+					  Fixes hang in HASHSTOP. }
 					if (Length(OopWord) = 0) and (position <> DataLen-1) and
 							(position <> Board.Stats[statId].DataLen-1) then
 						goto ReadInstruction;
@@ -680,27 +682,35 @@ procedure OopExecute(statId: integer; var position: integer; name: TString50);
 						if OopWord = 'GO' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							{ IMP: Verify that the direction is valid. Fixes INVADIR. }
+							if ValidCoord(X + deltaX, Y + deltaY) then begin
 
-							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
-							end else begin
-								repeatInsNextTick := true;
+								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+
+								if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+									MoveStat(statId, X + deltaX, Y + deltaY);
+								end else begin
+									repeatInsNextTick := true;
+								end;
 							end;
 
 							stopRunning := true;
 						end else if OopWord = 'TRY' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);
 
-							if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
-								ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+							{ IMP: Verify that the direction is valid. Fixes INVADIR. }
+							if ValidCoord(X + deltaX, Y + deltaY) then begin
 
-							if ValidCoord(X + deltaX, Y + deltaY) and (ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable) then begin
-								MoveStat(statId, X + deltaX, Y + deltaY);
-								stopRunning := true;
-							end else begin
-								goto ReadCommand;
+								if not ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then
+									ElementPushablePush(X + deltaX, Y + deltaY, deltaX, deltaY);
+
+								if ElementDefs[Board.Tiles[X + deltaX][Y + deltaY].Element].Walkable then begin
+									MoveStat(statId, X + deltaX, Y + deltaY);
+									stopRunning := true;
+								end else begin
+									goto ReadCommand;
+								end;
 							end;
 						end else if OopWord = 'WALK' then begin
 							OopReadDirection(statId, position, deltaX, deltaY);

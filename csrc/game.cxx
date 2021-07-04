@@ -858,7 +858,7 @@ bool WorldLoad(const std::vector<char> & input,
 	return WorldLoad(stream, full_filename);
 }
 
-void WorldSave(TString50 filename, TString50 extension) {
+void WorldSave(std::string filename, std::string extension) {
 	integer i;
 	integer unk1;
 	TIoTmpBuf * ptr;
@@ -963,7 +963,7 @@ void GameWorldSave(TString50 prompt, TString50 & filename,
 		if (extension == ".ZZT") {
 			World.Info.Name = filename;
 		}
-		WorldSave(filename, extension);
+		WorldSave(filename.str(), extension.str());
 	}
 }
 

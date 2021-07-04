@@ -2169,6 +2169,8 @@ procedure GamePlayLoop(boardChanged: boolean);
 			if (playerTileElem <> E_PLAYER) and (playerTileElem <> E_MONITOR) then
 				RunError(ERR_NO_PLAYER);
 
+			{ TODO: Do not permit loading more than a certain size world if in super
+			  strict mode. The limit should be so that ZZT on a 286 doesn't crash. }
 			if GetHeapStatus.TotalAllocated > 655360 then
 				RunError(ERR_MEMORY_EXCEEDED);
 

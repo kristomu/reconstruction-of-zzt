@@ -692,7 +692,11 @@ LReadInstruction:
 				}
 
 				OopReadWord(statId, position);
-				if (OopParseDirection(statId, position, deltaX, deltaY))  {
+
+				// IMP: Make sure we aren't trying to go out of bounds. (Fixes
+				// INVADIR).
+				if (OopParseDirection(statId, position, deltaX, deltaY)
+					&& ValidCoord(with.X + deltaX, with.Y + deltaY))  {
 					if ((deltaX != 0) || (deltaY != 0))  {
 						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
 													   deltaY].Element].Walkable) {
@@ -736,35 +740,39 @@ LReadCommand:
 					if (OopWord == "GO")  {
 						OopReadDirection(statId, position, deltaX, deltaY);
 
-						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-													   deltaY].Element].Walkable) {
-							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
-						}
+						// IMP: Check that the direction is valid.
+						if (ValidCoord(with.X + deltaX, with.Y + deltaY)) {
+							if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable) {
+								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+							}
 
-						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
-							&& (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-														   deltaY].Element].Walkable))  {
-							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-						} else {
-							repeatInsNextTick = true;
-						}
+							if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+															   deltaY].Element].Walkable) {
+								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
+							} else {
+								repeatInsNextTick = true;
+							}
 
-						stopRunning = true;
+							stopRunning = true;
+						}
 					} else if (OopWord == "TRY")  {
 						OopReadDirection(statId, position, deltaX, deltaY);
 
-						if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-													   deltaY].Element].Walkable) {
-							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
-						}
+						// IMP: Check that the direction is valid.
+						if (ValidCoord(with.X + deltaX, with.Y + deltaY)) {
+							if (! ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+														   deltaY].Element].Walkable) {
+								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
+							}
 
-						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
-							&& (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
-														   deltaY].Element].Walkable))  {
-							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-							stopRunning = true;
-						} else {
-							goto LReadCommand;
+							if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+															   deltaY].Element].Walkable) {
+								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
+								stopRunning = true;
+							} else {
+								goto LReadCommand;
+							}
 						}
 					} else if (OopWord == "WALK")  {
 						OopReadDirection(statId, position, deltaX, deltaY);

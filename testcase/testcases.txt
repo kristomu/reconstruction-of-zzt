@@ -81,6 +81,9 @@ GHOSTCHK.ZZT	Keeps ZZT-OOP code running while destroying the object that
 		was running it, thus causing a range check error on a #PUT.
 		Detailed explanation in file.
 
+INVADIR.ZZT	Out of bounds /direction command by using stale X,Y coordinates
+		as the source direction.
+
 crash/		Worlds and boards that produce crashes
 hang/		Worlds and boards that produce hangs/hard lockups
 

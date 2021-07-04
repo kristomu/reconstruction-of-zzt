@@ -50,7 +50,7 @@ bool load_board_from_file(std::istream & f, bool is_final_board,
 bool WorldLoad(std::istream & f, const std::string world_name);
 bool WorldLoad(std::string filename, std::string extension);
 bool WorldLoad(const std::vector<char> & input, std::string full_filename);
-void WorldSave(TString50 filename, TString50 extension);
+void WorldSave(std::string filename, std::string extension);
 std::vector<char> WorldSaveVector();
 
 void GameWorldSave(TString50 prompt, TString50 & filename,
