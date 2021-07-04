@@ -157,6 +157,7 @@ void BoardCreate() {
 		Board.create();
 		Board.Name = "Title screen";
 	} else {
+		Board.create();
 		Board.Name = "";
 	}
 }

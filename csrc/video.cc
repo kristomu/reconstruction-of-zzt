@@ -127,13 +127,19 @@ bool Video::Configure(Input & key_input) {
 	write("  Video mode:  C)olor,  M)onochrome?  ");
 
 	bool gotResponse = false;
-	int64_t typed = keyUpCase(key_input.read_key_blocking());
+	int64_t typed = E_KEY_ESCAPE;
 
-	switch (typed) {
-		case 'C': chose_monochrome = false; break;
-		case 'M': chose_monochrome = true; break;
-		case E_KEY_ESCAPE: chose_monochrome = MonochromeOnly; break;
-		default: gotResponse = false; break;
+	while (!gotResponse) {
+
+		typed = keyUpCase(key_input.read_key_blocking());
+		gotResponse = true;
+
+		switch (typed) {
+			case 'C': chose_monochrome = false; break;
+			case 'M': chose_monochrome = true; break;
+			case E_KEY_ESCAPE: chose_monochrome = MonochromeOnly; break;
+			default: gotResponse = false; break;
+		}
 	}
 
 	return typed != E_KEY_ESCAPE;
