@@ -747,7 +747,7 @@ LReadCommand:
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 							}
 
-							if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+							if (ValidCoord(with.X + deltaX, with.Y + deltaY) && ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
 															   deltaY].Element].Walkable) {
 								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 							} else {
@@ -766,7 +766,9 @@ LReadCommand:
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 							}
 
-							if (ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
+							// IMP: Pushing can change the details of with. So check again!
+							// I really ought to have a more robust approach.
+							if (ValidCoord(with.X + deltaX, with.Y + deltaY) && ElementDefs[Board.Tiles[with.X + deltaX][with.Y +
 															   deltaY].Element].Walkable) {
 								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 								stopRunning = true;
