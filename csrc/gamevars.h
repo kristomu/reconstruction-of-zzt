@@ -77,6 +77,8 @@ EXTERN byte TickSpeed;
 EXTERN TIoTmpBuf* IoTmpBuf;
 
 EXTERN std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
+EXTERN TElementDef out_of_bounds_element;
+
 EXTERN integer EditorPatternCount;
 EXTERN array<1, 10,byte> EditorPatterns;
 

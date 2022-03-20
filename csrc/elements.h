@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ptoc.h"
+#include <array>
 
 typedef unsigned char element_t;
 
@@ -100,6 +101,9 @@ struct TElementDef {
 	asciiz ParamTextName;
 	integer ScoreValue;
 };
+
+EXTERN std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
+EXTERN TElementDef out_of_bounds_element;
 
 void ElementMove(integer oldX, integer oldY, integer newX, integer newY);
 void ElementPushablePush(integer x, integer y, integer deltaX,
