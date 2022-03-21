@@ -50,6 +50,8 @@
 #include "hardware.h"
 #include "testing.h"
 
+std::vector<char> preloaded_world_data;
+
 boolean ValidCoord(integer x, integer y) {
 	if ((x < 0) || (y < 0))  {
 		return false;
@@ -848,9 +850,19 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 }
 
 bool WorldLoad(std::string filename, std::string extension) {
+	// Fuzz hack: if preloaded_world_data is set, load from it instead.
+	if (!preloaded_world_data.empty()) {
+		return WorldLoad(preloaded_world_data, filename + extension);
+	}
 	std::string full_filename = std::string(filename + extension);
 	std::ifstream f = OpenForRead(full_filename);
 	return WorldLoad(f, filename.c_str());
+}
+
+bool WorldLoad(uint8_t * input, size_t len,
+	std::string full_filename) {
+	imemstream stream((const char*)input, len);
+	return WorldLoad(stream, full_filename);
 }
 
 bool WorldLoad(const std::vector<char> & input,

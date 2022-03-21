@@ -24,6 +24,8 @@
 	SOFTWARE.
 */
 
+#include <inttypes.h>
+
 #include "ptoc.h"
 #include "tools.h"
 
@@ -178,7 +180,10 @@ void refine(std::string input_filename, std::string refined_world_filename) {
 
 }
 
-int main(int argc, const char* argv[]) {
+// TODO: Prepend "LLVM" to the next two function names to enable persistent mode
+// in honggfuzz. Only when I've got idempotency.
+
+extern "C" int FuzzerInitialize(int argc, const char* * argv) {
 	test_mode_disable_video = true;
 	test_mode_disable_input = true;
 	test_mode_disable_delay = true;
@@ -207,17 +212,20 @@ int main(int argc, const char* argv[]) {
 	StartupWorldFileName = "TOWN";
 	ResourceDataFileName = "ZZT.DAT";
 	ResetConfig = false;
+	ParseArguments(argc, argv);
 
-	IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+	return 0;
+}
+
+extern "C" int FuzzerTestOneInput(const uint8_t * data, size_t size) {
 
 	rnd.seed(1);
 	GenerateTransitionTable();
 	TextWindowInit(5, 3, 50, 18);
-	ParseArguments(argc, argv);
 
-#ifdef __AFL_HAVE_MANUAL_CONTROL
-	__AFL_INIT();
-#endif
+	IoTmpBuf = new byte[(MAX_BOARD_LEN + MAX_RLE_OVERFLOW-1)+1];
+	preloaded_world_data.resize(size);
+	std::copy(data, data+size, preloaded_world_data.begin());
 
 	stub_ptr->set_key_responses({
 		// run a few cycles doing nothing
@@ -265,4 +273,89 @@ int main(int argc, const char* argv[]) {
 	SoundUninstall();
 	SoundClearQueue();
 	delete[] IoTmpBuf;
+	return 0;
+}
+
+// Set up different fuzz approaches.
+
+// I just choose one in main: currently forkserver works, but a single run through
+// LLVMFuzzerTestOneInput disturbs too many global variables, which hurts the
+// repeatability of persistent mode. Since honggfuzz doesn't have a fork server mode,
+// I need to get persistent mode to some near-idempotent state before I can use that
+// fuzzer...
+
+int AFL_forkserver_fuzz(int argc, const char* argv[]) {
+
+	FuzzerInitialize(argc, argv);
+
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+	__AFL_INIT();
+#endif
+
+	// fuzz shim hack, fix later
+	std::ifstream infile(argv[1], std::ifstream::binary | std::ifstream::ate);
+	size_t length = infile.tellg();
+	infile.seekg (0, infile.beg);
+	std::vector<char> file_dump(length);
+	infile.read(file_dump.data(), length);
+	infile.close();
+
+	FuzzerTestOneInput((const uint8_t *)file_dump.data(), length);
+	return 0;
+}
+
+// Mainly use this for testing idempotency, because afl will report if stability
+// is too low.
+
+int AFL_persistent_fuzz(int argc, const char* argv[]) {
+
+	FuzzerInitialize(argc, argv);
+
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+	__AFL_FUZZ_INIT();
+	__AFL_INIT();
+
+	unsigned char * buf = __AFL_FUZZ_TESTCASE_BUF;
+
+	while (__AFL_LOOP(10000)) {
+		int length = __AFL_FUZZ_TESTCASE_LEN;
+
+		FuzzerTestOneInput(buf, length);
+	}
+#endif
+
+	return 0;
+}
+
+// Native file loading to a vector to bypass the file loading code in game.cxx.
+// It's quite a hack, but presumably I can make it more elegant later :-)
+std::vector<char> load_file(std::string filename) {
+	std::ifstream infile(filename, std::ifstream::binary | std::ifstream::ate);
+	size_t length = infile.tellg();
+	infile.seekg (0, infile.beg);
+	std::vector<char> file_dump(length);
+	infile.read(file_dump.data(), length);
+	infile.close();
+	return file_dump;
+}
+
+// Test idempotency (in a rough way). Currently this returns quickly,
+// because the slow world isn't really evaluated. It should be returning
+// slow, as it would if the slow_world is directly invoked.
+void perf_idempotence_test(std::string fast_world, std::string slow_world) {
+	char fake_process_name[] = "";
+	const char * fake_argv[1] = {fake_process_name};
+
+	FuzzerInitialize(0, fake_argv);
+
+	std::vector<char> file_dump = load_file(fast_world);
+	FuzzerTestOneInput((const uint8_t *)file_dump.data(), file_dump.size());
+
+	file_dump = load_file(slow_world);
+	FuzzerTestOneInput((const uint8_t *)file_dump.data(), file_dump.size());
+}
+
+// Just do
+int main(int argc, const char* argv[]) {
+	return AFL_forkserver_fuzz(argc, argv);
 }
