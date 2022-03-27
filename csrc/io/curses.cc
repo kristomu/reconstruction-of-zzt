@@ -201,11 +201,11 @@ void curses_io::set_background_color(dos_color bg) const {
 	use_color(current_fg, bg);
 }
 
-// TODO: Use exceptions instead.
+// TODO: Use exceptions instead of error codes.
 
 bool curses_io::print(const std::string to_print) const {
 	// TODO: Unicode stuff.
-	int errval = wprintw(window, to_print.c_str());
+	int errval = wprintw(window, "%s", to_print.c_str());
 
 	return (errval != ERR);
 }

@@ -55,6 +55,7 @@ interface
 		ERR_MEMORY_EXCEEDED = 600;
 	type
 		TString50 = string[50];
+		TFileName = string[255];
 		TCoord = packed record
 			X: integer;
 			Y: integer;
@@ -186,10 +187,10 @@ interface
 		unkVar_0478: integer;
 
 		TransitionTable: array[1 .. 80*25] of TCoord;
-		LoadedGameFileName: TString50;
-		SavedGameFileName: TString50;
-		SavedBoardFileName: TString50;
-		StartupWorldFileName: TString50;
+		LoadedGameFileName: TFileName;
+		SavedGameFileName: TFileName;
+		SavedBoardFileName: TFileName;
+		StartupWorldFileName: TFileName;
 		Board: TBoard;
 		World: TWorld;
 		MessageAmmoNotShown: boolean;
