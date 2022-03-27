@@ -81,6 +81,10 @@ GHOSTCHK.ZZT	Keeps ZZT-OOP code running while destroying the object that
 		was running it, thus causing a range check error on a #PUT.
 		Detailed explanation in file.
 
+MEMCPY.ZZT	Causes an ASAN error on C++ linux-reconstruction due to
+		memcpy on overlapping memory ranges when array.h uses memcpy
+		where it should be using memmove.
+
 INVADIR.ZZT	Out of bounds /direction command by using stale X,Y coordinates
 		as the source direction.
 

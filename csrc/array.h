@@ -725,7 +725,7 @@ inline void Delete(varying_string<max_size> & s, integer index,
 		count = len - index + 1;
 	}
 	char* str = s.get_body();
-	memcpy(str+index-1, str+index-1+count, len-index-count+1);
+	memmove(str+index-1, str+index-1+count, len-index-count+1);
 	s.set_length(len - count);
 }
 
