@@ -1,6 +1,5 @@
 #include "world.h"
 #include "serialization.h"
-#include "gamevars.h"
 #include <vector>
 
 std::string TWorldInfo::KeyName(int keyColor) const {

@@ -468,17 +468,17 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		keyboard.InputKeyPressed = '\0';
 		iy = 9;
 
-		if (length(ElementDefs[element].Param1Name) != 0)  {
-			if (length(ElementDefs[element].ParamTextName) == 0)  {
-				SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param1Name,
-					with.P1, 256);
+		if (ElementDefs[element].Param1Name.size() != 0)  {
+			if (ElementDefs[element].ParamTextName.size() == 0)  {
+				SidebarPromptSlider(selected, 63, iy,
+					string(ElementDefs[element].Param1Name.c_str()), with.P1, 256);
 			} else {
 				if (with.P1 == 0) {
 					with.P1 = World.EditorStatSettings[element].P1;
 				}
 				BoardDrawTile(with.X, with.Y);
-				SidebarPromptCharacter(selected, 63, iy, ElementDefs[element].Param1Name,
-					with.P1);
+				SidebarPromptCharacter(selected, 63, iy,
+					string(ElementDefs[element].Param1Name.c_str()), with.P1);
 				BoardDrawTile(with.X, with.Y);
 			}
 			if (selected) {
@@ -488,16 +488,18 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(length(ElementDefs[element].ParamTextName) != 0)) {
+			(ElementDefs[element].ParamTextName.size() != 0)) {
 			if (selected) {
-				EditorEditStatText(statId, ElementDefs[element].ParamTextName);
+				EditorEditStatText(statId,
+					string(ElementDefs[element].ParamTextName.c_str()));
 			}
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(length(ElementDefs[element].Param2Name) != 0)) {
+			(ElementDefs[element].Param2Name.size() != 0)) {
 			promptByte = (with.P2 % 0x80);
-			SidebarPromptSlider(selected, 63, iy, ElementDefs[element].Param2Name,
+			SidebarPromptSlider(selected, 63, iy,
+				string(ElementDefs[element].Param2Name.c_str()),
 				promptByte, 127);
 			if (selected)  {
 				with.P2 = (with.P2 & 0x80) + promptByte;
@@ -507,9 +509,10 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(length(ElementDefs[element].ParamBulletTypeName) != 0)) {
+			(ElementDefs[element].ParamBulletTypeName.size() != 0)) {
 			promptByte = (with.P2) / 0x80;
-			SidebarPromptChoice(selected, iy, ElementDefs[element].ParamBulletTypeName,
+			SidebarPromptChoice(selected, iy,
+				string(ElementDefs[element].ParamBulletTypeName.c_str()),
 				"Bullets Stars", promptByte);
 			if (selected)  {
 				with.P2 = (with.P2 % 0x80) + (promptByte * 0x80);
@@ -519,8 +522,9 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(length(ElementDefs[element].ParamDirName) != 0)) {
-			SidebarPromptDirection(selected, iy, ElementDefs[element].ParamDirName,
+			(ElementDefs[element].ParamDirName.size() != 0)) {
+			SidebarPromptDirection(selected, iy,
+				string(ElementDefs[element].ParamDirName.c_str()),
 				with.StepX, with.StepY);
 			if (selected)  {
 				World.EditorStatSettings[element].StepX = with.StepX;
@@ -530,9 +534,10 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(length(ElementDefs[element].ParamBoardName) != 0)) {
+			(ElementDefs[element].ParamBoardName.c_str() != 0)) {
 			if (selected)  {
-				selectedBoard = EditorSelectBoard(ElementDefs[element].ParamBoardName,
+				selectedBoard = EditorSelectBoard(
+					string(ElementDefs[element].ParamBoardName.c_str()),
 						with.P3, true);
 				if (selectedBoard != 0)  {
 					with.P3 = selectedBoard;
@@ -577,8 +582,8 @@ static void EditorEditStat(integer statId) {
 		categoryName = "";
 		for (i = 0; i <= element; i ++) {
 			if ((ElementDefs[i].EditorCategory == ElementDefs[element].EditorCategory)
-				&& (length(ElementDefs[i].CategoryName) != 0)) {
-				categoryName = ElementDefs[i].CategoryName;
+				&& (ElementDefs[i].CategoryName.size() != 0)) {
+				categoryName = string(ElementDefs[i].CategoryName.c_str());
 			}
 		}
 
@@ -963,7 +968,7 @@ void EditorLoop() {
 					i = 3;  /* Y position for text writing */
 					for (iElem = 0; iElem <= MAX_ELEMENT; iElem ++) {
 						if (ElementDefs[iElem].EditorCategory == selectedCategory)  {
-							if (length(ElementDefs[iElem].CategoryName) != 0)  {
+							if (ElementDefs[iElem].CategoryName.size() != 0)  {
 								i = i + 1;
 								video.write(65, i, 0x1e, ElementDefs[iElem].CategoryName);
 								i = i + 1;
@@ -1018,17 +1023,17 @@ void EditorLoop() {
 											ElementDefs[iElem].Cycle, StatTemplateDefault);
 										{
 											TStat & with1 = Board.Stats[Board.StatCount];
-											if (length(ElementDefs[iElem].Param1Name) != 0) {
+											if (ElementDefs[iElem].Param1Name.size() != 0) {
 												with1.P1 = World.EditorStatSettings[iElem].P1;
 											}
-											if (length(ElementDefs[iElem].Param2Name) != 0) {
+											if (ElementDefs[iElem].Param2Name.size() != 0) {
 												with1.P2 = World.EditorStatSettings[iElem].P2;
 											}
-											if (length(ElementDefs[iElem].ParamDirName) != 0)  {
+											if (ElementDefs[iElem].ParamDirName.size() != 0)  {
 												with1.StepX = World.EditorStatSettings[iElem].StepX;
 												with1.StepY = World.EditorStatSettings[iElem].StepY;
 											}
-											if (length(ElementDefs[iElem].ParamBoardName) != 0) {
+											if (ElementDefs[iElem].ParamBoardName.size() != 0) {
 												with1.P3 = World.EditorStatSettings[iElem].P3;
 											}
 										}

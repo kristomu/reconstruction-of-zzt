@@ -443,7 +443,7 @@ boolean OopParseTile(integer & statId, integer & position, TTile & tile) {
 	}
 
 	for (i = 0; i <= MAX_ELEMENT; i ++) {
-		if (OopWord == OopStringToWord(ElementDefs[i].Name))  {
+		if (OopWord == OopStringToWord(string(ElementDefs[i].Name.c_str())))  {
 			tile.Element = i;
 			return true;
 		}

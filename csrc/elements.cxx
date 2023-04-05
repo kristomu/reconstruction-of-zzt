@@ -1609,7 +1609,7 @@ void DrawPlayerSurroundings(integer x, integer y, integer bombPhase) {
 					TTile & with = Board.Tiles[ix][iy];
 					if ((bombPhase > 0) && ((sqr(ix-x) + sqr(iy-y)*2) < TORCH_DIST_SQR))  {
 						if (bombPhase == 1)  {
-							if (length(ElementDefs[with.Element].ParamTextName) != 0)  {
+							if (ElementDefs[with.Element].ParamTextName.size() != 0)  {
 								istat = GetStatIdAt(ix, iy);
 								if (istat > 0) {
 									result = OopSend(-istat, "BOMBED", false);

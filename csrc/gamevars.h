@@ -6,7 +6,6 @@
 #include <array>
 #include "random.h"
 
-const integer MAX_BOARD = 100;
 const integer HIGH_SCORE_COUNT = 30;
 const integer TORCH_DURATION = 200;
 const integer TORCH_DX = 8;

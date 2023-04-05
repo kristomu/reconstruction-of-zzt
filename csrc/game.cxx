@@ -1081,7 +1081,7 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 void RemoveStat(integer statId) {
 	int x, y;
 
-	if (!Board.remove_stat(statId, x, y)) {
+	if (!Board.remove_stat(statId, x, y, CurrentStatTicked)) {
 		return;
 	}
 

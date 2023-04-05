@@ -1,18 +1,17 @@
 #pragma once
 
-#include "ptoc.h"
-#include "array.h"
 #include "elements.h"
-#include "io/curses.h"      // colors, perhaps put somewhere else?
+#include "io/colors.h"      // colors, perhaps put somewhere else?
 
 #include <vector>
 #include <string>
 #include <memory>
 
-const integer MAX_STAT = 150;
-const integer BOARD_WIDTH = 60;
-const integer BOARD_HEIGHT = 25;
-const integer MAX_BOARD_LEN = 20000;
+const short MAX_BOARD = 100;
+const short MAX_STAT = 150;
+const short BOARD_WIDTH = 60;
+const short BOARD_HEIGHT = 25;
+const short MAX_BOARD_LEN = 20000;
 
 const int BOARD_NORTH = 0,
 		  BOARD_SOUTH = 1,
@@ -32,7 +31,7 @@ class TTile {
 			std::vector<unsigned char>::const_iterator ptr,
 			const std::vector<unsigned char>::const_iterator end);
 
-		bool operator==(const TTile & x) {
+		bool operator==(const TTile & x) const {
 			return Element == x.Element && Color == x.Color;
 		}
 };
@@ -54,7 +53,10 @@ class TStat {
 		short Follower;
 		short Leader;
 		TTile Under;
-		array<0, 3,unsigned char> unk1;
+		// In the serialized format, the following four
+		// bytes was used to store a pointer to data. It's not used
+		// here, TODO: remove and such.
+		std::array<unsigned char, 4> unk1;
 		short DataPos;
 		short DataLen;
 		std::shared_ptr<unsigned char[]> data;
@@ -79,13 +81,13 @@ class TStat {
 struct TBoardInfo {
 	unsigned char MaxShots;
 	bool IsDark;
-	array<0, 3,unsigned char> NeighborBoards;
+	std::array<unsigned char, 4> NeighborBoards;
 	bool ReenterWhenZapped;
 	std::string Message;        // Max length 58
 	unsigned char StartPlayerX;
 	unsigned char StartPlayerY;
 	short TimeLimitSec;
-	array<70, 85,unsigned char> unk1;
+	std::array<unsigned char, 16> unk1;
 
 	size_t packed_size() const;
 
@@ -104,7 +106,7 @@ struct TBoardInfo {
    will require MAX_RLE_OVERFLOW additional bytes to hold. So by
    dimensioning IoTmpBuf with an excess of MAX_RLE_OVERFLOW, we ensure
    that it can never run out of space from RLE shenanigans. */
-const integer MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT *
+const short MAX_RLE_OVERFLOW = BOARD_WIDTH * BOARD_HEIGHT *
 	sizeof(TRleTile);
 
 class TBoard {
@@ -125,9 +127,12 @@ class TBoard {
 
 	public:
 		std::string Name;
-		matrix<0, BOARD_WIDTH + 1,0, BOARD_HEIGHT + 1,TTile> Tiles;
+		// The tiles span from 0 to height/width+1 inclusive. The extreme
+		// coordinates of a board are dedicated to the board edge tile and
+		// not stored in the board file.
+		std::array<std::array<TTile, BOARD_HEIGHT + 2>, BOARD_WIDTH+2> Tiles;
 		short StatCount;
-		array<0, MAX_STAT + 1,TStat> Stats;
+		std::array<TStat, MAX_STAT + 1> Stats;
 		TBoardInfo Info;
 
 		bool valid_coord(short x, short y) const;
@@ -157,5 +162,10 @@ class TBoard {
 
 		// Remove an item with stats. out_x and out_y will be set
 		// to the coordinates where it resided. (Is that too hacky?)
-		bool remove_stat(int stat_id, int & out_x, int & out_y);
+		// current_stat_ticked is a reference to the global variable that
+		// keeps track of the last stat that ticked. It's done like this
+		// to make board.h possible to use in other programs without having
+		// to pull in all of gamevars.
+		bool remove_stat(int stat_id, int & out_x, int & out_y,
+			short & current_stat_ticked);
 };

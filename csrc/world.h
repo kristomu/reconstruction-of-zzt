@@ -1,13 +1,13 @@
 #pragma once
 
-#include "ptoc.h"
-#include "array.h"
-#include "gamevars.h"
-
+#include <string>
 #include <vector>
 #include <array>
 
-const integer MAX_FLAG = 10;
+#include "board.h"
+#include "editor.h"
+
+const int MAX_FLAG = 10;
 
 class TWorldInfo {
 	private:
@@ -24,11 +24,11 @@ class TWorldInfo {
 		short unk1;
 		short Score;
 		std::string Name;
-		array<1, MAX_FLAG,std::string> Flags;
+		std::array<std::string, MAX_FLAG+1> Flags;
 		short BoardTimeSec;
 		short BoardTimeHsec;
 		bool IsSave;
-		std::array<byte, 13> unkPad;
+		std::array<unsigned char, 13> unkPad;
 
 		size_t packed_size() const {
 			return 7 + sizeof(Ammo) + sizeof(Gems) + sizeof(Health) +
@@ -56,9 +56,11 @@ class TWorld {
 	public:
 		short BoardCount;
 		// dynamic board length.
+		// TODO later, turn this into a vector of vectors and use .size()
+		// instead of BoardCount.
 		std::array<std::vector<unsigned char>, MAX_BOARD+1> BoardData;
 		TWorldInfo Info;
-		array<0, MAX_ELEMENT,TEditorStatSetting> EditorStatSettings;
+		std::array<TEditorStatSetting, MAX_ELEMENT+1> EditorStatSettings;
 };
 
 extern TWorld World;

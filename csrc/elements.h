@@ -1,8 +1,10 @@
 #pragma once
 
-#include "ptoc.h"
+#include <cstddef>
+#include <string>
 #include <array>
 
+typedef unsigned char boolean;
 typedef unsigned char element_t;
 
 const size_t MAX_ELEMENT = 61;			/*E_TEXT_BLINK_WHITE;*/
@@ -71,14 +73,14 @@ const element_t E_TEXT_BLINK_WHITE = 61;
 /**/
 const element_t E_TEXT_MIN = E_TEXT_BLUE;
 
-typedef void(*TElementDrawProc)(integer x, integer y, byte & ch);
-typedef void(*TElementTickProc)(integer statId);
-typedef void(*TElementTouchProc)(integer x, integer y,
-	integer sourceStatId, integer & deltaX, integer & deltaY);
+typedef void(*TElementDrawProc)(short x, short y, unsigned char & ch);
+typedef void(*TElementTickProc)(short statId);
+typedef void(*TElementTouchProc)(short x, short y,
+	short sourceStatId, short & deltaX, short & deltaY);
 
 struct TElementDef {
 	char Character;
-	byte Color;
+	char Color;
 	boolean Destructible;
 	boolean Pushable;
 	boolean VisibleInDark;
@@ -86,29 +88,29 @@ struct TElementDef {
 	boolean Walkable;
 	boolean HasDrawProc;
 	TElementDrawProc DrawProc;
-	integer Cycle;
+	short Cycle;
 	TElementTickProc TickProc;
 	TElementTouchProc TouchProc;
-	integer EditorCategory;
+	short EditorCategory;
 	char EditorShortcut;
-	asciiz Name;
-	asciiz CategoryName;
-	asciiz Param1Name;
-	asciiz Param2Name;
-	asciiz ParamBulletTypeName;
-	asciiz ParamBoardName;
-	asciiz ParamDirName;
-	asciiz ParamTextName;
-	integer ScoreValue;
+	std::string Name;
+	std::string CategoryName;
+	std::string Param1Name;
+	std::string Param2Name;
+	std::string ParamBulletTypeName;
+	std::string ParamBoardName;
+	std::string ParamDirName;
+	std::string ParamTextName;
+	short ScoreValue;
 };
 
-EXTERN std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
-EXTERN TElementDef out_of_bounds_element;
+extern std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
+extern TElementDef out_of_bounds_element;
 
-void ElementMove(integer oldX, integer oldY, integer newX, integer newY);
-void ElementPushablePush(integer x, integer y, integer deltaX,
-	integer deltaY);
-void DrawPlayerSurroundings(integer x, integer y, integer bombPhase);
+void ElementMove(short oldX, short oldY, short newX, short newY);
+void ElementPushablePush(short x, short y, short deltaX,
+	short deltaY);
+void DrawPlayerSurroundings(short x, short y, short bombPhase);
 void GamePromptEndPlay();
 void ResetMessageNotShownFlags();
 void InitElementsEditor();

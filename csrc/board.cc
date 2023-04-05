@@ -1,8 +1,8 @@
-#include "ptoc.h"
-#include "gamevars.h"
-#include "array.h"
+#include "board.h"
 #include "serialization.h"
 #include "tools.h"
+
+#include <cassert>
 
 const size_t MAX_BOARD_NAME_LENGTH = 50;
 
@@ -884,7 +884,9 @@ bool TBoard::add_stat(size_t x, size_t y, element_t element,
 	return true;
 }
 
-bool TBoard::remove_stat(int statId, int & out_x, int & out_y) {
+bool TBoard::remove_stat(int statId, int & out_x, int & out_y,
+	short & current_stat_ticked) {
+
 	size_t i;
 
 	if (statId > MAX_STAT) {
@@ -912,8 +914,8 @@ bool TBoard::remove_stat(int statId, int & out_x, int & out_y) {
 
 	TStat & with = Stats[statId];
 
-	if (statId < CurrentStatTicked) {
-		CurrentStatTicked = CurrentStatTicked - 1;
+	if (statId < current_stat_ticked) {
+		current_stat_ticked = current_stat_ticked - 1;
 	}
 
 	/* Don't remove the player if he's at the old position. This can
