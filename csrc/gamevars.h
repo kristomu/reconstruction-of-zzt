@@ -52,7 +52,6 @@ EXTERN TString50 LoadedGameFileName;
 EXTERN TString50 SavedGameFileName;
 EXTERN TString50 SavedBoardFileName;
 EXTERN TString50 StartupWorldFileName;
-EXTERN TBoard Board;
 EXTERN boolean MessageAmmoNotShown;
 EXTERN boolean MessageOutOfAmmoNotShown;
 EXTERN boolean MessageNoShootingNotShown;

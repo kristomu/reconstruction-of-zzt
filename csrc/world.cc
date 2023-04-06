@@ -65,8 +65,8 @@ void TWorldInfo::dump(std::vector<unsigned char> & out) const {
 
 	append_array(std::vector<short> {Ammo, Gems}, out);
 	append_array(Keys, 7, out);
-	append_array(std::vector<short> {Health, CurrentBoard, Torches, TorchTicks,
-			EnergizerTicks, unk1, Score
+	append_array(std::vector<short> {Health, CurrentBoardIdx, Torches,
+			TorchTicks, EnergizerTicks, unk1, Score
 		}, out);
 	append_pascal_string(Name, 20, out);		// World name (pascal string)
 	// Flags
@@ -93,7 +93,7 @@ std::vector<unsigned char>::const_iterator TWorldInfo::load(
 	ptr = load_lsb_element(ptr, Gems);
 	ptr = load_array(ptr, 7, Keys);
 	ptr = load_lsb_element(ptr, Health);
-	ptr = load_lsb_element(ptr, CurrentBoard);
+	ptr = load_lsb_element(ptr, CurrentBoardIdx);
 	ptr = load_lsb_element(ptr, Torches);
 	ptr = load_lsb_element(ptr, TorchTicks);
 	ptr = load_lsb_element(ptr, EnergizerTicks);
@@ -111,3 +111,67 @@ std::vector<unsigned char>::const_iterator TWorldInfo::load(
 
 	return ptr;
 }
+
+/*void WorldSave(std::string filename, std::string extension) {
+	int i;
+	int unk1;
+	TIoTmpBuf * ptr;
+	int version;
+
+
+	BoardClose(true);
+	video.write(63, 5, 0x1f, "Saving...");
+
+	std::string full_filename = std::string(filename + extension);
+	std::ofstream out_file = OpenForWrite(full_filename);
+
+	// TODO IMP? Perhaps write to a temporary filename and then move it over
+	// the original to create some kind of atomicity?
+	// https://en.cppreference.com/w/cpp/io/c/tmpnam etc.
+
+	if (! DisplayIOError())  {
+		std::vector<unsigned char> world_header;
+		append_lsb_element((short)-1, world_header); // Version
+		append_lsb_element(World.BoardCount, world_header);
+		World.Info.dump(world_header);
+		// Pad to 512
+		append_zeroes(512-world_header.size(), world_header);
+
+		word actually_written;
+		out_file.write((const char *)world_header.data(), 512);
+
+		if (DisplayIOError())  {
+			goto LOnError;
+		}
+
+		for (i = 0; i <= World.BoardCount; i ++) {
+			// TODO: Replace with a serialization procedure that's
+			// machine endian agnostic.
+			unsigned short board_len = World.BoardData[i].size();
+			out_file.write((char *)&board_len, 2);
+			if (DisplayIOError())  {
+				goto LOnError;
+			}
+
+			out_file.write((const char *)World.BoardData[i].data(),
+				World.BoardData[i].size());
+
+			if (DisplayIOError())  {
+				goto LOnError;
+			}
+		}
+
+		out_file.close();
+	}
+
+	BoardOpen(World.Info.CurrentBoard, false);
+	SidebarClearLine(5);
+	return;
+
+LOnError:
+	out_file.close();
+	std::remove(full_filename.c_str()); // Delete the corrupted file.
+	// IMP? Give error message? But the above already does.
+	BoardOpen(World.Info.CurrentBoard, false);
+	SidebarClearLine(5);
+}*/

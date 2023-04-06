@@ -51,14 +51,14 @@ void EditorAppendBoard() {
 		BoardClose(true);
 
 		World.BoardCount = World.BoardCount + 1;
-		World.Info.CurrentBoard = World.BoardCount;
+		World.Info.CurrentBoardIdx = World.BoardCount;
 		BoardCreate();
 
 		TransitionDrawToBoard();
 
 		do {
-			popup_prompt_string("Room\47s Title:", Board.Name);
-		} while (Board.Name.size() == 0);
+			popup_prompt_string("Room\47s Title:", World.currentBoard.Name);
+		} while (World.currentBoard.Name.size() == 0);
 
 		TransitionDrawToBoard();
 	}
@@ -181,12 +181,12 @@ static void EditorDrawRefresh() {
 
 	BoardDrawBorder();
 	EditorDrawSidebar();
-	str(World.Info.CurrentBoard, boardNumStr);
+	str(World.Info.CurrentBoardIdx, boardNumStr);
 	TransitionDrawToBoard();
 
-	if (Board.Name.size() != 0) {
-		video.write((59 - Board.Name.size()) / 2, 0, 0x70,
-			" " + Board.Name + " ");
+	if (World.currentBoard.Name.size() != 0) {
+		video.write((59 - World.currentBoard.Name.size()) / 2, 0, 0x70,
+			" " + World.currentBoard.Name + " ");
 	} else {
 		video.write(26, 0, 0x70, " Untitled ");
 	}
@@ -208,10 +208,10 @@ void updateCopiedCharacter() {
 
 static void EditorSetAndCopyTile(byte x, byte y, byte element,
 	byte color) {
-	Board.Tiles[x][y].Element = element;
-	Board.Tiles[x][y].Color = color;
+	World.currentBoard.Tiles[x][y].Element = element;
+	World.currentBoard.Tiles[x][y].Color = color;
 
-	copiedTile = Board.Tiles[x][y];
+	copiedTile = World.currentBoard.Tiles[x][y];
 	copiedHasStat = false;
 	copiedX = x;
 	copiedY = y;
@@ -246,7 +246,7 @@ static boolean EditorPrepareModifyTile(integer x, integer y) {
 
 static boolean EditorPrepareModifyStatAtCursor() {
 	boolean EditorPrepareModifyStatAtCursor_result;
-	if (Board.StatCount < MAX_STAT)
+	if (World.currentBoard.StatCount < MAX_STAT)
 		EditorPrepareModifyStatAtCursor_result = EditorPrepareModifyTile(cursorX,
 				cursorY);
 	else {
@@ -259,7 +259,7 @@ static boolean EditorPrepareModifyStatAtCursor() {
 
 static void EditorPlaceTile(integer x, integer y) {
 	{
-		TTile & with = Board.Tiles[x][y];
+		TTile & with = World.currentBoard.Tiles[x][y];
 		if (cursorPattern <= EditorPatternCount)  {
 			if (EditorPrepareModifyTile(x, y))  {
 				with.Element = EditorPatterns[cursorPattern];
@@ -276,7 +276,7 @@ static void EditorPlaceTile(integer x, integer y) {
 			}
 		} else {
 			if (EditorPrepareModifyTile(x, y))  {
-				Board.Tiles[x][y] = copiedTile;
+				World.currentBoard.Tiles[x][y] = copiedTile;
 			}
 		}
 
@@ -323,23 +323,24 @@ static void EditorEditBoardInfo() {
 			state.Lines[i] = new TTextWindowLine;
 		}
 
-		*state.Lines[1] = string("         Title: ") + string(Board.Name.c_str());
+		*state.Lines[1] = string("         Title: ") + string(
+				World.currentBoard.Name.c_str());
 
-		str(Board.Info.MaxShots, numStr);
+		str(World.currentBoard.Info.MaxShots, numStr);
 		*state.Lines[2] = string("      Can fire: ") + numStr + " shots.";
 
 		*state.Lines[3] = string(" Board is dark: ") + BoolToString(
-				Board.Info.IsDark);
+				World.currentBoard.Info.IsDark);
 
 		for (i = 4; i <= 7; i ++) {
 			*state.Lines[i] = NeighborBoardStrs[i - 4] + ": " +
-				EditorGetBoardName(Board.Info.NeighborBoards[i - 4], true);
+				EditorGetBoardName(World.currentBoard.Info.NeighborBoards[i - 4], true);
 		}
 
 		*state.Lines[8] = string("Re-enter when zapped: ") + BoolToString(
-				Board.Info.ReenterWhenZapped);
+				World.currentBoard.Info.ReenterWhenZapped);
 
-		str(Board.Info.TimeLimitSec, numStr);
+		str(World.currentBoard.Info.TimeLimitSec, numStr);
 		*state.Lines[9] = string("  Time limit, 0=None: ") + numStr + " sec.";
 
 		*state.Lines[10] = "          Quit!";
@@ -352,48 +353,50 @@ static void EditorEditBoardInfo() {
 		if (keyboard.InputKeyPressed == E_KEY_ENTER)
 			switch (state.LinePos) {
 				case 1: {
-					popup_prompt_string("New title for board:", Board.Name);
+					popup_prompt_string("New title for board:", World.currentBoard.Name);
 					exitRequested = true;
 					TextWindowDrawClose(state);
 				}
 				break;
 				case 2: {
-					str(Board.Info.MaxShots, numStr);
+					str(World.currentBoard.Info.MaxShots, numStr);
 					SidebarPromptString("Maximum shots?", "", numStr, PROMPT_NUMERIC);
 					if (length(numStr) != 0) {
 						integer temp_store;
 						val(numStr, temp_store, i);
-						Board.Info.MaxShots = temp_store;
+						World.currentBoard.Info.MaxShots = temp_store;
 					}
 					EditorDrawSidebar();
 				}
 				break;
 				case 3: {
-					Board.Info.IsDark = ! Board.Info.IsDark;
+					World.currentBoard.Info.IsDark = ! World.currentBoard.Info.IsDark;
 				}
 				break;
 				case 4: case 5: case 6: case 7: {
-					Board.Info.NeighborBoards[state.LinePos - 4]
+					World.currentBoard.Info.NeighborBoards[state.LinePos - 4]
 						= EditorSelectBoard(
 								NeighborBoardStrs[state.LinePos - 4],
-								Board.Info.NeighborBoards[state.LinePos - 4],
+								World.currentBoard.Info.NeighborBoards[state.LinePos - 4],
 								true
 							);
-					if (Board.Info.NeighborBoards[state.LinePos - 4] > World.BoardCount) {
+					if (World.currentBoard.Info.NeighborBoards[state.LinePos - 4] >
+						World.BoardCount) {
 						EditorAppendBoard();
 					}
 					exitRequested = true;
 				}
 				break;
 				case 8: {
-					Board.Info.ReenterWhenZapped = ! Board.Info.ReenterWhenZapped;
+					World.currentBoard.Info.ReenterWhenZapped = !
+						World.currentBoard.Info.ReenterWhenZapped;
 				}
 				break;
 				case 9: {
-					str(Board.Info.TimeLimitSec, numStr);
+					str(World.currentBoard.Info.TimeLimitSec, numStr);
 					SidebarPromptString("Time limit?", " Sec", numStr, PROMPT_NUMERIC);
 					if (length(numStr) != 0) {
-						val(numStr, Board.Info.TimeLimitSec, i);
+						val(numStr, World.currentBoard.Info.TimeLimitSec, i);
 					}
 					EditorDrawSidebar();
 				}
@@ -422,7 +425,7 @@ static void EditorEditStatText(integer statId, string prompt) {
 	unsigned char * dataPtr;
 
 	{
-		TStat & with = Board.Stats[statId];
+		TStat & with = World.currentBoard.Stats[statId];
 		state.Title = prompt;
 		TextWindowDrawOpen(state);
 		state.Selectable = false;
@@ -464,7 +467,7 @@ static void EditorEditStat(integer statId);
 static void EditorEditStatSettings(boolean selected, integer & statId,
 	integer & iy, byte & element, byte & promptByte, byte & selectedBoard) {
 	{
-		TStat & with = Board.Stats[statId];
+		TStat & with = World.currentBoard.Stats[statId];
 		keyboard.InputKeyPressed = '\0';
 		iy = 9;
 
@@ -537,11 +540,11 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 			(ElementDefs[element].ParamBoardName.c_str() != 0)) {
 			if (selected)  {
 				selectedBoard = EditorSelectBoard(
-					string(ElementDefs[element].ParamBoardName.c_str()),
+						string(ElementDefs[element].ParamBoardName.c_str()),
 						with.P3, true);
 				if (selectedBoard != 0)  {
 					with.P3 = selectedBoard;
-					World.EditorStatSettings[element].P3 = World.Info.CurrentBoard;
+					World.EditorStatSettings[element].P3 = World.Info.CurrentBoardIdx;
 					if (with.P3 > World.BoardCount)  {
 						EditorAppendBoard();
 						copiedHasStat = false;
@@ -573,10 +576,10 @@ static void EditorEditStat(integer statId) {
 	byte promptByte;
 
 	{
-		TStat & with = Board.Stats[statId];
+		TStat & with = World.currentBoard.Stats[statId];
 		SidebarClear();
 
-		element = Board.Tiles[with.X][with.Y].Element;
+		element = World.currentBoard.Tiles[with.X][with.Y].Element;
 		wasModified = true;
 
 		categoryName = "";
@@ -597,8 +600,8 @@ static void EditorEditStat(integer statId) {
 
 		if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 			copiedHasStat = true;
-			copiedStat = Board.Stats[statId];
-			copiedTile = Board.Tiles[with.X][with.Y];
+			copiedStat = World.currentBoard.Stats[statId];
+			copiedTile = World.currentBoard.Tiles[with.X][with.Y];
 
 			/* Copy data into temporary store if the tile has any,
 			so the object can be moved between boards. */
@@ -649,17 +652,17 @@ static void EditorTransferBoard() {
 
 				bool successful_board_read = load_board_from_file(
 						input_board_file, true,
-						World.BoardData[World.Info.CurrentBoard]);
+						World.BoardData[World.Info.CurrentBoardIdx]);
 
 				if (DisplayIOError() &&
-					World.BoardData[World.Info.CurrentBoard].size() == 0)  {
+					World.BoardData[World.Info.CurrentBoardIdx].size() == 0)  {
 					BoardCreate();
 					EditorDrawRefresh();
 				} else {
-					BoardOpen(World.Info.CurrentBoard, false);
+					BoardOpen(World.Info.CurrentBoardIdx, false);
 					EditorDrawRefresh();
 					for (i = 0; i <= 3; i ++) {
-						Board.Info.NeighborBoards[i] = 0;
+						World.currentBoard.Info.NeighborBoards[i] = 0;
 					}
 				}
 
@@ -680,13 +683,13 @@ static void EditorTransferBoard() {
 
 				BoardClose(true);
 
-				short board_len = World.BoardData[World.Info.CurrentBoard].size();
+				short board_len = World.BoardData[World.Info.CurrentBoardIdx].size();
 				out_file.write((char *)&board_len, 2);
 				out_file.write((const char *)
-					World.BoardData[World.Info.CurrentBoard].data(),
-					World.BoardData[World.Info.CurrentBoard].size());
+					World.BoardData[World.Info.CurrentBoardIdx].data(),
+					World.BoardData[World.Info.CurrentBoardIdx].size());
 
-				BoardOpen(World.Info.CurrentBoard, false);
+				BoardOpen(World.Info.CurrentBoardIdx, false);
 
 				DisplayIOError();
 				out_file.close();
@@ -709,12 +712,13 @@ static void EditorFloodFill(integer x, integer y, TTile from) {
 	toFill = 1;
 	filled = 0;
 	while (toFill != filled)  {
-		tileAt = Board.Tiles[x][y];
+		tileAt = World.currentBoard.Tiles[x][y];
 		EditorPlaceTile(x, y);
-		if ((Board.Tiles[x][y].Element != tileAt.Element)
-			|| (Board.Tiles[x][y].Color != tileAt.Color))
+		if ((World.currentBoard.Tiles[x][y].Element != tileAt.Element)
+			|| (World.currentBoard.Tiles[x][y].Color != tileAt.Color))
 			for (i = 0; i <= 3; i ++) {
-				TTile & with = Board.Tiles[x + NeighborDeltaX[i]][y + NeighborDeltaY[i]];
+				TTile & with = World.currentBoard.Tiles[x + NeighborDeltaX[i]][y +
+						NeighborDeltaY[i]];
 				if ((with.Element == from.Element)
 					&& ((from.Element == 0) || (with.Color == from.Color))) {
 					xPosition[toFill] = x + NeighborDeltaX[i];
@@ -758,8 +762,8 @@ void EditorLoop() {
 	copiedTile.Color = 0xf;
 	copiedChr = ' ';
 
-	if (World.Info.CurrentBoard != 0) {
-		BoardChange(World.Info.CurrentBoard);
+	if (World.Info.CurrentBoardIdx != 0) {
+		BoardChange(World.Info.CurrentBoardIdx);
 	}
 
 	EditorDrawRefresh();
@@ -792,8 +796,10 @@ void EditorLoop() {
 		if (drawMode == TextEntry)  {
 			if (!keyboard.InputSpecialKeyPressed && keyboard.InputKeyPressed != 0) {
 				if (EditorPrepareModifyTile(cursorX, cursorY))  {
-					Board.Tiles[cursorX][cursorY].Element = (cursorColor - 9) + E_TEXT_MIN;
-					Board.Tiles[cursorX][cursorY].Color = ord(keyboard.InputKeyPressed);
+					World.currentBoard.Tiles[cursorX][cursorY].Element =
+						(cursorColor - 9) + E_TEXT_MIN;
+					World.currentBoard.Tiles[cursorX][cursorY].Color = ord(
+							keyboard.InputKeyPressed);
 					EditorDrawTileAndNeighborsAt(cursorX, cursorY);
 					keyboard.InputDeltaX = 1;
 					keyboard.InputDeltaY = 0;
@@ -810,7 +816,7 @@ void EditorLoop() {
 		}
 
 		{
-			TTile & with = Board.Tiles[cursorX][cursorY];
+			TTile & with = World.currentBoard.Tiles[cursorX][cursorY];
 			if (keyboard.InputShiftPressed || (keyboard.InputKeyPressed == ' '))  {
 				if ((with.Element == 0)
 					|| (ElementDefs[with.Element].PlaceableOnTop && copiedHasStat
@@ -820,7 +826,7 @@ void EditorLoop() {
 				} else {
 					canModify = EditorPrepareModifyTile(cursorX, cursorY);
 					if (canModify) {
-						Board.Tiles[cursorX][cursorY].Element = 0;
+						World.currentBoard.Tiles[cursorX][cursorY].Element = 0;
 					}
 				}
 			}
@@ -901,7 +907,7 @@ void EditorLoop() {
 				break;
 				case 'Z': {
 					if (SidebarPromptYesNo("Clear board? ", false))  {
-						for (i = Board.StatCount; i >= 1; i --) {
+						for (i = World.currentBoard.StatCount; i >= 1; i --) {
 							RemoveStat(i);
 						}
 						BoardCreate();
@@ -930,7 +936,7 @@ void EditorLoop() {
 				}
 				break;
 				case 'B': {
-					i = EditorSelectBoard("Switch boards", World.Info.CurrentBoard, false);
+					i = EditorSelectBoard("Switch boards", World.Info.CurrentBoardIdx, false);
 					if (keyboard.InputKeyPressed != E_KEY_ESCAPE)  {
 						if (i > World.BoardCount)
 							if (SidebarPromptYesNo("Add new board? ", false)) {
@@ -1022,7 +1028,7 @@ void EditorLoop() {
 										AddStat(cursorX, cursorY, iElem, elemMenuColor,
 											ElementDefs[iElem].Cycle, StatTemplateDefault);
 										{
-											TStat & with1 = Board.Stats[Board.StatCount];
+											TStat & with1 = World.currentBoard.Stats[World.currentBoard.StatCount];
 											if (ElementDefs[iElem].Param1Name.size() != 0) {
 												with1.P1 = World.EditorStatSettings[iElem].P1;
 											}
@@ -1037,9 +1043,9 @@ void EditorLoop() {
 												with1.P3 = World.EditorStatSettings[iElem].P3;
 											}
 										}
-										EditorEditStat(Board.StatCount);
+										EditorEditStat(World.currentBoard.StatCount);
 										if (keyboard.InputKeyPressed == E_KEY_ESCAPE) {
-											RemoveStat(Board.StatCount);
+											RemoveStat(World.currentBoard.StatCount);
 										}
 									}
 								}
@@ -1062,7 +1068,8 @@ void EditorLoop() {
 				}
 				break;
 				case 'X': {
-					EditorFloodFill(cursorX, cursorY, Board.Tiles[cursorX][cursorY]);
+					EditorFloodFill(cursorX, cursorY,
+						World.currentBoard.Tiles[cursorX][cursorY]);
 				}
 				break;
 				case '!': {
@@ -1080,7 +1087,7 @@ void EditorLoop() {
 						EditorDrawSidebar();
 					} else {
 						copiedHasStat = false;
-						copiedTile = Board.Tiles[cursorX][cursorY];
+						copiedTile = World.currentBoard.Tiles[cursorX][cursorY];
 					}
 					updateCopiedCharacter();
 				}
@@ -1248,8 +1255,8 @@ TString50 EditorGetBoardName(integer boardId, boolean titleScreenIsNone) {
 	TString50 EditorGetBoardName_result;
 	if ((boardId == 0) && titleScreenIsNone) {
 		return "None";
-	} else if (boardId == World.Info.CurrentBoard) {
-		return Board.Name.c_str();
+	} else if (boardId == World.Info.CurrentBoardIdx) {
+		return World.currentBoard.Name.c_str();
 	} else {
 		// Memory-intensive approach, but it works.
 		TBoard deserializer;

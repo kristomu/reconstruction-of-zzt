@@ -170,7 +170,8 @@ void init_IO_fuzz(dos_color border_color) {
 // obvious errors with its format, then saves the world under a
 // different name. This makes it easier to analyze complex bugs without
 // e.g. KevEdit refusing to open the world due to simpler errors.
-void refine(std::string input_filename, std::string refined_world_filename) {
+void refine(std::string input_filename,
+	std::string refined_world_filename) {
 	WorldLoad(input_filename, ".ZZT");
 	for (int i = 0; i < World.BoardCount; ++i) {
 		BoardChange(i);
@@ -295,7 +296,7 @@ int AFL_forkserver_fuzz(int argc, const char* argv[]) {
 	// fuzz shim hack, fix later
 	std::ifstream infile(argv[1], std::ifstream::binary | std::ifstream::ate);
 	size_t length = infile.tellg();
-	infile.seekg (0, infile.beg);
+	infile.seekg(0, infile.beg);
 	std::vector<char> file_dump(length);
 	infile.read(file_dump.data(), length);
 	infile.close();
@@ -332,7 +333,7 @@ int AFL_persistent_fuzz(int argc, const char* argv[]) {
 std::vector<char> load_file(std::string filename) {
 	std::ifstream infile(filename, std::ifstream::binary | std::ifstream::ate);
 	size_t length = infile.tellg();
-	infile.seekg (0, infile.beg);
+	infile.seekg(0, infile.beg);
 	std::vector<char> file_dump(length);
 	infile.read(file_dump.data(), length);
 	infile.close();
@@ -342,7 +343,8 @@ std::vector<char> load_file(std::string filename) {
 // Test idempotency (in a rough way). Currently this returns quickly,
 // because the slow world isn't really evaluated. It should be returning
 // slow, as it would if the slow_world is directly invoked.
-void perf_idempotence_test(std::string fast_world, std::string slow_world) {
+void perf_idempotence_test(std::string fast_world,
+	std::string slow_world) {
 	char fake_process_name[] = "";
 	const char * fake_argv[1] = {fake_process_name};
 

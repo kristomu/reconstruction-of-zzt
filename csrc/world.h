@@ -17,7 +17,7 @@ class TWorldInfo {
 		short Gems;
 		//array<1,7,bool> Keys;
 		short Health;
-		short CurrentBoard;
+		short CurrentBoardIdx;
 		short Torches;
 		short TorchTicks;
 		short EnergizerTicks;
@@ -32,7 +32,7 @@ class TWorldInfo {
 
 		size_t packed_size() const {
 			return 7 + sizeof(Ammo) + sizeof(Gems) + sizeof(Health) +
-				sizeof(CurrentBoard) + sizeof(Torches) + sizeof(TorchTicks) +
+				sizeof(CurrentBoardIdx) + sizeof(Torches) + sizeof(TorchTicks) +
 				sizeof(EnergizerTicks) + sizeof(unk1) + sizeof(Score) + 21 +
 				21 * MAX_FLAG + sizeof(BoardTimeSec) + sizeof(BoardTimeHsec) +
 				sizeof(IsSave) + 13;
@@ -55,6 +55,7 @@ class TWorldInfo {
 class TWorld {
 	public:
 		short BoardCount;
+		TBoard currentBoard;
 		// dynamic board length.
 		// TODO later, turn this into a vector of vectors and use .size()
 		// instead of BoardCount.

@@ -110,7 +110,14 @@ void GenerateTransitionTable() {
 }
 
 void BoardClose(boolean showTruncationNote) {
-	World.BoardData[World.Info.CurrentBoard] = Board.dump_and_truncate();
+	std::string out_load_error;
+	World.BoardData[World.Info.CurrentBoardIdx] =
+		World.currentBoard.dump_and_truncate(
+			out_load_error);
+
+	if (showTruncationNote && out_load_error != "") {
+		DisplayTruncationNote();
+	}
 }
 
 /* Set worldIsDamaged to true if the BoardOpen is from a world load and
@@ -125,13 +132,13 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 	boolean boardIsDamaged;
 
 	if (boardId > World.BoardCount) {
-		boardId = World.Info.CurrentBoard;
+		boardId = World.Info.CurrentBoardIdx;
 	}
 
-	std::string load_error = Board.load(World.BoardData[boardId],
+	std::string load_error = World.currentBoard.load(World.BoardData[boardId],
 			boardId, World.BoardCount);
 
-	World.Info.CurrentBoard = boardId;
+	World.Info.CurrentBoardIdx = boardId;
 
 	// TODO: Distinguish between truncation and corruption as in
 	// FPC. Also be more sensible about what kind of corruption
@@ -143,10 +150,11 @@ void BoardOpen(integer boardId, boolean worldIsDamaged) {
 }
 
 void BoardChange(integer boardId) {
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER;
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
-		ElementDefs[E_PLAYER].Color;
-	if (boardId != World.Info.CurrentBoard)  {
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X]
+	[World.currentBoard.Stats[0].Y].Element = E_PLAYER;
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X]
+	[World.currentBoard.Stats[0].Y].Color = ElementDefs[E_PLAYER].Color;
+	if (boardId != World.Info.CurrentBoardIdx)  {
 		BoardClose(true);
 		BoardOpen(boardId, false);
 	}
@@ -155,12 +163,12 @@ void BoardChange(integer boardId) {
 void BoardCreate() {
 	// Retain the title screen label if we're overwriting a title screen.
 	// Required to perform the same way as Pascal on TRUNCATE.ZZT.
-	if (Board.Name == "Title screen") {
-		Board.create();
-		Board.Name = "Title screen";
+	if (World.currentBoard.Name == "Title screen") {
+		World.currentBoard.create();
+		World.currentBoard.Name = "Title screen";
 	} else {
-		Board.create();
-		Board.Name = "";
+		World.currentBoard.create();
+		World.currentBoard.Name = "";
 	}
 }
 
@@ -174,7 +182,7 @@ void WorldCreate() {
 	ResetMessageNotShownFlags();
 	BoardCreate();
 	World.Info.IsSave = false;
-	World.Info.CurrentBoard = 0;
+	World.Info.CurrentBoardIdx = 0;
 	World.Info.Ammo = 0;
 	World.Info.Gems = 0;
 	World.Info.Health = 100;
@@ -191,7 +199,7 @@ void WorldCreate() {
 		World.Info.Flags[i] = "";
 	}
 	BoardChange(0);
-	Board.Name = "Title screen";
+	World.currentBoard.Name = "Title screen";
 	LoadedGameFileName = "";
 	World.Info.Name = "";
 }
@@ -212,12 +220,13 @@ void BoardDrawTile(integer x, integer y) {
 		return;
 	}
 
-	TTile & with = Board.Tiles[x][y];
-	if (! Board.Info.IsDark
-		|| (ElementDefs[Board.Tiles[x][y].Element].VisibleInDark)
+	TTile & with = World.currentBoard.Tiles[x][y];
+	if (! World.currentBoard.Info.IsDark
+		|| (ElementDefs[World.currentBoard.Tiles[x][y].Element].VisibleInDark)
 		|| (
 			(World.Info.TorchTicks > 0)
-			&& ((sqr(Board.Stats[0].X - x) + sqr(Board.Stats[0].Y - y) * 2) <
+			&& ((sqr(World.currentBoard.Stats[0].X - x) + sqr(
+						World.currentBoard.Stats[0].Y - y) * 2) <
 				TORCH_DIST_SQR)
 		) || ForceDarknessOff) {
 		if (with.Element == E_EMPTY) {
@@ -232,15 +241,15 @@ void BoardDrawTile(integer x, integer y) {
 		else {
 			/* Text drawing */
 			if (with.Element == E_TEXT_WHITE) {
-				video.write(x - 1, y - 1, 0xf, chr(Board.Tiles[x][y].Color));
+				video.write(x - 1, y - 1, 0xf, chr(World.currentBoard.Tiles[x][y].Color));
 			} else if (video.is_monochrome())
 				video.write(x - 1, y - 1,
 					((with.Element - E_TEXT_MIN) + 1) * 16,
-					chr(Board.Tiles[x][y].Color));
+					chr(World.currentBoard.Tiles[x][y].Color));
 			else
 				video.write(x - 1, y - 1,
 					(((with.Element - E_TEXT_MIN) + 1) * 16) + 0xf,
-					chr(Board.Tiles[x][y].Color));
+					chr(World.currentBoard.Tiles[x][y].Color));
 		}
 	} else {
 		/* Darkness */
@@ -690,7 +699,7 @@ bool load_board_from_file(std::istream & f, bool is_final_board,
 		return false;
 	} else {
 		/* If it's the last board, get everything we can.
-			This recovers the last Super Lock-corrupted board.
+			This recovers the last Super Lock-corrupted World.currentBoard.
 			actuallyRead below will adjust the board length back
 			if we're dealing with an ordinary world. */
 		if (is_final_board) {
@@ -792,11 +801,11 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 
 			/* Don't accept CurrentBoard values that are too large or
 			small. */
-			if (World.Info.CurrentBoard > World.BoardCount ||
-				World.Info.CurrentBoard < 0)  {
+			if (World.Info.CurrentBoardIdx > World.BoardCount ||
+				World.Info.CurrentBoardIdx < 0)  {
 
-				World.Info.CurrentBoard = Max(0, Min(World.BoardCount,
-							World.Info.CurrentBoard));
+				World.Info.CurrentBoardIdx = Max(0, Min(World.BoardCount,
+							World.Info.CurrentBoardIdx));
 				worldIsDamaged = true;
 			}
 
@@ -832,12 +841,12 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 			/* More sanity checks. If the current board number is negative
 				or too high, set it to zero. (Maybe instead set it to the
 				actual number of boards read?) */
-			if ((World.Info.CurrentBoard < 0) ||
-				(World.Info.CurrentBoard > Min(MAX_BOARD, World.BoardCount))) {
-				World.Info.CurrentBoard = 0;
+			if ((World.Info.CurrentBoardIdx < 0) ||
+				(World.Info.CurrentBoardIdx > Min(MAX_BOARD, World.BoardCount))) {
+				World.Info.CurrentBoardIdx = 0;
 			}
 
-			BoardOpen(World.Info.CurrentBoard, worldIsDamaged);
+			BoardOpen(World.Info.CurrentBoardIdx, worldIsDamaged);
 			LoadedGameFileName = world_name.c_str();
 
 			// XXX: Once we add in editor.cxx
@@ -923,7 +932,7 @@ void WorldSave(std::string filename, std::string extension) {
 		out_file.close();
 	}
 
-	BoardOpen(World.Info.CurrentBoard, false);
+	BoardOpen(World.Info.CurrentBoardIdx, false);
 	SidebarClearLine(5);
 	return;
 
@@ -931,7 +940,7 @@ LOnError:
 	out_file.close();
 	std::remove(full_filename.c_str()); // Delete the corrupted file.
 	// IMP? Give error message? But the above already does.
-	BoardOpen(World.Info.CurrentBoard, false);
+	BoardOpen(World.Info.CurrentBoardIdx, false);
 	SidebarClearLine(5);
 }
 
@@ -958,7 +967,7 @@ std::vector<char> WorldSaveVector() {
 			std::back_inserter(output));
 	}
 
-	BoardOpen(World.Info.CurrentBoard, false);
+	BoardOpen(World.Info.CurrentBoardIdx, false);
 	std::vector<char> out_signed;
 	out_signed.assign(output.begin(), output.end());
 	return out_signed;
@@ -1046,7 +1055,7 @@ void CopyStatDataToTextWindow(integer statId,
 	char dataChr;
 	integer i;
 
-	TStat & with = Board.Stats[statId];
+	TStat & with = World.currentBoard.Stats[statId];
 	TextWindowInitState(state);
 	dataStr = "";
 
@@ -1066,12 +1075,13 @@ void CopyStatDataToTextWindow(integer statId,
 void AddStat(integer tx, integer ty, byte element, integer color,
 	integer tcycle, TStat template_) {
 	/* First of all: check if we have space. If not, no can do! */
-	if (Board.get_packed_size() + template_.upper_bound_packed_size() >
+	if (World.currentBoard.get_packed_size() +
+		template_.upper_bound_packed_size() >
 		MAX_BOARD_LEN) {
 		return;
 	}
 
-	Board.add_stat(tx, ty, element, color, tcycle, template_);
+	World.currentBoard.add_stat(tx, ty, element, color, tcycle, template_);
 
 	if (CoordInsideViewport(tx, ty)) {
 		BoardDrawTile(tx, ty);
@@ -1081,7 +1091,7 @@ void AddStat(integer tx, integer ty, byte element, integer color,
 void RemoveStat(integer statId) {
 	int x, y;
 
-	if (!Board.remove_stat(statId, x, y, CurrentStatTicked)) {
+	if (!World.currentBoard.remove_stat(statId, x, y, CurrentStatTicked)) {
 		return;
 	}
 
@@ -1096,10 +1106,11 @@ integer GetStatIdAt(integer x, integer y) {
 	i = -1;
 	do {
 		i = i + 1;
-	} while (!(((Board.Stats[i].X == x) && (Board.Stats[i].Y == y))
-			|| (i > Board.StatCount)));
+	} while (!(((World.currentBoard.Stats[i].X == x)
+				&& (World.currentBoard.Stats[i].Y == y))
+			|| (i > World.currentBoard.StatCount)));
 
-	if (i > Board.StatCount) {
+	if (i > World.currentBoard.StatCount) {
 		return -1;
 	} else {
 		return i;
@@ -1121,8 +1132,8 @@ boolean BoardPrepareTileForPlacement(integer x, integer y) {
 		RemoveStat(statId);
 		result = true;
 	} else if (statId < 0)  {
-		if (! ElementDefs[Board.Tiles[x][y].Element].PlaceableOnTop) {
-			Board.Tiles[x][y].Element = E_EMPTY;
+		if (! ElementDefs[World.currentBoard.Tiles[x][y].Element].PlaceableOnTop) {
+			World.currentBoard.Tiles[x][y].Element = E_EMPTY;
 		}
 		result = true;
 	} else {       /* statId = 0 (player) cannot be modified */
@@ -1146,7 +1157,8 @@ void MoveStat(integer statId, integer newX, integer newY) {
 		throw std::logic_error("Trying to move noexisting stat (-1)");
 	}
 	// No point in moving a stat to its own tile
-	if ((Board.Stats[statId].X == newX) && (Board.Stats[statId].Y == newY)) {
+	if ((World.currentBoard.Stats[statId].X == newX)
+		&& (World.currentBoard.Stats[statId].Y == newY)) {
 		return;
 	}
 	// And not allowed to move something outside of the viewport.
@@ -1154,35 +1166,41 @@ void MoveStat(integer statId, integer newX, integer newY) {
 		return;
 	}
 
-	TStat & with = Board.Stats[statId];
-	oldBgColor = Board.Tiles[newX][newY].Color & 0xf0;
+	TStat & with = World.currentBoard.Stats[statId];
+	oldBgColor = World.currentBoard.Tiles[newX][newY].Color & 0xf0;
 
-	iUnder = Board.Stats[statId].Under;
-	Board.Stats[statId].Under = Board.Tiles[newX][newY];
+	iUnder = World.currentBoard.Stats[statId].Under;
+	World.currentBoard.Stats[statId].Under =
+		World.currentBoard.Tiles[newX][newY];
 
 	/* If trying to move atop the player, reject this. The object
 	   is simply destroyed instead, as if a player was set on top
 	   afterwards. */
-	if ((newX == Board.Stats[0].X) && (newY == Board.Stats[0].Y))  {
+	if ((newX == World.currentBoard.Stats[0].X)
+		&& (newY == World.currentBoard.Stats[0].Y))  {
 		RemoveStat(statId);
 		return;
 	}
 
-	if (Board.Tiles[with.X][with.Y].Element == E_PLAYER) {
-		Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color;
-	} else if (Board.Tiles[newX][newY].Element == E_EMPTY)
-		Board.Tiles[newX][newY].Color = Board.Tiles[with.X][with.Y].Color &
+	if (World.currentBoard.Tiles[with.X][with.Y].Element == E_PLAYER) {
+		World.currentBoard.Tiles[newX][newY].Color =
+			World.currentBoard.Tiles[with.X][with.Y].Color;
+	} else if (World.currentBoard.Tiles[newX][newY].Element == E_EMPTY)
+		World.currentBoard.Tiles[newX][newY].Color =
+			World.currentBoard.Tiles[with.X][with.Y].Color &
 			0xf;
 	else
-		Board.Tiles[newX][newY].Color = (Board.Tiles[with.X][with.Y].Color &
-				0xf) + (Board.Tiles[newX][newY].Color & 0x70);
+		World.currentBoard.Tiles[newX][newY].Color =
+			(World.currentBoard.Tiles[with.X][with.Y].Color &
+				0xf) + (World.currentBoard.Tiles[newX][newY].Color & 0x70);
 
-	Board.Tiles[newX][newY].Element = Board.Tiles[with.X][with.Y].Element;
+	World.currentBoard.Tiles[newX][newY].Element =
+		World.currentBoard.Tiles[with.X][with.Y].Element;
 	/* Don't remove the player if he's at the old position. This can
 	happen with multiple stats with the same coordinate. */
-	if ((statId == 0) || (with.X != Board.Stats[0].X)
-		|| (with.Y != Board.Stats[0].Y)) {
-		Board.Tiles[with.X][with.Y] = iUnder;
+	if ((statId == 0) || (with.X != World.currentBoard.Stats[0].X)
+		|| (with.Y != World.currentBoard.Stats[0].Y)) {
+		World.currentBoard.Tiles[with.X][with.Y] = iUnder;
 	}
 
 	oldX = with.X;
@@ -1193,7 +1211,7 @@ void MoveStat(integer statId, integer newX, integer newY) {
 	BoardDrawTile(with.X, with.Y);
 	BoardDrawTile(oldX, oldY);
 
-	if ((statId == 0) && Board.Info.IsDark
+	if ((statId == 0) && World.currentBoard.Info.IsDark
 		&& (World.Info.TorchTicks > 0))  {
 		if ((sqr(oldX-with.X) + sqr(oldY-with.Y)) == 1)  {
 			for (ix = (with.X - TORCH_DX - 3); ix <= (with.X + TORCH_DX + 3);
@@ -1270,9 +1288,10 @@ void GameUpdateSidebar() {
 	integer i;
 
 	if (GameStateElement == E_PLAYER)  {
-		if (Board.Info.TimeLimitSec > 0)  {
+		if (World.currentBoard.Info.TimeLimitSec > 0)  {
 			video.write(64, 6, 0x1e, "   Time:");
-			str(Board.Info.TimeLimitSec - World.Info.BoardTimeSec, numStr);
+			str(World.currentBoard.Info.TimeLimitSec - World.Info.BoardTimeSec,
+				numStr);
 			video.write(72, 6, 0x1e, numStr + ' ');
 		} else {
 			SidebarClearLine(6);
@@ -1338,16 +1357,16 @@ void DisplayMessage(integer time, string message) {
 	if (length(message) != 0)  {
 		AddStat(0, 0, E_MESSAGE_TIMER, 0, 1, StatTemplateDefault);
 		/*IMP: P2 is a byte, so it can hold a max value of 255.*/
-		Board.Stats[Board.StatCount].P2 = Min(255,
+		World.currentBoard.Stats[World.currentBoard.StatCount].P2 = Min(255,
 				time / (TickTimeDuration + 1));
-		Board.Info.Message = message;
+		World.currentBoard.Info.Message = message;
 	}
 }
 
 void DamageStat(integer attackerStatId) {
 	integer oldX, oldY;
 
-	TStat & with = Board.Stats[attackerStatId];
+	TStat & with = World.currentBoard.Stats[attackerStatId];
 	if (attackerStatId == 0)  {
 		if (World.Info.Health > 0)  {
 			World.Info.Health = World.Info.Health - 10;
@@ -1355,19 +1374,22 @@ void DamageStat(integer attackerStatId) {
 			GameUpdateSidebar();
 			DisplayMessage(100, "Ouch!");
 
-			Board.Tiles[with.X][with.Y].Color = 0x70 + (ElementDefs[4].Color %
+			World.currentBoard.Tiles[with.X][with.Y].Color = 0x70 +
+				(ElementDefs[4].Color %
 					0x10);
 
 			if (World.Info.Health > 0)  {
 				World.Info.BoardTimeSec = 0;
-				if (Board.Info.ReenterWhenZapped)  {
+				if (World.currentBoard.Info.ReenterWhenZapped)  {
 					SoundQueue(4, "\40\1\43\1\47\1\60\1\20\1");
 
 					/* Move player to start */
 					oldX = with.X;
 					oldY = with.Y;
-					if (ValidCoord(Board.Info.StartPlayerX, Board.Info.StartPlayerY)) {
-						MoveStat(0, Board.Info.StartPlayerX, Board.Info.StartPlayerY);
+					if (ValidCoord(World.currentBoard.Info.StartPlayerX,
+							World.currentBoard.Info.StartPlayerY)) {
+						MoveStat(0, World.currentBoard.Info.StartPlayerX,
+							World.currentBoard.Info.StartPlayerY);
 					}
 					BoardDrawTile(oldX, oldY);
 					DrawPlayerSurroundings(oldX, oldY, 0);
@@ -1384,7 +1406,7 @@ void DamageStat(integer attackerStatId) {
 			}
 		}
 	} else {
-		switch (Board.Tiles[with.X][with.Y].Element) {
+		switch (World.currentBoard.Tiles[with.X][with.Y].Element) {
 			case E_BULLET: SoundQueue(3, "\40\1"); break;
 			case E_OBJECT: {; } break;
 			default:
@@ -1401,14 +1423,15 @@ void BoardDamageTile(integer x, integer y) {
 	if (statId != -1)  {
 		DamageStat(statId);
 	} else {
-		Board.Tiles[x][y].Element = E_EMPTY;
+		World.currentBoard.Tiles[x][y].Element = E_EMPTY;
 		BoardDrawTile(x, y);
 	}
 }
 
 void BoardAttack(integer attackerStatId, integer x, integer y) {
 	if ((attackerStatId == 0) && (World.Info.EnergizerTicks > 0))  {
-		World.Info.Score = ElementDefs[Board.Tiles[x][y].Element].ScoreValue +
+		World.Info.Score =
+			ElementDefs[World.currentBoard.Tiles[x][y].Element].ScoreValue +
 			World.Info.Score;
 		GameUpdateSidebar();
 	} else {
@@ -1419,10 +1442,11 @@ void BoardAttack(integer attackerStatId, integer x, integer y) {
 		CurrentStatTicked = CurrentStatTicked - 1;
 	}
 
-	if ((Board.Tiles[x][y].Element == E_PLAYER)
+	if ((World.currentBoard.Tiles[x][y].Element == E_PLAYER)
 		&& (World.Info.EnergizerTicks > 0))  {
 		World.Info.Score =
-			ElementDefs[Board.Tiles[Board.Stats[attackerStatId].X][Board.Stats[attackerStatId].Y].Element]
+			ElementDefs[World.currentBoard.Tiles[World.currentBoard.Stats[attackerStatId].X]
+				[World.currentBoard.Stats[attackerStatId].Y].Element]
 			.ScoreValue + World.Info.Score;
 		GameUpdateSidebar();
 	} else {
@@ -1440,26 +1464,28 @@ boolean BoardShoot(byte element, integer tx, integer ty,
 		return false;
 	}
 
-	if (ElementDefs[Board.Tiles[tx + deltaX][ty +
-							   deltaY].Element].Walkable
-		|| (Board.Tiles[tx + deltaX][ty + deltaY].Element == E_WATER)) {
+	if (ElementDefs[World.currentBoard.Tiles[tx + deltaX][ty +
+											deltaY].Element].Walkable
+		|| (World.currentBoard.Tiles[tx + deltaX][ty + deltaY].Element ==
+			E_WATER)) {
 		AddStat(tx + deltaX, ty + deltaY, element, ElementDefs[element].Color,
 			1,
 			StatTemplateDefault);
 		{
-			TStat & with = Board.Stats[Board.StatCount];
+			TStat & with = World.currentBoard.Stats[World.currentBoard.StatCount];
 			with.P1 = source;
 			with.StepX = deltaX;
 			with.StepY = deltaY;
 			with.P2 = 100;
 		}
 		BoardShoot_result = true;
-	} else if ((Board.Tiles[tx + deltaX][ty + deltaY].Element ==
+	} else if ((World.currentBoard.Tiles[tx + deltaX][ty + deltaY].Element ==
 			E_BREAKABLE)
 		|| (
-			ElementDefs[Board.Tiles[tx + deltaX][ty +
-								   deltaY].Element].Destructible
-			&& ((Board.Tiles[tx + deltaX][ty + deltaY].Element == E_PLAYER) ==
+			ElementDefs[World.currentBoard.Tiles[tx + deltaX][ty +
+												deltaY].Element].Destructible
+			&& ((World.currentBoard.Tiles[tx + deltaX][ty + deltaY].Element ==
+					E_PLAYER) ==
 				(boolean)(source))
 			&& (World.Info.EnergizerTicks <= 0)
 		)) {
@@ -1487,12 +1513,12 @@ void CalcDirectionSeek(integer x, integer y, integer & deltaX,
 	deltaX = 0;
 	deltaY = 0;
 
-	if ((rnd.randint(2) < 1) || (Board.Stats[0].Y == y)) {
-		deltaX = Signum(Board.Stats[0].X - x);
+	if ((rnd.randint(2) < 1) || (World.currentBoard.Stats[0].Y == y)) {
+		deltaX = Signum(World.currentBoard.Stats[0].X - x);
 	}
 
 	if (deltaX == 0) {
-		deltaY = Signum(Board.Stats[0].Y - y);
+		deltaY = Signum(World.currentBoard.Stats[0].Y - y);
 	}
 
 	if (World.Info.EnergizerTicks > 0)  {
@@ -1512,10 +1538,10 @@ void TransitionDrawBoardChange() {
 }
 
 void BoardEnter() {
-	Board.Info.StartPlayerX = Board.Stats[0].X;
-	Board.Info.StartPlayerY = Board.Stats[0].Y;
+	World.currentBoard.Info.StartPlayerX = World.currentBoard.Stats[0].X;
+	World.currentBoard.Info.StartPlayerY = World.currentBoard.Stats[0].Y;
 
-	if (Board.Info.IsDark && MessageHintTorchNotShown)  {
+	if (World.currentBoard.Info.IsDark && MessageHintTorchNotShown)  {
 		DisplayMessage(200, "Room is dark - you need to light a torch!");
 		MessageHintTorchNotShown = false;
 	}
@@ -1530,15 +1556,15 @@ void BoardPassageTeleport(integer x, integer y) {
 	integer ix, iy;
 	integer newX, newY;
 
-	col = Board.Tiles[x][y].Color;
+	col = World.currentBoard.Tiles[x][y].Color;
 
-	oldBoard = World.Info.CurrentBoard;
+	oldBoard = World.Info.CurrentBoardIdx;
 
 	/* Handle passages without stats. */
 	if (GetStatIdAt(x, y) < 0) {
 		BoardChange(oldBoard);
 	} else {
-		BoardChange(Board.Stats[GetStatIdAt(x, y)].P3);
+		BoardChange(World.currentBoard.Stats[GetStatIdAt(x, y)].P3);
 	}
 
 	/* Set a default position that's outside the viewport, so that if
@@ -1551,8 +1577,8 @@ void BoardPassageTeleport(integer x, integer y) {
 
 	for (ix = 1; ix <= BOARD_WIDTH; ix ++) {
 		for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
-			if ((Board.Tiles[ix][iy].Element == E_PASSAGE)
-				&& (Board.Tiles[ix][iy].Color == col)) {
+			if ((World.currentBoard.Tiles[ix][iy].Element == E_PASSAGE)
+				&& (World.currentBoard.Tiles[ix][iy].Color == col)) {
 				newX = ix;
 				newY = iy;
 			}
@@ -1613,16 +1639,17 @@ void GameDebugPrompt() {
 	} else if (input == "GEMS") {
 		World.Info.Gems = World.Info.Gems + 5;
 	} else if (input == "DARK")  {
-		Board.Info.IsDark = toggle;
+		World.currentBoard.Info.IsDark = toggle;
 		TransitionDrawToBoard();
 	} else if (input == "ZAP")  {
 		for (i = 0; i <= 3; i ++) {
-			BoardDamageTile(Board.Stats[0].X + NeighborDeltaX[i],
-				Board.Stats[0].Y + NeighborDeltaY[i]);
-			Board.Tiles[Board.Stats[0].X + NeighborDeltaX[i]][Board.Stats[0].Y +
-				NeighborDeltaY[i]].Element = E_EMPTY;
-			BoardDrawTile(Board.Stats[0].X + NeighborDeltaX[i],
-				Board.Stats[0].Y + NeighborDeltaY[i]);
+			BoardDamageTile(World.currentBoard.Stats[0].X + NeighborDeltaX[i],
+				World.currentBoard.Stats[0].Y + NeighborDeltaY[i]);
+			World.currentBoard.Tiles[World.currentBoard.Stats[0].X +
+				NeighborDeltaX[i]][World.currentBoard.Stats[0].Y +
+					NeighborDeltaY[i]].Element = E_EMPTY;
+			BoardDrawTile(World.currentBoard.Stats[0].X + NeighborDeltaX[i],
+				World.currentBoard.Stats[0].Y + NeighborDeltaY[i]);
 		}
 	}
 
@@ -1718,14 +1745,15 @@ void GamePlayLoop(boolean boardChanged) {
 				WorldCreate();
 			}
 		}
-		ReturnBoardId = World.Info.CurrentBoard;
+		ReturnBoardId = World.Info.CurrentBoardIdx;
 		BoardChange(0);
 		JustStarted = false;
 	}
 
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element =
-		GameStateElement;
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X]
+	[World.currentBoard.Stats[0].Y].Element = GameStateElement;
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X]
+	[World.currentBoard.Stats[0].Y].Color =
 		ElementDefs[GameStateElement].Color;
 
 	if (GameStateElement == E_MONITOR)  {
@@ -1743,7 +1771,7 @@ void GamePlayLoop(boolean boardChanged) {
 
 	// if (!FuzzMode) {
 	CurrentTick = rnd.randint(100);
-	CurrentStatTicked = Board.StatCount + 1;
+	CurrentStatTicked = World.currentBoard.StatCount + 1;
 	// }
 
 	pauseBlink = true;
@@ -1759,18 +1787,23 @@ void GamePlayLoop(boolean boardChanged) {
 			keyboard.update();
 
 			// Don't blink an out-of-bounds player.
-			if (pauseBlink && CoordInsideViewport(Board.Stats[0].X,
-					Board.Stats[0].Y)) {
-				video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1,
+			if (pauseBlink && CoordInsideViewport(World.currentBoard.Stats[0].X,
+					World.currentBoard.Stats[0].Y)) {
+				video.write(World.currentBoard.Stats[0].X - 1,
+					World.currentBoard.Stats[0].Y - 1,
 					ElementDefs[E_PLAYER].Color, ElementDefs[E_PLAYER].Character);
 			} else {
-				if (CoordInsideViewport(Board.Stats[0].X, Board.Stats[0].Y)
-					&& Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
+				if (CoordInsideViewport(World.currentBoard.Stats[0].X,
+						World.currentBoard.Stats[0].Y)
+					&& World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Element
+					==
 					E_PLAYER)
-					video.write(Board.Stats[0].X - 1, Board.Stats[0].Y - 1, 0xf,
+					video.write(World.currentBoard.Stats[0].X - 1,
+						World.currentBoard.Stats[0].Y - 1, 0xf,
 						" ");
 				else {
-					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
+					BoardDrawTile(World.currentBoard.Stats[0].X,
+						World.currentBoard.Stats[0].Y);
 				}
 			}
 
@@ -1781,50 +1814,60 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 
 			if (((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0)) &&
-				ValidCoord(Board.Stats[0].X + keyboard.InputDeltaX,
-					Board.Stats[0].Y + keyboard.InputDeltaY))  {
-				ElementDefs[Board.Tiles[Board.Stats[0].X + keyboard.InputDeltaX]
-												 [Board.Stats[0].Y + keyboard.InputDeltaY].Element].TouchProc(
-						Board.Stats[0].X + keyboard.InputDeltaX,
-						Board.Stats[0].Y + keyboard.InputDeltaY, 0,
+				ValidCoord(World.currentBoard.Stats[0].X + keyboard.InputDeltaX,
+					World.currentBoard.Stats[0].Y + keyboard.InputDeltaY))  {
+				ElementDefs[World.currentBoard.Tiles[World.currentBoard.Stats[0].X +
+																			   keyboard.InputDeltaX]
+																		   [World.currentBoard.Stats[0].Y + keyboard.InputDeltaY].Element].TouchProc(
+						World.currentBoard.Stats[0].X + keyboard.InputDeltaX,
+						World.currentBoard.Stats[0].Y + keyboard.InputDeltaY, 0,
 						keyboard.InputDeltaX, keyboard.InputDeltaY);
 			}
 
 			if (((keyboard.InputDeltaX != 0) || (keyboard.InputDeltaY != 0))
-				&& ValidCoord(Board.Stats[0].X +keyboard.InputDeltaX,
-					Board.Stats[0].Y + keyboard.InputDeltaY)
-				&& ElementDefs[Board.Tiles[Board.Stats[0].X
-						+keyboard.InputDeltaX][Board.Stats[0].Y
+				&& ValidCoord(World.currentBoard.Stats[0].X +keyboard.InputDeltaX,
+					World.currentBoard.Stats[0].Y + keyboard.InputDeltaY)
+				&& ElementDefs[World.currentBoard.Tiles[World.currentBoard.Stats[0].X
+						+keyboard.InputDeltaX][World.currentBoard.Stats[0].Y
 						+ keyboard.InputDeltaY].Element].Walkable) {
 				/* Move player */
-				if (Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element ==
+				if (World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Element
+					==
 					E_PLAYER)
-					MoveStat(0, Board.Stats[0].X + keyboard.InputDeltaX,
-						Board.Stats[0].Y + keyboard.InputDeltaY);
+					MoveStat(0, World.currentBoard.Stats[0].X + keyboard.InputDeltaX,
+						World.currentBoard.Stats[0].Y + keyboard.InputDeltaY);
 				else {
-					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-					Board.Stats[0].X = Board.Stats[0].X + keyboard.InputDeltaX;
-					Board.Stats[0].Y = Board.Stats[0].Y + keyboard.InputDeltaY;
-					Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER;
-					Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
-						ElementDefs[E_PLAYER].Color;
-					BoardDrawTile(Board.Stats[0].X, Board.Stats[0].Y);
-					DrawPlayerSurroundings(Board.Stats[0].X, Board.Stats[0].Y, 0);
-					DrawPlayerSurroundings(Board.Stats[0].X - keyboard.InputDeltaX,
-						Board.Stats[0].Y - keyboard.InputDeltaY, 0);
+					BoardDrawTile(World.currentBoard.Stats[0].X,
+						World.currentBoard.Stats[0].Y);
+					World.currentBoard.Stats[0].X = World.currentBoard.Stats[0].X +
+						keyboard.InputDeltaX;
+					World.currentBoard.Stats[0].Y = World.currentBoard.Stats[0].Y +
+						keyboard.InputDeltaY;
+					World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Element
+						= E_PLAYER;
+					World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Color
+						=
+							ElementDefs[E_PLAYER].Color;
+					BoardDrawTile(World.currentBoard.Stats[0].X,
+						World.currentBoard.Stats[0].Y);
+					DrawPlayerSurroundings(World.currentBoard.Stats[0].X,
+						World.currentBoard.Stats[0].Y, 0);
+					DrawPlayerSurroundings(World.currentBoard.Stats[0].X -
+						keyboard.InputDeltaX,
+						World.currentBoard.Stats[0].Y - keyboard.InputDeltaY, 0);
 				}
 
 				/* Unpause */
 				GamePaused = false;
 				SidebarClearLine(5);
 				CurrentTick = rnd.randint(100);
-				CurrentStatTicked = Board.StatCount + 1;
+				CurrentStatTicked = World.currentBoard.StatCount + 1;
 				World.Info.IsSave = true;
 			}
 
 		} else {       /* not GamePaused */
-			if (CurrentStatTicked <= Board.StatCount)  {
-				TStat & with = Board.Stats[CurrentStatTicked];
+			if (CurrentStatTicked <= World.currentBoard.StatCount)  {
+				TStat & with = World.currentBoard.Stats[CurrentStatTicked];
 				/* IMP: The game element (at stat 0) can always call a tick,
 				   but it can only act - affect the world - if the cycle is
 				   right. See ElementPlayerTick for more info. */
@@ -1833,7 +1876,7 @@ void GamePlayLoop(boolean boardChanged) {
 						&& ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle))))
 
 				{
-					ElementDefs[Board.Tiles[with.X][with.Y].Element].TickProc(
+					ElementDefs[World.currentBoard.Tiles[with.X][with.Y].Element].TickProc(
 						CurrentStatTicked);
 				}
 
@@ -1841,7 +1884,7 @@ void GamePlayLoop(boolean boardChanged) {
 			}
 		}
 
-		if ((CurrentStatTicked > Board.StatCount)
+		if ((CurrentStatTicked > World.currentBoard.StatCount)
 			&& ! GamePlayExitRequested)  {
 			if (SoundHasTimeElapsed(TickTimeCounter, TickTimeDuration))  {
 				/* next cycle */
@@ -1860,13 +1903,14 @@ void GamePlayLoop(boolean boardChanged) {
 		    and be at the X,Y given by stat 0 is violated. We have to check
 		    for both player and monitor no matter what the GameStateElement
 		    is in order to support Chronos' Forced Play hack. */
-		if (!ValidCoord(Board.Stats[0].X, Board.Stats[0].Y)) {
+		if (!ValidCoord(World.currentBoard.Stats[0].X,
+				World.currentBoard.Stats[0].Y)) {
 			throw std::logic_error("game.cxx: Player or Monitor is off-board."
 				" This should never happen.");
 		}
 
 		byte playerTileElem =
-			Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element;
+			World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Element;
 		if (playerTileElem != E_PLAYER && playerTileElem != E_MONITOR) {
 			throw std::logic_error("game.cxx: Board has no Player or Monitor."
 				" This should never happen.");
@@ -1887,9 +1931,11 @@ void GamePlayLoop(boolean boardChanged) {
 		SidebarClearLine(5);
 	}
 
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Element = E_PLAYER;
-	Board.Tiles[Board.Stats[0].X][Board.Stats[0].Y].Color =
-		ElementDefs[E_PLAYER].Color;
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Element
+		= E_PLAYER;
+	World.currentBoard.Tiles[World.currentBoard.Stats[0].X][World.currentBoard.Stats[0].Y].Color
+		=
+			ElementDefs[E_PLAYER].Color;
 
 	SoundBlockQueueing = false;
 }
@@ -1914,7 +1960,7 @@ void GameTitleLoop() {
 			switch (keyUpCase(keyboard.InputKeyPressed)) {
 				case 'W': {
 					if (GameWorldLoad(".ZZT"))  {
-						ReturnBoardId = World.Info.CurrentBoard;
+						ReturnBoardId = World.Info.CurrentBoardIdx;
 						boardChanged = true;
 					}
 				}
@@ -1922,7 +1968,7 @@ void GameTitleLoop() {
 				case 'P': {
 					if (World.Info.IsSave && ! DebugEnabled)  {
 						startPlay = WorldLoad(World.Info.Name, ".ZZT");
-						ReturnBoardId = World.Info.CurrentBoard;
+						ReturnBoardId = World.Info.CurrentBoardIdx;
 					} else {
 						startPlay = true;
 					}
@@ -1938,7 +1984,7 @@ void GameTitleLoop() {
 				break;
 				case 'E': if (EditorEnabled)  {
 						EditorLoop();
-						ReturnBoardId = World.Info.CurrentBoard;
+						ReturnBoardId = World.Info.CurrentBoardIdx;
 						boardChanged = true;
 					}
 					break;
@@ -1949,7 +1995,7 @@ void GameTitleLoop() {
 				break;
 				case 'R': {
 					if (GameWorldLoad(".SAV"))  {
-						ReturnBoardId = World.Info.CurrentBoard;
+						ReturnBoardId = World.Info.CurrentBoardIdx;
 						BoardChange(ReturnBoardId);
 						startPlay = true;
 					}

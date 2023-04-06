@@ -125,7 +125,7 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 		BoardCreate();
 	}
 
-	ReturnBoardId = World.Info.CurrentBoard;
+	ReturnBoardId = World.Info.CurrentBoardIdx;
 	BoardChange(0);
 	CurrentStatTicked = 0;
 	CurrentTick = 0;
