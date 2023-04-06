@@ -886,7 +886,6 @@ void WorldSave(std::string filename, std::string extension) {
 	TIoTmpBuf * ptr;
 	integer version;
 
-
 	BoardClose(true);
 	video.write(63, 5, 0x1f, "Saving...");
 
@@ -898,50 +897,22 @@ void WorldSave(std::string filename, std::string extension) {
 	// https://en.cppreference.com/w/cpp/io/c/tmpnam etc.
 
 	if (! DisplayIOError())  {
-		std::vector<unsigned char> world_header;
-		append_lsb_element((short)-1, world_header); // Version
-		append_lsb_element(World.BoardCount, world_header);
-		World.Info.dump(world_header);
-		// Pad to 512
-		append_zeroes(512-world_header.size(), world_header);
+		try {
+			World.save(out_file, false);
+			out_file.close();
+		} catch (std::runtime_error & e) {
+			out_file.close();
+			std::remove(full_filename.c_str()); // Delete the corrupted file.
 
-		word actually_written;
-		out_file.write((const char *)world_header.data(), 512);
-
-		if (DisplayIOError())  {
-			goto LOnError;
+			BoardOpen(World.Info.CurrentBoardIdx, false);
+			SidebarClearLine(5);
+			DisplayIOError();
 		}
-
-		for (i = 0; i <= World.BoardCount; i ++) {
-			// TODO: Replace with a serialization procedure that's
-			// machine endian agnostic.
-			unsigned short board_len = World.BoardData[i].size();
-			out_file.write((char *)&board_len, 2);
-			if (DisplayIOError())  {
-				goto LOnError;
-			}
-
-			out_file.write((const char *)World.BoardData[i].data(),
-				World.BoardData[i].size());
-
-			if (DisplayIOError())  {
-				goto LOnError;
-			}
-		}
-
-		out_file.close();
 	}
 
 	BoardOpen(World.Info.CurrentBoardIdx, false);
 	SidebarClearLine(5);
 	return;
-
-LOnError:
-	out_file.close();
-	std::remove(full_filename.c_str()); // Delete the corrupted file.
-	// IMP? Give error message? But the above already does.
-	BoardOpen(World.Info.CurrentBoardIdx, false);
-	SidebarClearLine(5);
 }
 
 std::vector<char> WorldSaveVector() {

@@ -62,6 +62,16 @@ class TWorld {
 		std::array<std::vector<unsigned char>, MAX_BOARD+1> BoardData;
 		TWorldInfo Info;
 		std::array<TEditorStatSetting, MAX_ELEMENT+1> EditorStatSettings;
+
+		// Set close_board if you want the save function to
+		// serialize the current board before saving. This is usually
+		// the right thing to do, but in ZZT itself, the board closing has
+		// to be done separately to warn the user if truncation happened.
+		void save(std::ostream & stream, bool close_board);
+
+		// This ostream operator function does serialize the current
+		// board before saving.
+		std::ostream & operator<< (std::ostream & stream);
 };
 
 extern TWorld World;
