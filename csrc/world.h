@@ -5,7 +5,6 @@
 #include <array>
 
 #include "board.h"
-#include "editor.h"
 
 const int MAX_FLAG = 10;
 
@@ -15,7 +14,6 @@ class TWorldInfo {
 	public:
 		short Ammo;
 		short Gems;
-		//array<1,7,bool> Keys;
 		short Health;
 		short CurrentBoardIdx;
 		short Torches;
@@ -61,7 +59,6 @@ class TWorld {
 		// instead of BoardCount.
 		std::array<std::vector<unsigned char>, MAX_BOARD+1> BoardData;
 		TWorldInfo Info;
-		std::array<TEditorStatSetting, MAX_ELEMENT+1> EditorStatSettings;
 
 		// Set close_board if you want the save function to
 		// serialize the current board before saving. This is usually

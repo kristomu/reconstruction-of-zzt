@@ -1,5 +1,8 @@
 #include "world.h"
+#include "cgamevars.h"
 #include "serialization.h"
+
+#include <cstring>
 #include <vector>
 
 std::string TWorldInfo::KeyName(int keyColor) const {
@@ -126,7 +129,6 @@ void TWorld::save(std::ostream & stream, bool close_board) {
 	// Pad to 512
 	append_zeroes(512-world_header.size(), world_header);
 
-	word actually_written;
 	stream.write((const char *)world_header.data(), 512);
 
 	// TODO? Replace with some kind of C++ file error detection.

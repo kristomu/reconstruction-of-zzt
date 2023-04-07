@@ -477,7 +477,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 					string(ElementDefs[element].Param1Name.c_str()), with.P1, 256);
 			} else {
 				if (with.P1 == 0) {
-					with.P1 = World.EditorStatSettings[element].P1;
+					with.P1 = EditorStatSettings[element].P1;
 				}
 				BoardDrawTile(with.X, with.Y);
 				SidebarPromptCharacter(selected, 63, iy,
@@ -485,7 +485,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 				BoardDrawTile(with.X, with.Y);
 			}
 			if (selected) {
-				World.EditorStatSettings[element].P1 = with.P1;
+				EditorStatSettings[element].P1 = with.P1;
 			}
 			iy = iy + 4;
 		}
@@ -506,7 +506,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 				promptByte, 127);
 			if (selected)  {
 				with.P2 = (with.P2 & 0x80) + promptByte;
-				World.EditorStatSettings[element].P2 = with.P2;
+				EditorStatSettings[element].P2 = with.P2;
 			}
 			iy = iy + 4;
 		}
@@ -519,7 +519,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 				"Bullets Stars", promptByte);
 			if (selected)  {
 				with.P2 = (with.P2 % 0x80) + (promptByte * 0x80);
-				World.EditorStatSettings[element].P2 = with.P2;
+				EditorStatSettings[element].P2 = with.P2;
 			}
 			iy = iy + 4;
 		}
@@ -530,8 +530,8 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 				string(ElementDefs[element].ParamDirName.c_str()),
 				with.StepX, with.StepY);
 			if (selected)  {
-				World.EditorStatSettings[element].StepX = with.StepX;
-				World.EditorStatSettings[element].StepY = with.StepY;
+				EditorStatSettings[element].StepX = with.StepX;
+				EditorStatSettings[element].StepY = with.StepY;
 			}
 			iy = iy + 4;
 		}
@@ -544,7 +544,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 						with.P3, true);
 				if (selectedBoard != 0)  {
 					with.P3 = selectedBoard;
-					World.EditorStatSettings[element].P3 = World.Info.CurrentBoardIdx;
+					EditorStatSettings[element].P3 = World.Info.CurrentBoardIdx;
 					if (with.P3 > World.BoardCount)  {
 						EditorAppendBoard();
 						copiedHasStat = false;
@@ -552,7 +552,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 						copiedTile.Color = 0xf;
 						updateCopiedCharacter();
 					}
-					World.EditorStatSettings[element].P3 = with.P3;
+					EditorStatSettings[element].P3 = with.P3;
 				} else {
 					keyboard.InputKeyPressed = E_KEY_ESCAPE;
 				}
@@ -1030,17 +1030,17 @@ void EditorLoop() {
 										{
 											TStat & with1 = World.currentBoard.Stats[World.currentBoard.StatCount];
 											if (ElementDefs[iElem].Param1Name.size() != 0) {
-												with1.P1 = World.EditorStatSettings[iElem].P1;
+												with1.P1 = EditorStatSettings[iElem].P1;
 											}
 											if (ElementDefs[iElem].Param2Name.size() != 0) {
-												with1.P2 = World.EditorStatSettings[iElem].P2;
+												with1.P2 = EditorStatSettings[iElem].P2;
 											}
 											if (ElementDefs[iElem].ParamDirName.size() != 0)  {
-												with1.StepX = World.EditorStatSettings[iElem].StepX;
-												with1.StepY = World.EditorStatSettings[iElem].StepY;
+												with1.StepX = EditorStatSettings[iElem].StepX;
+												with1.StepY = EditorStatSettings[iElem].StepY;
 											}
 											if (ElementDefs[iElem].ParamBoardName.size() != 0) {
-												with1.P3 = World.EditorStatSettings[iElem].P3;
+												with1.P3 = EditorStatSettings[iElem].P3;
 											}
 										}
 										EditorEditStat(World.currentBoard.StatCount);

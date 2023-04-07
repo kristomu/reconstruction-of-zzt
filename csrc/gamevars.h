@@ -6,6 +6,8 @@
 #include <array>
 #include "random.h"
 
+#include "cgamevars.h"
+
 const integer HIGH_SCORE_COUNT = 30;
 const integer TORCH_DURATION = 200;
 const integer TORCH_DX = 8;
@@ -18,9 +20,6 @@ struct TCoord {
 	integer X;
 	integer Y;
 };
-
-const std::array<std::string, 8> ColorNames =
-{"Black", "Blue", "Green", "Cyan", "Red", "Purple", "Yellow", "White"};
 
 struct TEditorStatSetting {
 	byte P1, P2, P3;
@@ -46,6 +45,8 @@ EXTERN integer PlayerDirX;
 EXTERN integer PlayerDirY;
 
 EXTERN rng rnd;
+
+EXTERN std::array<TEditorStatSetting, MAX_ELEMENT+1> EditorStatSettings;
 
 EXTERN array<1, 80*25,TCoord> TransitionTable;
 EXTERN TString50 LoadedGameFileName;

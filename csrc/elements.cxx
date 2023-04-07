@@ -2409,7 +2409,7 @@ void InitEditorStatSettings() {
 	PlayerDirY = 0;
 
 	for (int i = 0; i <= MAX_ELEMENT; i ++) {
-		TEditorStatSetting & with = World.EditorStatSettings[i];
+		TEditorStatSetting & with = EditorStatSettings[i];
 		with.P1 = 4;
 		with.P2 = 4;
 		with.P3 = 0;
@@ -2417,8 +2417,8 @@ void InitEditorStatSettings() {
 		with.StepY = -1;
 	}
 
-	World.EditorStatSettings[E_OBJECT].P1 = 1;
-	World.EditorStatSettings[E_BEAR].P1 = 8;
+	EditorStatSettings[E_OBJECT].P1 = 1;
+	EditorStatSettings[E_BEAR].P1 = 8;
 }
 
 class unit_Elements_initialize {
