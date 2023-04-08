@@ -118,14 +118,14 @@ std::vector<unsigned char>::const_iterator TWorldInfo::load(
 void TWorld::save(std::ostream & stream, bool close_board) {
 
 	if (close_board) {
-		World.BoardData[World.Info.CurrentBoardIdx] =
-			World.currentBoard.dump_and_truncate();
+		BoardData[Info.CurrentBoardIdx] =
+			currentBoard.dump_and_truncate();
 	}
 
 	std::vector<unsigned char> world_header;
 	append_lsb_element((short)-1, world_header); // Version
-	append_lsb_element(World.BoardCount, world_header);
-	World.Info.dump(world_header);
+	append_lsb_element(BoardCount, world_header);
+	Info.dump(world_header);
 	// Pad to 512
 	append_zeroes(512-world_header.size(), world_header);
 
@@ -136,17 +136,17 @@ void TWorld::save(std::ostream & stream, bool close_board) {
 		throw std::runtime_error(strerror(errno));
 	}
 
-	for (int i = 0; i <= World.BoardCount; i ++) {
+	for (int i = 0; i <= BoardCount; i ++) {
 		// TODO: Replace with a serialization procedure that's
 		// machine endian agnostic.
-		unsigned short board_len = World.BoardData[i].size();
+		unsigned short board_len = BoardData[i].size();
 		stream.write((char *)&board_len, 2);
 		if (errno != 0) {
 			throw std::runtime_error(strerror(errno));
 		}
 
-		stream.write((const char *)World.BoardData[i].data(),
-			World.BoardData[i].size());
+		stream.write((const char *)BoardData[i].data(),
+			BoardData[i].size());
 	}
 }
 
