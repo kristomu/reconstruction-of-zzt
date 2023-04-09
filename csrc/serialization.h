@@ -45,7 +45,7 @@ template<typename T> T get_pascal_string(const T & ptr_start,
 	// than the max allowed length, then we have a truncated string by
 	// definition.
 	size_t len = *ptr++;
-	size_t i, read_length = std::min(len, max_length);
+	size_t i;
 
 	out_truncated = (len > max_length);
 	out_str = "";
@@ -65,7 +65,8 @@ template<typename T> T get_pascal_string(const T & ptr_start,
 	}
 
 	// Increment the pointer to skip the rest of the padding, if possible.
-	if (end - ptr < max_length - i) {
+	// TODO: Figure out if signedness conversion is a problem here.
+	if (end - ptr < (int)(max_length - i)) {
 		out_truncated = true;
 		return end;
 	}

@@ -88,7 +88,7 @@ std::vector<unsigned char>::const_iterator TWorldInfo::load(
 	// TODO: Do something with this truncation flag.
 	bool truncated = false;
 
-	if (end - ptr < packed_size()) {
+	if (end - ptr < (int)packed_size()) {
 		throw std::runtime_error("Insufficient data to load TWorldInfo");
 	}
 
