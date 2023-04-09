@@ -69,6 +69,9 @@ class TWorld {
 		// This ostream operator function does serialize the current
 		// board before saving.
 		std::ostream & operator<< (std::ostream & stream);
-};
 
-extern TWorld World;
+		// We need to pass element info to the board so that it can correctly
+		// remove stuff from tiles with stats. This is kinda ugly...
+		TWorld(std::shared_ptr<ElementInfo> element_info_ptr) :
+			currentBoard(element_info_ptr) {}
+};

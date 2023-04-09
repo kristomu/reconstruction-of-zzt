@@ -24,6 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+std::array<TElementProcDef, MAX_ELEMENT+1> ElementProcDefs;
+std::shared_ptr<ElementInfo> elem_info_ptr;
+std::shared_ptr<TWorld> game_world;
+
 // https://stackoverflow.com/a/2436368
 
 void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
@@ -53,7 +57,9 @@ void enable_signals() {
 // C++ ZZT
 
 std::shared_ptr<stub_io> stub_ptr;
-TWorld World;
+std::shared_ptr<ElementInfo> element_info_ptr =
+	std::make_shared<ElementInfo>();
+TWorld world(element_info_ptr);
 
 void init_IO_fuzz(dos_color border_color) {
 	std::shared_ptr<curses_io> curses_ptr = NULL;
@@ -108,6 +114,7 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 		E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y', E_KEY_ESCAPE, 'Y'});
 
 	TextWindowInit(5, 3, 50, 18);
+	InitWorld();
 
 	TTextWindowState textWindow;
 
@@ -125,7 +132,7 @@ std::vector<char> evolve_zzt_cpp(const std::vector<char> & world) {
 		BoardCreate();
 	}
 
-	ReturnBoardId = World.Info.CurrentBoardIdx;
+	ReturnBoardId = game_world->Info.CurrentBoardIdx;
 	BoardChange(0);
 	CurrentStatTicked = 0;
 	CurrentTick = 0;

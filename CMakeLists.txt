@@ -65,6 +65,7 @@ endif()
 # TODO: Cleanup
 
 add_executable(${ZZT_NAME}
+	csrc/elements/info.cc
 	csrc/random.cc
 	csrc/input.cc
 	csrc/testing.cc
@@ -89,6 +90,7 @@ add_executable(${ZZT_NAME}
 	csrc/world.cc)
 
 add_executable(${FUZZT_NAME}
+	csrc/elements/info.cc
 	csrc/random.cc
 	csrc/input.cc
 	csrc/testing.cc
@@ -131,6 +133,7 @@ endif()
 
 if(EQUALZZT_NAME)
 	add_executable(${EQUALZZT_NAME}
+		csrc/elements/info.cc
 		csrc/random.cc
 		csrc/input.cc
 		csrc/testing.cc

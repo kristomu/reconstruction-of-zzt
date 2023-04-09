@@ -43,7 +43,7 @@ void OopError(integer statId, string message) {
 		statId = 0;
 	}
 
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	DisplayMessage(200, string("ERR: ") + message);
 	SoundQueue(5, "\120\n");
 	with.DataPos = -1;
@@ -55,7 +55,7 @@ void OopReadChar(integer statId, integer & position) {
 		return;
 	}
 
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	if ((position >= 0) && (position < with.DataLen))  {
 		OopChar = *(with.data.get() + position);
 		/*Move(* {{with.Data+position}}, OopChar, 1);*/
@@ -167,7 +167,7 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 	integer & dy) {
 	boolean OopParseDirection_result;
 
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	OopParseDirection_result = true;
 
 	if ((OopWord == 'N') || (OopWord == "NORTH"))  {
@@ -229,8 +229,8 @@ boolean OopParseDirection(integer statId, integer & position, integer & dx,
 		OopParseDirection_result = false;
 	}
 
-	if (! ValidCoord(World.currentBoard.Stats[statId].X + dx,
-			World.currentBoard.Stats[statId].Y + dy))  {
+	if (! ValidCoord(game_world->currentBoard.Stats[statId].X + dx,
+			game_world->currentBoard.Stats[statId].Y + dy))  {
 
 		OopError(statId, "Direction out of bounds");
 		dx = 0;
@@ -252,7 +252,7 @@ integer OopFindString(integer statId, string s) {
 	integer pos, wordPos, cmpPos;
 
 	integer OopFindString_result;
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	pos = 0;
 	while (pos <= with.DataLen)  {
 		wordPos = 1;
@@ -294,16 +294,16 @@ boolean OopIterateStat(integer statId, integer & iStat, string lookup) {
 	found = false;
 
 	if (lookup == "ALL")  {
-		if (iStat <= World.currentBoard.StatCount) {
+		if (iStat <= game_world->currentBoard.StatCount) {
 			found = true;
 		}
 	} else if (lookup == "OTHERS")  {
-		if (iStat <= World.currentBoard.StatCount)  {
+		if (iStat <= game_world->currentBoard.StatCount)  {
 			if (iStat != statId) {
 				found = true;
 			} else {
 				iStat = iStat + 1;
-				found = (iStat <= World.currentBoard.StatCount);
+				found = (iStat <= game_world->currentBoard.StatCount);
 			}
 		}
 	} else if (lookup == "SELF")  {
@@ -312,8 +312,8 @@ boolean OopIterateStat(integer statId, integer & iStat, string lookup) {
 			found = true;
 		}
 	} else {
-		while ((iStat <= World.currentBoard.StatCount) && ! found)  {
-			if (World.currentBoard.Stats[iStat].data)  {
+		while ((iStat <= game_world->currentBoard.StatCount) && ! found)  {
+			if (game_world->currentBoard.Stats[iStat].data)  {
 				pos = 0;
 				OopReadChar(iStat, pos);
 				if (OopChar == '@')  {
@@ -384,7 +384,7 @@ integer WorldGetFlagPosition(TString50 name) {
 	integer WorldGetFlagPosition_result;
 	WorldGetFlagPosition_result = -1;
 	for (i = 1; i <= 10; i ++) {
-		if (World.Info.Flags[i] == std::string(name)) {
+		if (game_world->Info.Flags[i] == std::string(name)) {
 			WorldGetFlagPosition_result = i;
 		}
 	}
@@ -396,10 +396,10 @@ void WorldSetFlag(TString50 name) {
 
 	if (WorldGetFlagPosition(name) < 0)  {
 		i = 1;
-		while ((i < MAX_FLAG) && (World.Info.Flags[i].size() != 0)) {
+		while ((i < MAX_FLAG) && (game_world->Info.Flags[i].size() != 0)) {
 			i = i + 1;
 		}
-		World.Info.Flags[i] = name;
+		game_world->Info.Flags[i] = name;
 	}
 }
 
@@ -407,7 +407,7 @@ void WorldClearFlag(TString50 name) {
 	integer i;
 
 	if (WorldGetFlagPosition(name) >= 0) {
-		World.Info.Flags[WorldGetFlagPosition(name)] = "";
+		game_world->Info.Flags[WorldGetFlagPosition(name)] = "";
 	}
 }
 
@@ -447,7 +447,8 @@ boolean OopParseTile(integer & statId, integer & position, TTile & tile) {
 	}
 
 	for (i = 0; i <= MAX_ELEMENT; i ++) {
-		if (OopWord == OopStringToWord(string(ElementDefs[i].Name.c_str())))  {
+		if (OopWord == OopStringToWord(string(
+					elem_info_ptr->defs[i].Name.c_str())))  {
 			tile.Element = i;
 			return true;
 		}
@@ -457,9 +458,11 @@ boolean OopParseTile(integer & statId, integer & position, TTile & tile) {
 
 byte GetColorForTileMatch(TTile & tile) {
 	byte GetColorForTileMatch_result;
-	if (ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN) {
-		GetColorForTileMatch_result = ElementDefs[tile.Element].Color & 0x7;
-	} else if (ElementDefs[tile.Element].Color == COLOR_WHITE_ON_CHOICE) {
+	if (elem_info_ptr->defs[tile.Element].Color < COLOR_SPECIAL_MIN) {
+		GetColorForTileMatch_result = elem_info_ptr->defs[tile.Element].Color &
+			0x7;
+	} else if (elem_info_ptr->defs[tile.Element].Color ==
+		COLOR_WHITE_ON_CHOICE) {
 		GetColorForTileMatch_result = (((cardinal)tile.Color >> 4) & 0xf) + 8;
 	} else {
 		GetColorForTileMatch_result = (tile.Color & 0xf);
@@ -480,9 +483,10 @@ boolean FindTileOnBoard(integer & x, integer & y, TTile tile) {
 			}
 		}
 
-		if (World.currentBoard.Tiles[x][y].Element == tile.Element)
+		if (game_world->currentBoard.Tiles[x][y].Element == tile.Element)
 			if ((tile.Color == 0)
-				|| (GetColorForTileMatch(World.currentBoard.Tiles[x][y]) == tile.Color))  {
+				|| (GetColorForTileMatch(game_world->currentBoard.Tiles[x][y]) ==
+					tile.Color))  {
 				FindTileOnBoard_result = true;
 				return FindTileOnBoard_result;
 			}
@@ -490,7 +494,7 @@ boolean FindTileOnBoard(integer & x, integer & y, TTile tile) {
 	return FindTileOnBoard_result;
 }
 
-// XXX: Should this be World.currentBoard.cc's responsibility?
+// XXX: Should this be game_world->currentBoard.cc's responsibility?
 void OopPlaceTile(integer x, integer y, TTile & tile) {
 	byte color;
 
@@ -500,21 +504,21 @@ void OopPlaceTile(integer x, integer y, TTile & tile) {
 
 	// Overwriting a player *or a monitor* should not be allowed, as it
 	// may hang the game.
-	if (World.currentBoard.Tiles[x][y].Element != E_PLAYER &&
-		World.currentBoard.Tiles[x][y].Element != E_MONITOR)  {
+	if (game_world->currentBoard.Tiles[x][y].Element != E_PLAYER &&
+		game_world->currentBoard.Tiles[x][y].Element != E_MONITOR)  {
 		color = tile.Color;
-		if (ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN) {
-			color = ElementDefs[tile.Element].Color;
+		if (elem_info_ptr->defs[tile.Element].Color < COLOR_SPECIAL_MIN) {
+			color = elem_info_ptr->defs[tile.Element].Color;
 		} else {
 			if (color == 0) {
-				color = World.currentBoard.Tiles[x][y].Color;
+				color = game_world->currentBoard.Tiles[x][y].Color;
 			}
 
 			if (color == 0) {
 				color = 0xf;
 			}
 
-			if (ElementDefs[tile.Element].Color == COLOR_WHITE_ON_CHOICE)  {
+			if (elem_info_ptr->defs[tile.Element].Color == COLOR_WHITE_ON_CHOICE)  {
 				/*IMP: Fix range check error. Might produce slightly different
 				colors if the original color was dark with a black background,
 							 but I'm considering that an acceptable deviation from exact
@@ -526,16 +530,16 @@ void OopPlaceTile(integer x, integer y, TTile & tile) {
 			}
 		}
 
-		if (World.currentBoard.Tiles[x][y].Element == tile.Element) {
-			World.currentBoard.Tiles[x][y].Color = color;
+		if (game_world->currentBoard.Tiles[x][y].Element == tile.Element) {
+			game_world->currentBoard.Tiles[x][y].Color = color;
 		} else {
 			BoardDamageTile(x, y);
-			if (ElementDefs[tile.Element].Cycle >= 0)  {
-				AddStat(x, y, tile.Element, color, ElementDefs[tile.Element].Cycle,
+			if (elem_info_ptr->defs[tile.Element].Cycle >= 0)  {
+				AddStat(x, y, tile.Element, color, elem_info_ptr->defs[tile.Element].Cycle,
 					StatTemplateDefault);
 			} else {
-				World.currentBoard.Tiles[x][y].Element = tile.Element;
-				World.currentBoard.Tiles[x][y].Color = color;
+				game_world->currentBoard.Tiles[x][y].Element = tile.Element;
+				game_world->currentBoard.Tiles[x][y].Color = color;
 			}
 		}
 
@@ -550,27 +554,28 @@ boolean OopCheckCondition(integer statId, integer & position) {
 
 	boolean OopCheckCondition_result;
 
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	if (OopWord == "NOT")  {
 		OopReadWord(statId, position);
 		OopCheckCondition_result = ! OopCheckCondition(statId, position);
 	} else if (OopWord == "ALLIGNED")  {
-		OopCheckCondition_result = (with.X == World.currentBoard.Stats[0].X)
-			|| (with.Y == World.currentBoard.Stats[0].Y);
+		OopCheckCondition_result = (with.X == game_world->currentBoard.Stats[0].X)
+			|| (with.Y == game_world->currentBoard.Stats[0].Y);
 	} else if (OopWord == "CONTACT")  {
-		OopCheckCondition_result = (sqr(with.X - World.currentBoard.Stats[0].X) +
+		OopCheckCondition_result = (sqr(with.X -
+					game_world->currentBoard.Stats[0].X) +
 				sqr(
-					with.Y - World.currentBoard.Stats[0].Y)) == 1;
+					with.Y - game_world->currentBoard.Stats[0].Y)) == 1;
 	} else if (OopWord == "BLOCKED")  {
 		/* Out-of-bounds is always blocked.*/
 		OopReadDirection(statId, position, deltaX, deltaY);
 		if (! ValidCoord(with.X + deltaX, with.Y + deltaY)) {
 			return false;
 		}
-		return !ElementDefs[World.currentBoard.Tiles[with.X + deltaX]
-												[with.Y + deltaY].Element].Walkable;
+		return !elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X + deltaX]
+													  [with.Y + deltaY].Element].Walkable;
 	} else if (OopWord == "ENERGIZED")  {
-		OopCheckCondition_result = World.Info.EnergizerTicks > 0;
+		OopCheckCondition_result = game_world->Info.EnergizerTicks > 0;
 	} else if (OopWord == "ANY")  {
 		if (! OopParseTile(statId, position, tile)) {
 			OopError(statId, "Bad object kind");
@@ -621,19 +626,19 @@ boolean OopSend(integer statId, string sendLabel, boolean ignoreLock) {
 	   object walks, then dies, then THUDs. OopFindLabel would then start
 	   going through a program that has been deallocated, which causes
 	   a read-after-free. */
-	if (statId > World.currentBoard.StatCount) {
+	if (statId > game_world->currentBoard.StatCount) {
 		return OopSend_result;
 	}
 
 	while (OopFindLabel(statId, sendLabel, iStat, iDataPos, "\r:"))  {
-		if (((World.currentBoard.Stats[iStat].P2 == 0) || (ignoreLock))
+		if (((game_world->currentBoard.Stats[iStat].P2 == 0) || (ignoreLock))
 			|| ((statId == iStat)
 				&& ! ignoreSelfLock))  {
 			if (iStat == statId) {
 				OopSend_result = true;
 			}
 
-			World.currentBoard.Stats[iStat].DataPos = iDataPos;
+			game_world->currentBoard.Stats[iStat].DataPos = iDataPos;
 		}
 	}
 	return OopSend_result;
@@ -665,7 +670,7 @@ void OopExecute(integer statId, integer & position, TString50 name) {
 
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 LStartParsing:
 		TextWindowInitState(textWindow);
 		textWindow.Selectable = false;
@@ -704,14 +709,16 @@ LReadInstruction:
 				if (OopParseDirection(statId, position, deltaX, deltaY)
 					&& ValidCoord(with.X + deltaX, with.Y + deltaY))  {
 					if ((deltaX != 0) || (deltaY != 0))  {
-						if (! ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																	deltaY].Element].Walkable) {
+						if (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																		  deltaX][with.Y +
+																		  deltaY].Element].Walkable) {
 							ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 						}
 
 						if (ValidCoord(with.X + deltaX, with.Y + deltaY)
-							&& (ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable))  {
+							&& (elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable))  {
 							MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 							repeatInsNextTick = false;
 						}
@@ -737,7 +744,7 @@ LReadCommand:
 
 				// Fix hang in HASHSTOP
 				if ((length(OopWord) == 0) &&
-					(position != World.currentBoard.Stats[statId].DataLen-1) &&
+					(position != game_world->currentBoard.Stats[statId].DataLen-1) &&
 					(position != with.DataLen-1)) {
 					goto LReadInstruction;
 				}
@@ -748,14 +755,16 @@ LReadCommand:
 
 						// IMP: Check that the direction is valid.
 						if (ValidCoord(with.X + deltaX, with.Y + deltaY)) {
-							if (! ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable) {
+							if (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable) {
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 							}
 
 							if (ValidCoord(with.X + deltaX, with.Y + deltaY)
-								&& ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable) {
+								&& elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable) {
 								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 							} else {
 								repeatInsNextTick = true;
@@ -768,16 +777,18 @@ LReadCommand:
 
 						// IMP: Check that the direction is valid.
 						if (ValidCoord(with.X + deltaX, with.Y + deltaY)) {
-							if (! ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable) {
+							if (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable) {
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 							}
 
 							// IMP: Pushing can change the details of with. So check again!
 							// I really ought to have a more robust approach.
 							if (ValidCoord(with.X + deltaX, with.Y + deltaY)
-								&& ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable) {
+								&& elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable) {
 								MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 								stopRunning = true;
 							} else {
@@ -820,17 +831,17 @@ LReadCommand:
 
 						OopReadWord(statId, position);
 						if (OopWord == "HEALTH") {
-							counterPtr = &World.Info.Health;
+							counterPtr = &game_world->Info.Health;
 						} else if (OopWord == "AMMO") {
-							counterPtr = &World.Info.Ammo;
+							counterPtr = &game_world->Info.Ammo;
 						} else if (OopWord == "GEMS") {
-							counterPtr = &World.Info.Gems;
+							counterPtr = &game_world->Info.Gems;
 						} else if (OopWord == "TORCHES") {
-							counterPtr = &World.Info.Torches;
+							counterPtr = &game_world->Info.Torches;
 						} else if (OopWord == "SCORE") {
-							counterPtr = &World.Info.Score;
+							counterPtr = &game_world->Info.Score;
 						} else if (OopWord == "TIME") {
-							counterPtr = &World.Info.BoardTimeSec;
+							counterPtr = &game_world->Info.BoardTimeSec;
 						} else {
 							counterPtr = nil;
 						}
@@ -856,7 +867,7 @@ LReadCommand:
 						position = -1;
 						OopChar = '\0';
 					} else if (OopWord == "ENDGAME")  {
-						World.Info.Health = 0;
+						game_world->Info.Health = 0;
 					} else if (OopWord == "IDLE")  {
 						stopRunning = true;
 					} else if (OopWord == "RESTART")  {
@@ -867,7 +878,7 @@ LReadCommand:
 
 						labelStatId = 0;
 						while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r:"))  {
-							labelPtr = World.currentBoard.Stats[labelStatId].data.get();
+							labelPtr = game_world->currentBoard.Stats[labelStatId].data.get();
 							labelPtr += labelDataPos + 1;
 
 							*labelPtr = '\47';
@@ -878,7 +889,7 @@ LReadCommand:
 						labelStatId = 0;
 						while (OopFindLabel(statId, OopWord, labelStatId, labelDataPos, "\r\47"))
 							do {
-								labelPtr = World.currentBoard.Stats[labelStatId].data.get();
+								labelPtr = game_world->currentBoard.Stats[labelStatId].data.get();
 								labelPtr += labelDataPos + 1;
 
 								*labelPtr = ':';
@@ -913,8 +924,9 @@ LReadCommand:
 							&& ((with.X + deltaX) <= BOARD_WIDTH)
 							&& ((with.Y + deltaY) > 0)
 							&& ((with.Y + deltaY) < BOARD_HEIGHT)) {
-							if (! ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-																		deltaY].Element].Walkable)  {
+							if (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																			  deltaX][with.Y +
+																			  deltaY].Element].Walkable)  {
 								ElementPushablePush(with.X + deltaX, with.Y + deltaY, deltaX, deltaY);
 
 								statId = GetStatIdAt(with.X, with.Y);
@@ -938,10 +950,10 @@ LReadCommand:
 						ix = 0;
 						iy = 1;
 						if ((argTile2.Color == 0)
-							&& (ElementDefs[argTile2.Element].Color < COLOR_SPECIAL_MIN))
+							&& (elem_info_ptr->defs[argTile2.Element].Color < COLOR_SPECIAL_MIN))
 
 						{
-							argTile2.Color = ElementDefs[argTile2.Element].Color;
+							argTile2.Color = elem_info_ptr->defs[argTile2.Element].Color;
 						}
 
 						while (FindTileOnBoard(ix, iy, argTile)) {
@@ -977,8 +989,9 @@ LReadCommand:
 							/* We can't bind if we're bound to someone else.
 							Do some reference counting to find out if
 												  that's the case. */
-							for (i = 0; i <= World.currentBoard.StatCount; i ++) {
-								if ((i != statId) && (World.currentBoard.Stats[i].data == with.data))  {
+							for (i = 0; i <= game_world->currentBoard.StatCount; i ++) {
+								if ((i != statId)
+									&& (game_world->currentBoard.Stats[i].data == with.data))  {
 									dataInUse = true;
 									break;
 								}
@@ -998,8 +1011,8 @@ LReadCommand:
 									with.data = NULL;
 									with.DataLen = 0;
 								}
-								with.data = World.currentBoard.Stats[bindStatId].data;
-								with.DataLen = World.currentBoard.Stats[bindStatId].DataLen;
+								with.data = game_world->currentBoard.Stats[bindStatId].data;
+								with.DataLen = game_world->currentBoard.Stats[bindStatId].DataLen;
 								position = 0;
 							}
 						}
@@ -1073,7 +1086,7 @@ LReadCommand:
 		if (replaceStat)  {
 			/*IMP: Fix runtime error with anything that destroys a
 			scroll "ahead of time". */
-			if (World.currentBoard.Tiles[with.X][with.Y].Element == E_SCROLL) {
+			if (game_world->currentBoard.Tiles[with.X][with.Y].Element == E_SCROLL) {
 				return;
 			}
 

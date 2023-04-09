@@ -1,5 +1,4 @@
-#ifndef __gamevars_h__
-#define __gamevars_h__
+#pragma once
 
 #include "ptoc.h"
 #include "board.h"
@@ -7,6 +6,9 @@
 #include "random.h"
 
 #include "cgamevars.h"
+#include "world.h"
+
+EXTERN std::shared_ptr<TWorld> game_world;
 
 const integer HIGH_SCORE_COUNT = 30;
 const integer TORCH_DURATION = 200;
@@ -75,9 +77,6 @@ EXTERN byte TickSpeed;
 
 EXTERN TIoTmpBuf* IoTmpBuf;
 
-EXTERN std::array<TElementDef, MAX_ELEMENT+1> ElementDefs;
-EXTERN TElementDef out_of_bounds_element;
-
 EXTERN integer EditorPatternCount;
 EXTERN array<1, 10,byte> EditorPatterns;
 
@@ -110,18 +109,3 @@ EXTERN array<1, 10,TString50> WorldFileDescKeys;
 EXTERN array<1, 10,TString50> WorldFileDescValues;
 #undef EXTERN
 #define EXTERN extern
-
-/**/
-const integer CATEGORY_ITEM = 1;
-const integer CATEGORY_CREATURE = 2;
-const integer CATEGORY_TERRAIN = 3;
-/**/
-const integer COLOR_SPECIAL_MIN = 0xf0;
-const integer COLOR_CHOICE_ON_BLACK = 0xff;
-const integer COLOR_WHITE_ON_CHOICE = 0xfe;
-const integer COLOR_CHOICE_ON_CHOICE = 0xfd;
-/**/
-const integer SHOT_SOURCE_PLAYER = 0;
-const integer SHOT_SOURCE_ENEMY = 1;
-
-#endif

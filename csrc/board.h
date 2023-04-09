@@ -3,6 +3,9 @@
 #include "elements.h"
 #include "io/colors.h"      // colors, perhaps put somewhere else?
 
+// used for move stat stuff, which requires knowledge of element properties
+#include "elements/info.h"
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -25,7 +28,8 @@ class TTile {
 
 		size_t packed_size() const;
 		void dump(std::vector<unsigned char> & out) const;
-		std::string dump_to_readable(int num_indents) const;
+		std::string dump_to_readable(int num_indents,
+			std::shared_ptr<const ElementInfo> element_info) const;
 
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
@@ -67,7 +71,7 @@ class TStat {
 
 		void dump(std::vector<unsigned char> & out) const;
 		std::string dump_to_readable(int num_indents,
-			bool literal_data) const;
+			bool literal_data, std::shared_ptr<const ElementInfo> element_info) const;
 
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
@@ -125,6 +129,9 @@ class TBoard {
 		// (TODO: Fix later.)
 		mutable size_t cached_packed_size = -1;
 
+		// Required for remove_stat.
+		std::shared_ptr<const ElementInfo> element_info;
+
 	public:
 		std::string Name;
 		// The tiles span from 0 to height/width+1 inclusive. The extreme
@@ -168,4 +175,9 @@ class TBoard {
 		// to pull in all of gamevars.
 		bool remove_stat(int stat_id, int & out_x, int & out_y,
 			short & current_stat_ticked);
+
+		TBoard(std::shared_ptr<const ElementInfo> element_info_ref) {
+			element_info = element_info_ref;
+			create();
+		}
 };

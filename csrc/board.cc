@@ -22,12 +22,14 @@ void TTile::dump(std::vector<unsigned char> & out) const {
 	append_lsb_element(Color, out);
 }
 
-std::string TTile::dump_to_readable(int num_indents) const {
+std::string TTile::dump_to_readable(int num_indents,
+	std::shared_ptr<const ElementInfo> element_info) const {
+
 	std::string out;
 
 	std::string indent(num_indents, '\t');
 
-	out += indent + "Element: " + ElementDefs[Element].Name + "\n";
+	out += indent + "Element: " + element_info->defs[Element].Name + "\n";
 	out += indent + "Color: " + itos(Color) + "\n";
 
 	return out;
@@ -128,7 +130,7 @@ void TStat::dump(std::vector<unsigned char> & out) const {
 }
 
 std::string TStat::dump_to_readable(int num_indents,
-	bool literal_data) const {
+	bool literal_data, std::shared_ptr<const ElementInfo> element_info) const {
 
 	std::string out, indent(num_indents, '\t');
 
@@ -143,7 +145,8 @@ std::string TStat::dump_to_readable(int num_indents,
 	out += indent + "Follower: " + itos(Follower) + "\n";
 	out += indent + "Leader: " + itos(Leader) + "\n";
 	out += indent + "Under: " + itos(Leader) + "\n" +
-		Under.dump_to_readable(num_indents + 1);
+		Under.dump_to_readable(num_indents + 1,
+			element_info);
 	out += indent + "DataLen: " + itos(DataLen) + "\n";
 	if (DataLen < 0 || !data) {
 		return out;
@@ -665,7 +668,7 @@ void TBoard::create() {
 
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Element = E_PLAYER;
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Color =
-		ElementDefs[E_PLAYER].Color;
+		element_info->defs[E_PLAYER].Color;
 	StatCount = 0;
 	Stats[0].X = BOARD_WIDTH / 2;
 	Stats[0].Y = BOARD_HEIGHT / 2;
@@ -769,7 +772,8 @@ std::string TBoard::dump_to_readable(int num_indents) const {
 	for (int iy = 1; iy <= BOARD_HEIGHT; ++iy) {
 		for (int ix = 1; ix <= BOARD_WIDTH; ++ix) {
 			out += indent + "\t(" + itos(ix) + ", " + itos(iy) + ")\n";
-			out += Tiles[ix][iy].dump_to_readable(num_indents+2);
+			out += Tiles[ix][iy].dump_to_readable(num_indents+2,
+					element_info);
 		}
 	}
 
@@ -778,7 +782,8 @@ std::string TBoard::dump_to_readable(int num_indents) const {
 	out += indent + "Number of stats: " + itos(StatCount) + "\n";
 	for (int stat_idx = 0; stat_idx <= StatCount; ++stat_idx) {
 		out += indent + "\tStat number " + itos(stat_idx) + ":\n";
-		out += Stats[stat_idx].dump_to_readable(num_indents+2, false);
+		out += Stats[stat_idx].dump_to_readable(num_indents+2, false,
+				element_info);
 	}
 
 	return out;
@@ -868,7 +873,7 @@ bool TBoard::add_stat(size_t x, size_t y, element_t element,
 			Stats[StatCount].data.get());
 	}
 
-	if (ElementDefs[Tiles[x][y].Element].PlaceableOnTop) {
+	if (element_info->defs[Tiles[x][y].Element].PlaceableOnTop) {
 		Tiles[x][y].Color = (color & 0xf) + (Tiles[x][y].Color & 0x70);
 	} else {
 		Tiles[x][y].Color = color;

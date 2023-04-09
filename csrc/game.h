@@ -13,6 +13,7 @@ const integer PROMPT_ANY = 2;
 boolean ValidCoord(integer x, integer y);
 boolean CoordInsideViewport(integer x, integer y);
 
+void InitWorld();
 void SidebarClearLine(integer y);
 void SidebarClear();
 void GenerateTransitionTable();

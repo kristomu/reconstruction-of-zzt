@@ -1,6 +1,8 @@
 #ifndef __sounds_h__
 #define __sounds_h__
 
+#include "ptoc.h"
+
 struct TDrumData {
 	integer Len;
 	array<1, 255,word> Data;

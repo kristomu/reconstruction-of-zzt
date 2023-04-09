@@ -44,7 +44,9 @@
 #include <iostream>
 #include <sstream>
 
-TWorld World;
+std::array<TElementProcDef, MAX_ELEMENT+1> ElementProcDefs;
+std::shared_ptr<ElementInfo> elem_info_ptr;
+std::shared_ptr<TWorld> game_world;
 
 void ParseArguments(int argc, const char ** argv) {
 	integer i;
@@ -173,7 +175,7 @@ void init_IO_fuzz(dos_color border_color) {
 void refine(std::string input_filename,
 	std::string refined_world_filename) {
 	WorldLoad(input_filename, ".ZZT");
-	for (int i = 0; i < World.BoardCount; ++i) {
+	for (int i = 0; i < game_world->BoardCount; ++i) {
 		BoardChange(i);
 	}
 	BoardChange(0);
@@ -250,6 +252,7 @@ extern "C" int FuzzerTestOneInput(const uint8_t * data, size_t size) {
 
 	GameTitleExitRequested = false;
 	//TextWindowInit(5, 3, 50, 18);
+	InitWorld();
 
 	// When running manually, it may be useful to do a refinement, like this:
 	// refine(StartupWorldFileName.str(), "REFINED");

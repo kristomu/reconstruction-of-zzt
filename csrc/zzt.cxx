@@ -40,7 +40,9 @@
 #include "video.h"
 #include "world.h"
 
-TWorld World;
+std::array<TElementProcDef, MAX_ELEMENT+1> ElementProcDefs;
+std::shared_ptr<ElementInfo> elem_info_ptr;
+std::shared_ptr<TWorld> game_world;
 
 void ParseArguments(int argc, const char ** argv) {
 	integer i;
@@ -201,6 +203,7 @@ int main(int argc, const char* argv[]) {
 	GameConfigure();
 	ParseArguments(argc, argv);
 	TextWindowInit(5, 3, 50, 18);
+	InitWorld();
 
 	/*debug_display_input();*/
 	/*debug_display_output();*/

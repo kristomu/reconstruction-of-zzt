@@ -29,9 +29,7 @@
 /*$I-*/
 #define __Elements_implementation__
 
-
 #include "elements.h"
-#include "ptoc.h"
 #include "world.h"
 #include "video.h"
 #include "sounds.h"
@@ -64,24 +62,24 @@ int sign(int x) {
 
 boolean ValidStatIdx(integer x) {
 	boolean ValidStatIdx_result;
-	ValidStatIdx_result = (x >= 0) && (x < World.currentBoard.StatCount);
+	ValidStatIdx_result = (x >= 0) && (x < game_world->currentBoard.StatCount);
 	return ValidStatIdx_result;
 }
 
 void SetElement(integer x, integer y, byte element) {
 	/* Not if it's the player. */
-	if ((World.currentBoard.Stats[0].X == x)
-		&& (World.currentBoard.Stats[0].Y == y)) {
+	if ((game_world->currentBoard.Stats[0].X == x)
+		&& (game_world->currentBoard.Stats[0].Y == y)) {
 		return;
 	}
-	World.currentBoard.Tiles[x][y].Element = element;
+	game_world->currentBoard.Tiles[x][y].Element = element;
 }
 
 void ColorCycle(integer x, integer y) {
-	World.currentBoard.Tiles[x][y].Color =
-		(World.currentBoard.Tiles[x][y].Color + 1) % 255;
-	if (World.currentBoard.Tiles[x][y].Color > 15) {
-		World.currentBoard.Tiles[x][y].Color = 9;
+	game_world->currentBoard.Tiles[x][y].Color =
+		(game_world->currentBoard.Tiles[x][y].Color + 1) % 255;
+	if (game_world->currentBoard.Tiles[x][y].Color > 15) {
+		game_world->currentBoard.Tiles[x][y].Color = 9;
 	}
 }
 
@@ -100,11 +98,11 @@ void ElementDefaultDraw(integer x, integer y, byte & ch) {
 
 void ElementMessageTimerTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		switch (with.X) {
 			case 0: {
-				video.write((60 - World.currentBoard.Info.Message.size()) / 2, 24,
-					9 + (with.P2 % 7), " "+ World.currentBoard.Info.Message + " ");
+				video.write((60 - game_world->currentBoard.Info.Message.size()) / 2, 24,
+					9 + (with.P2 % 7), " "+ game_world->currentBoard.Info.Message + " ");
 				if (with.P2 > 0) {
 					with.P2 = with.P2 - 1;
 				}
@@ -112,7 +110,7 @@ void ElementMessageTimerTick(integer statId) {
 					RemoveStat(statId);
 					CurrentStatTicked = CurrentStatTicked - 1;
 					BoardDrawBorder();
-					World.currentBoard.Info.Message = "";
+					game_world->currentBoard.Info.Message = "";
 				}
 			}
 			break;
@@ -129,7 +127,7 @@ void ElementLionTick(integer statId) {
 	integer deltaX, deltaY;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P1 < rnd.randint(10)) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
@@ -140,10 +138,11 @@ void ElementLionTick(integer statId) {
 			return;
 		}
 
-		if (ElementDefs[World.currentBoard.Tiles[with.X + deltaX][with.Y +
-													deltaY].Element].Walkable)  {
+		if (elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+														  deltaX][with.Y +
+														  deltaY].Element].Walkable)  {
 			MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-		} else if (World.currentBoard.Tiles[with.X + deltaX][with.Y +
+		} else if (game_world->currentBoard.Tiles[with.X + deltaX][with.Y +
 				deltaY].Element ==
 			E_PLAYER)  {
 			BoardAttack(statId, with.X + deltaX, with.Y + deltaY);
@@ -156,24 +155,25 @@ void ElementTigerTick(integer statId) {
 	byte element;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		element = E_BULLET;
 		if (with.P2 >= 0x80) {
 			element = E_STAR;
 		}
 
 		if ((rnd.randint(10) * 3) <= (with.P2 % 0x80))  {
-			if (Difference(with.X, World.currentBoard.Stats[0].X) <= 2)  {
+			if (Difference(with.X, game_world->currentBoard.Stats[0].X) <= 2)  {
 				shot = BoardShoot(element, with.X, with.Y, 0,
-						Signum(World.currentBoard.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
+						Signum(game_world->currentBoard.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
 			} else {
 				shot = false;
 			}
 
 			if (! shot)  {
-				if (Difference(with.Y, World.currentBoard.Stats[0].Y) <= 2)  {
+				if (Difference(with.Y, game_world->currentBoard.Stats[0].Y) <= 2)  {
 					shot = BoardShoot(element, with.X, with.Y,
-							Signum(World.currentBoard.Stats[0].X - with.X), 0, SHOT_SOURCE_ENEMY);
+							Signum(game_world->currentBoard.Stats[0].X - with.X), 0,
+							SHOT_SOURCE_ENEMY);
 				}
 			}
 		}
@@ -184,7 +184,7 @@ void ElementTigerTick(integer statId) {
 
 void ElementRuffianTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if ((with.StepX == 0) && (with.StepY == 0))  {
 			if ((with.P2 + 8) <= rnd.randint(17))  {
 				if (with.P1 >= rnd.randint(9)) {
@@ -194,8 +194,8 @@ void ElementRuffianTick(integer statId) {
 				}
 			}
 		} else {
-			if (((with.Y == World.currentBoard.Stats[0].Y)
-					|| (with.X == World.currentBoard.Stats[0].X))
+			if (((with.Y == game_world->currentBoard.Stats[0].Y)
+					|| (with.X == game_world->currentBoard.Stats[0].X))
 				&& (rnd.randint(9) <= with.P1))  {
 				CalcDirectionSeek(with.X, with.Y, with.StepX, with.StepY);
 			}
@@ -205,11 +205,12 @@ void ElementRuffianTick(integer statId) {
 			}
 
 			{
-				TTile & with1 = World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+				TTile & with1 = game_world->currentBoard.Tiles[with.X + with.StepX][with.Y
+						+
 						with.StepY];
 				if (with1.Element == E_PLAYER)  {
 					BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
-				} else if (ElementDefs[with1.Element].Walkable)  {
+				} else if (elem_info_ptr->defs[with1.Element].Walkable)  {
 					MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 					if ((with.P2 + 8) <= rnd.randint(17))  {
 						with.StepX = 0;
@@ -230,16 +231,18 @@ void ElementBearTick(integer statId) {
 
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
-		if (with.X != World.currentBoard.Stats[0].X)
-			if (Difference(with.Y, World.currentBoard.Stats[0].Y) <= (8 - with.P1))  {
-				deltaX = Signum(World.currentBoard.Stats[0].X - with.X);
+		TStat & with = game_world->currentBoard.Stats[statId];
+		if (with.X != game_world->currentBoard.Stats[0].X)
+			if (Difference(with.Y, game_world->currentBoard.Stats[0].Y) <=
+				(8 - with.P1))  {
+				deltaX = Signum(game_world->currentBoard.Stats[0].X - with.X);
 				deltaY = 0;
 				goto LMovement;
 			}
 
-		if (Difference(with.X, World.currentBoard.Stats[0].X) <= (8 - with.P1))  {
-			deltaY = Signum(World.currentBoard.Stats[0].Y - with.Y);
+		if (Difference(with.X, game_world->currentBoard.Stats[0].X) <=
+			(8 - with.P1))  {
+			deltaY = Signum(game_world->currentBoard.Stats[0].Y - with.Y);
 			deltaX = 0;
 		} else {
 			deltaX = 0;
@@ -252,8 +255,9 @@ LMovement:
 		}
 
 		{
-			TTile & with1 = World.currentBoard.Tiles[with.X + deltaX][with.Y + deltaY];
-			if (ElementDefs[with1.Element].Walkable)  {
+			TTile & with1 = game_world->currentBoard.Tiles[with.X + deltaX][with.Y +
+					deltaY];
+			if (elem_info_ptr->defs[with1.Element].Walkable)  {
 				MoveStat(statId, with.X + deltaX, with.Y + deltaY);
 			} else if ((with1.Element == E_PLAYER)
 				|| (with1.Element == E_BREAKABLE))  {
@@ -276,14 +280,14 @@ void ElementCentipedeHeadTick(integer statId) {
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
-		if ((with.X == World.currentBoard.Stats[0].X)
+		TStat & with = game_world->currentBoard.Stats[statId];
+		if ((with.X == game_world->currentBoard.Stats[0].X)
 			&& (rnd.randint(10) < with.P1))  {
-			with.StepY = Signum(World.currentBoard.Stats[0].Y - with.Y);
+			with.StepY = Signum(game_world->currentBoard.Stats[0].Y - with.Y);
 			with.StepX = 0;
-		} else if ((with.Y == World.currentBoard.Stats[0].Y)
+		} else if ((with.Y == game_world->currentBoard.Stats[0].Y)
 			&& (rnd.randint(10) < with.P1))  {
-			with.StepX = Signum(World.currentBoard.Stats[0].X - with.X);
+			with.StepX = Signum(game_world->currentBoard.Stats[0].X - with.X);
 			with.StepY = 0;
 		} else if (((rnd.randint(10) * 4) < with.P2) || ((with.StepX == 0)
 				&& (with.StepY == 0)))  {
@@ -291,9 +295,10 @@ void ElementCentipedeHeadTick(integer statId) {
 		}
 
 		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
-			&& (! ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-														with.StepY].Element].Walkable
-				&& (World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+			&& (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+															  with.StepX][with.Y +
+															  with.StepY].Element].Walkable
+				&& (game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
 						with.StepY].Element !=
 					E_PLAYER))) {
 			ix = with.StepX;
@@ -302,23 +307,26 @@ void ElementCentipedeHeadTick(integer statId) {
 			with.StepY = ((rnd.randint(2) * 2) - 1) * with.StepX;
 			with.StepX = tmp;
 			if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
-				&& (! ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-															with.StepY].Element].Walkable
-					&& (World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+				&& (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																  with.StepX][with.Y +
+																  with.StepY].Element].Walkable
+					&& (game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
 							with.StepY].Element !=
 						E_PLAYER))) {
 				with.StepX = -with.StepX;
 				with.StepY = -with.StepY;
 				if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
-					&& (! ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-																with.StepY].Element].Walkable
-						&& (World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+					&& (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																	  with.StepX][with.Y +
+																	  with.StepY].Element].Walkable
+						&& (game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
 								with.StepY].Element !=
 							E_PLAYER))) {
 					if (ValidCoord(with.X-ix, with.Y-iy)
-						&& (ElementDefs[World.currentBoard.Tiles[with.X - ix][with.Y -
-																	iy].Element].Walkable
-							|| (World.currentBoard.Tiles[with.X - ix][with.Y - iy].Element ==
+						&& (elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X - ix][with.Y
+																		  -
+																		  iy].Element].Walkable
+							|| (game_world->currentBoard.Tiles[with.X - ix][with.Y - iy].Element ==
 								E_PLAYER))) {
 						with.StepX = -ix;
 						with.StepY = -iy;
@@ -334,11 +342,11 @@ void ElementCentipedeHeadTick(integer statId) {
 			SetElement(with.X, with.Y, E_CENTIPEDE_SEGMENT);
 			with.Leader = -1;
 			while (ValidStatIdx(statId)
-				&& (World.currentBoard.Stats[statId].Follower > 0))  {
-				tmp = World.currentBoard.Stats[statId].Follower;
-				World.currentBoard.Stats[statId].Follower =
-					World.currentBoard.Stats[statId].Leader;
-				World.currentBoard.Stats[statId].Leader = tmp;
+				&& (game_world->currentBoard.Stats[statId].Follower > 0))  {
+				tmp = game_world->currentBoard.Stats[statId].Follower;
+				game_world->currentBoard.Stats[statId].Follower =
+					game_world->currentBoard.Stats[statId].Leader;
+				game_world->currentBoard.Stats[statId].Leader = tmp;
 				statId = tmp;
 
 				/* Avoid infinite follower loops. */
@@ -349,25 +357,25 @@ void ElementCentipedeHeadTick(integer statId) {
 				}
 			}
 			if (ValidStatIdx(statId))  {
-				World.currentBoard.Stats[statId].Follower =
-					World.currentBoard.Stats[statId].Leader;
-				SetElement(World.currentBoard.Stats[statId].X,
-					World.currentBoard.Stats[statId].Y, E_CENTIPEDE_HEAD);
+				game_world->currentBoard.Stats[statId].Follower =
+					game_world->currentBoard.Stats[statId].Leader;
+				SetElement(game_world->currentBoard.Stats[statId].X,
+					game_world->currentBoard.Stats[statId].Y, E_CENTIPEDE_HEAD);
 			}
 		} else if (ValidCoord(with.X + with.StepX, with.Y + with.StepY)
-			&& (World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+			&& (game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
 					with.StepY].Element ==
 				E_PLAYER))  {
 			if (ValidStatIdx(with.Follower)
-				&& ValidCoord(World.currentBoard.Stats[with.Follower].X,
-					World.currentBoard.Stats[with.Follower].Y))  {
-				SetElement(World.currentBoard.Stats[with.Follower].X,
-					World.currentBoard.Stats[with.Follower].Y,
+				&& ValidCoord(game_world->currentBoard.Stats[with.Follower].X,
+					game_world->currentBoard.Stats[with.Follower].Y))  {
+				SetElement(game_world->currentBoard.Stats[with.Follower].X,
+					game_world->currentBoard.Stats[with.Follower].Y,
 					E_CENTIPEDE_HEAD);
-				World.currentBoard.Stats[with.Follower].StepX = with.StepX;
-				World.currentBoard.Stats[with.Follower].StepY = with.StepY;
-				BoardDrawTile(World.currentBoard.Stats[with.Follower].X,
-					World.currentBoard.Stats[with.Follower].Y);
+				game_world->currentBoard.Stats[with.Follower].StepX = with.StepX;
+				game_world->currentBoard.Stats[with.Follower].StepY = with.StepY;
+				BoardDrawTile(game_world->currentBoard.Stats[with.Follower].X,
+					game_world->currentBoard.Stats[with.Follower].Y);
 			}
 			BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
 		} else {
@@ -382,7 +390,7 @@ void ElementCentipedeHeadTick(integer statId) {
 
 			do {
 				{
-					TStat & with1 = World.currentBoard.Stats[statId];
+					TStat & with1 = game_world->currentBoard.Stats[statId];
 					tx = with1.X - with1.StepX;
 					ty = with1.Y - with1.StepY;
 					ix = with1.StepX;
@@ -390,34 +398,37 @@ void ElementCentipedeHeadTick(integer statId) {
 
 					if (with1.Follower < 0)  {
 						if (ValidCoord(tx - ix, ty - iy)
-							&& (World.currentBoard.Tiles[tx - ix][ty - iy].Element ==
+							&& (game_world->currentBoard.Tiles[tx - ix][ty - iy].Element ==
 								E_CENTIPEDE_SEGMENT)
 							&& (GetStatIdAt(tx - ix, ty - iy) >= 0)
-							&& (World.currentBoard.Stats[GetStatIdAt(tx - ix, ty - iy)].Leader < 0)) {
+							&& (game_world->currentBoard.Stats[GetStatIdAt(tx - ix,
+													   ty - iy)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx - ix, ty - iy);
 						} else if (ValidCoord(tx - iy, ty - ix)
-							&& (World.currentBoard.Tiles[tx - iy][ty - ix].Element ==
+							&& (game_world->currentBoard.Tiles[tx - iy][ty - ix].Element ==
 								E_CENTIPEDE_SEGMENT)
 							&& (GetStatIdAt(tx - iy, ty - ix) >= 0)
-							&& (World.currentBoard.Stats[GetStatIdAt(tx - iy, ty - ix)].Leader < 0)) {
+							&& (game_world->currentBoard.Stats[GetStatIdAt(tx - iy,
+													   ty - ix)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx - iy, ty - ix);
 						} else if (ValidCoord(tx + iy, ty + ix)
-							&& (World.currentBoard.Tiles[tx + iy][ty + ix].Element ==
+							&& (game_world->currentBoard.Tiles[tx + iy][ty + ix].Element ==
 								E_CENTIPEDE_SEGMENT)
 							&& (GetStatIdAt(tx + iy, ty + ix) >= 0)
-							&& (World.currentBoard.Stats[GetStatIdAt(tx + iy, ty + ix)].Leader < 0)) {
+							&& (game_world->currentBoard.Stats[GetStatIdAt(tx + iy,
+													   ty + ix)].Leader < 0)) {
 							with1.Follower = GetStatIdAt(tx + iy, ty + ix);
 						}
 					}
 
 					if ((with1.Follower > 0) && ValidStatIdx(with1.Follower))  {
-						World.currentBoard.Stats[with1.Follower].Leader = statId;
-						World.currentBoard.Stats[with1.Follower].P1 = with1.P1;
-						World.currentBoard.Stats[with1.Follower].P2 = with1.P2;
-						World.currentBoard.Stats[with1.Follower].StepX = tx -
-							World.currentBoard.Stats[with1.Follower].X;
-						World.currentBoard.Stats[with1.Follower].StepY = ty -
-							World.currentBoard.Stats[with1.Follower].Y;
+						game_world->currentBoard.Stats[with1.Follower].Leader = statId;
+						game_world->currentBoard.Stats[with1.Follower].P1 = with1.P1;
+						game_world->currentBoard.Stats[with1.Follower].P2 = with1.P2;
+						game_world->currentBoard.Stats[with1.Follower].StepX = tx -
+							game_world->currentBoard.Stats[with1.Follower].X;
+						game_world->currentBoard.Stats[with1.Follower].StepY = ty -
+							game_world->currentBoard.Stats[with1.Follower].Y;
 						if (ValidCoord(tx, ty)) {
 							MoveStat(with1.Follower, tx, ty);
 						}
@@ -438,7 +449,7 @@ void ElementCentipedeHeadTick(integer statId) {
 
 void ElementCentipedeSegmentTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.Leader < 0)  {
 			if (with.Leader < -1) {
 				SetElement(with.X, with.Y, E_CENTIPEDE_HEAD);
@@ -457,7 +468,7 @@ void ElementBulletTick(integer statId) {
 
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		firstTry = true;
 
 LTryMove:
@@ -470,9 +481,9 @@ LTryMove:
 			iy = with.Y;
 		}
 
-		iElem = World.currentBoard.Tiles[ix][iy].Element;
+		iElem = game_world->currentBoard.Tiles[ix][iy].Element;
 
-		if (ElementDefs[iElem].Walkable || (iElem == E_WATER))  {
+		if (elem_info_ptr->defs[iElem].Walkable || (iElem == E_WATER))  {
 			MoveStat(statId, ix, iy);
 			return;
 		}
@@ -487,10 +498,11 @@ LTryMove:
 		}
 
 		if ((iElem == E_BREAKABLE)
-			|| (ElementDefs[iElem].Destructible && ((iElem == E_PLAYER)
+			|| (elem_info_ptr->defs[iElem].Destructible && ((iElem == E_PLAYER)
 					|| (with.P1 == 0)))) {
-			if (ElementDefs[iElem].ScoreValue != 0)  {
-				World.Info.Score = World.Info.Score + ElementDefs[iElem].ScoreValue;
+			if (elem_info_ptr->defs[iElem].ScoreValue != 0)  {
+				game_world->Info.Score = game_world->Info.Score +
+					elem_info_ptr->defs[iElem].ScoreValue;
 				GameUpdateSidebar();
 			}
 			BoardAttack(statId, ix, iy);
@@ -498,7 +510,7 @@ LTryMove:
 		}
 
 		if (ValidCoord(with.X+with.StepY, with.Y+with.StepX)
-			&& (World.currentBoard.Tiles[with.X + with.StepY][with.Y +
+			&& (game_world->currentBoard.Tiles[with.X + with.StepY][with.Y +
 					with.StepX].Element ==
 				E_RICOCHET) && firstTry)  {
 			ix = with.StepX;
@@ -511,7 +523,7 @@ LTryMove:
 		}
 
 		if (ValidCoord(with.X-with.StepY, with.Y-with.StepX)
-			&& (World.currentBoard.Tiles[with.X - with.StepY][with.Y -
+			&& (game_world->currentBoard.Tiles[with.X - with.StepY][with.Y -
 					with.StepX].Element ==
 				E_RICOCHET) && firstTry)  {
 			ix = with.StepX;
@@ -547,7 +559,7 @@ void ElementLineDraw(integer x, integer y, byte & ch) {
 	v = 1;
 	shift = 1;
 	for (int i = 0; i <= 3; i ++) {
-		switch (World.currentBoard.Tiles[x + NeighborDeltaX[i]][y +
+		switch (game_world->currentBoard.Tiles[x + NeighborDeltaX[i]][y +
 				NeighborDeltaY[i]].Element) {
 			case E_LINE: case E_BOARD_EDGE: v = v + shift; break;
 		}
@@ -562,7 +574,7 @@ void ElementSpinningGunTick(integer statId) {
 	byte element;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		BoardDrawTile(with.X, with.Y);
 
 		element = E_BULLET;
@@ -572,17 +584,18 @@ void ElementSpinningGunTick(integer statId) {
 
 		if (rnd.randint(9) < (with.P2 % 0x80))  {
 			if (rnd.randint(9) <= with.P1)  {
-				if (Difference(with.X, World.currentBoard.Stats[0].X) <= 2)  {
+				if (Difference(with.X, game_world->currentBoard.Stats[0].X) <= 2)  {
 					shot = BoardShoot(element, with.X, with.Y, 0,
-							Signum(World.currentBoard.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
+							Signum(game_world->currentBoard.Stats[0].Y - with.Y), SHOT_SOURCE_ENEMY);
 				} else {
 					shot = false;
 				}
 
 				if (! shot)  {
-					if (Difference(with.Y, World.currentBoard.Stats[0].Y) <= 2)  {
+					if (Difference(with.Y, game_world->currentBoard.Stats[0].Y) <= 2)  {
 						shot = BoardShoot(element, with.X, with.Y,
-								Signum(World.currentBoard.Stats[0].X - with.X), 0, SHOT_SOURCE_ENEMY);
+								Signum(game_world->currentBoard.Stats[0].X - with.X), 0,
+								SHOT_SOURCE_ENEMY);
 					}
 				}
 			} else {
@@ -620,7 +633,7 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 			return;
 		}
 
-		tiles[i] = World.currentBoard.Tiles[x + DiagonalDeltaX[i]][y +
+		tiles[i] = game_world->currentBoard.Tiles[x + DiagonalDeltaX[i]][y +
 				DiagonalDeltaY[i]];
 		statsIndices[i] = GetStatIdAt(x + DiagonalDeltaX[i],
 				y + DiagonalDeltaY[i]);
@@ -628,7 +641,7 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 			TTile & with = tiles[i];
 			if (with.Element == E_EMPTY) {
 				canMove = true;
-			} else if (! ElementDefs[with.Element].Pushable) {
+			} else if (! elem_info_ptr->defs[with.Element].Pushable) {
 				canMove = false;
 			}
 			/* Everything outside the viewport is treated as unpushable
@@ -647,36 +660,37 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 		{
 			TTile & with = tiles[i];
 			if (canMove)  {
-				if (ElementDefs[with.Element].Pushable)  {
+				if (elem_info_ptr->defs[with.Element].Pushable)  {
 					srcx = x + DiagonalDeltaX[i];
 					srcy = y + DiagonalDeltaY[i];
 
 					destx = x + DiagonalDeltaX[(i - direction + 8) % 8];
 					desty = y + DiagonalDeltaY[(i - direction + 8) % 8];
 
-					if (ElementDefs[with.Element].Cycle > -1)  {
-						tmpTile = World.currentBoard.Tiles[srcx][srcy];
+					if (elem_info_ptr->defs[with.Element].Cycle > -1)  {
+						tmpTile = game_world->currentBoard.Tiles[srcx][srcy];
 						iStat = statsIndices[i];
-						World.currentBoard.Tiles[srcx][srcy] = tiles[i];
-						World.currentBoard.Tiles[destx][desty].Element = E_EMPTY;
+						game_world->currentBoard.Tiles[srcx][srcy] = tiles[i];
+						game_world->currentBoard.Tiles[destx][desty].Element = E_EMPTY;
 						/* If the object should have stats but doesn't...
 						don't crash! */
 						if (iStat != -1) {
 							MoveStat(iStat, destx, desty);
 						}
-						World.currentBoard.Tiles[srcx][srcy] = tmpTile;
+						game_world->currentBoard.Tiles[srcx][srcy] = tmpTile;
 					} else {
-						World.currentBoard.Tiles[destx][desty] = tiles[i];
+						game_world->currentBoard.Tiles[destx][desty] = tiles[i];
 					}
-					if (! ElementDefs[tiles[(i + direction + 8) % 8].Element].Pushable)  {
-						World.currentBoard.Tiles[srcx][srcy].Element = E_EMPTY;
+					if (! elem_info_ptr->defs[tiles[(i + direction + 8) %
+										 8].Element].Pushable)  {
+						game_world->currentBoard.Tiles[srcx][srcy].Element = E_EMPTY;
 					}
 				} else {
 					canMove = false;
 				}
 			} else if (with.Element == E_EMPTY) {
 				canMove = true;
-			} else if (! ElementDefs[with.Element].Pushable) {
+			} else if (! elem_info_ptr->defs[with.Element].Pushable) {
 				canMove = false;
 			}
 			canMove = canMove && CoordInsideViewport(x + DiagonalDeltaX[i],
@@ -694,7 +708,7 @@ void ElementConveyorTick(integer x, integer y, integer direction) {
 }
 
 void ElementConveyorCWDraw(integer x, integer y, byte & ch) {
-	switch ((CurrentTick / ElementDefs[E_CONVEYOR_CW].Cycle) % 4) {
+	switch ((CurrentTick / elem_info_ptr->defs[E_CONVEYOR_CW].Cycle) % 4) {
 		case 0: ch = 179; break;
 		case 1: ch = 47; break;
 		case 2: ch = 196; break;
@@ -704,14 +718,14 @@ void ElementConveyorCWDraw(integer x, integer y, byte & ch) {
 
 void ElementConveyorCWTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		BoardDrawTile(with.X, with.Y);
 		ElementConveyorTick(with.X, with.Y, 1);
 	}
 }
 
 void ElementConveyorCCWDraw(integer x, integer y, byte & ch) {
-	switch ((CurrentTick / ElementDefs[E_CONVEYOR_CCW].Cycle) % 4) {
+	switch ((CurrentTick / elem_info_ptr->defs[E_CONVEYOR_CCW].Cycle) % 4) {
 		case 3: ch = 179; break;
 		case 2: ch = 47; break;
 		case 1: ch = 196; break;
@@ -721,7 +735,7 @@ void ElementConveyorCCWDraw(integer x, integer y, byte & ch) {
 
 void ElementConveyorCCWTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		BoardDrawTile(with.X, with.Y);
 		ElementConveyorTick(with.X, with.Y, -1);
 	}
@@ -733,7 +747,7 @@ void ElementBombDraw(integer x, integer y, byte & ch) {
 		return;
 	}
 	{
-		TStat & with = World.currentBoard.Stats[GetStatIdAt(x, y)];
+		TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x, y)];
 		if (with.P1 <= 1) {
 			ch = 11;
 		} else {
@@ -746,7 +760,7 @@ void ElementBombTick(integer statId) {
 	integer oldX, oldY;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P1 > 0)  {
 			with.P1 = (with.P1 - 1);
 			BoardDrawTile(with.X, with.Y);
@@ -777,7 +791,7 @@ void ElementBombTouch(integer x, integer y, integer sourceStatId,
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[GetStatIdAt(x, y)];
+		TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x, y)];
 		if (with.P1 == 0)  {
 			with.P1 = 9;
 			BoardDrawTile(with.X, with.Y);
@@ -805,7 +819,7 @@ void ElementTransporterMove(integer x, integer y, integer deltaX,
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[GetStatIdAt(x + deltaX,
+		TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x + deltaX,
 								  y + deltaY)];
 		if ((deltaX == with.StepX) && (deltaY == with.StepY))  {
 			ix = with.X;
@@ -817,17 +831,17 @@ void ElementTransporterMove(integer x, integer y, integer deltaX,
 				ix = ix + deltaX;
 				iy = iy + deltaY;
 				{
-					TTile & with1 = World.currentBoard.Tiles[ix][iy];
+					TTile & with1 = game_world->currentBoard.Tiles[ix][iy];
 					if (with1.Element == E_BOARD_EDGE) {
 						finishSearch = true;
 					} else if (isValidDest)  {
 						isValidDest = false;
 
-						if (! ElementDefs[with1.Element].Walkable) {
+						if (! elem_info_ptr->defs[with1.Element].Walkable) {
 							ElementPushablePush(ix, iy, deltaX, deltaY);
 						}
 
-						if (ElementDefs[with1.Element].Walkable)  {
+						if (elem_info_ptr->defs[with1.Element].Walkable)  {
 							finishSearch = true;
 							newX = ix;
 							newY = iy;
@@ -837,8 +851,9 @@ void ElementTransporterMove(integer x, integer y, integer deltaX,
 					}
 					if (with1.Element == E_TRANSPORTER)  {
 						iStat = GetStatIdAt(ix, iy);
-						if ((iStat >= 0) && (World.currentBoard.Stats[iStat].StepX == -deltaX)
-							&& (World.currentBoard.Stats[iStat].StepY == -deltaY)) {
+						if ((iStat >= 0)
+							&& (game_world->currentBoard.Stats[iStat].StepX == -deltaX)
+							&& (game_world->currentBoard.Stats[iStat].StepY == -deltaY)) {
 							isValidDest = true;
 						}
 					}
@@ -860,7 +875,7 @@ void ElementTransporterTouch(integer x, integer y, integer sourceStatId,
 }
 
 void ElementTransporterTick(integer statId) {
-	TStat & with = World.currentBoard.Stats[statId];
+	TStat & with = game_world->currentBoard.Stats[statId];
 	BoardDrawTile(with.X, with.Y);
 }
 
@@ -871,7 +886,7 @@ void ElementTransporterDraw(integer x, integer y, byte & ch) {
 		return;
 	}
 
-	TStat & with = World.currentBoard.Stats[GetStatIdAt(x, y)];
+	TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x, y)];
 	if (with.Cycle <= 0) {
 		with.Cycle = 1;
 	}
@@ -894,7 +909,7 @@ void ElementStarTick(integer statId) {
 	integer newStatId;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P2 == 0) {
 			with.P2 = 255;
 		} else {
@@ -909,17 +924,19 @@ void ElementStarTick(integer statId) {
 				return;
 			}
 			{
-				TTile & with1 = World.currentBoard.Tiles[with.X + with.StepX][with.Y +
+				TTile & with1 = game_world->currentBoard.Tiles[with.X + with.StepX][with.Y
+						+
 						with.StepY];
 				if ((with1.Element == E_PLAYER) || (with1.Element == E_BREAKABLE))  {
 					BoardAttack(statId, with.X + with.StepX, with.Y + with.StepY);
 				} else {
-					if (! ElementDefs[with1.Element].Walkable) {
+					if (! elem_info_ptr->defs[with1.Element].Walkable) {
 						ElementPushablePush(with.X + with.StepX, with.Y + with.StepY, with.StepX,
 							with.StepY);
 					}
 
-					if (ElementDefs[with1.Element].Walkable || (with1.Element == E_WATER)) {
+					if (elem_info_ptr->defs[with1.Element].Walkable
+						|| (with1.Element == E_WATER)) {
 						MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 					}
 				}
@@ -940,10 +957,10 @@ void ElementEnergizerTouch(integer x, integer y, integer sourceStatId,
 		+ "\60\3\43\3\44\3\45\3\65\3\45\3\43\3\40\3"
 		+ "\60\3\43\3\44\3\45\3\65\3\45\3\43\3\40\3");
 
-	World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 	BoardDrawTile(x, y);
 
-	World.Info.EnergizerTicks = 75;
+	game_world->Info.EnergizerTicks = 75;
 	GameUpdateSidebar();
 
 	if (MessageEnergizerNotShown)  {
@@ -959,11 +976,11 @@ void ElementSlimeTick(integer statId) {
 	integer startX, startY;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P1 < with.P2) {
 			with.P1 = with.P1 + 1;
 		} else {
-			color = World.currentBoard.Tiles[with.X][with.Y].Color;
+			color = game_world->currentBoard.Tiles[with.X][with.Y].Color;
 			with.P1 = 0;
 			startX = with.X;
 			startY = with.Y;
@@ -976,20 +993,21 @@ void ElementSlimeTick(integer statId) {
 					continue;
 				}
 
-				if (ElementDefs[World.currentBoard.Tiles[startX +
-															NeighborDeltaX[dir]][startY +
-															NeighborDeltaY[dir]].Element].Walkable)  {
+				if (elem_info_ptr->defs[game_world->currentBoard.Tiles[startX +
+																  NeighborDeltaX[dir]][startY +
+																  NeighborDeltaY[dir]].Element].Walkable)  {
 					if (changedTiles == 0)  {
 						MoveStat(statId, startX + NeighborDeltaX[dir],
 							startY + NeighborDeltaY[dir]);
-						World.currentBoard.Tiles[startX][startY].Color = color;
-						World.currentBoard.Tiles[startX][startY].Element = E_BREAKABLE;
+						game_world->currentBoard.Tiles[startX][startY].Color = color;
+						game_world->currentBoard.Tiles[startX][startY].Element = E_BREAKABLE;
 						BoardDrawTile(startX, startY);
 					} else {
 						AddStat(startX + NeighborDeltaX[dir], startY + NeighborDeltaY[dir],
 							E_SLIME, color,
-							ElementDefs[E_SLIME].Cycle, StatTemplateDefault);
-						World.currentBoard.Stats[World.currentBoard.StatCount].P2 = with.P2;
+							elem_info_ptr->defs[E_SLIME].Cycle, StatTemplateDefault);
+						game_world->currentBoard.Stats[game_world->currentBoard.StatCount].P2 =
+							with.P2;
 					}
 
 					changedTiles = changedTiles + 1;
@@ -998,8 +1016,8 @@ void ElementSlimeTick(integer statId) {
 
 			if (changedTiles == 0)  {
 				RemoveStat(statId);
-				World.currentBoard.Tiles[startX][startY].Element = E_BREAKABLE;
-				World.currentBoard.Tiles[startX][startY].Color = color;
+				game_world->currentBoard.Tiles[startX][startY].Element = E_BREAKABLE;
+				game_world->currentBoard.Tiles[startX][startY].Color = color;
 				BoardDrawTile(startX, startY);
 			}
 		}
@@ -1010,12 +1028,12 @@ void ElementSlimeTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	integer color;
 
-	color = World.currentBoard.Tiles[x][y].Color;
+	color = game_world->currentBoard.Tiles[x][y].Color;
 	if (GetStatIdAt(x, y) >= 0) {
 		DamageStat(GetStatIdAt(x, y));
 	}
-	World.currentBoard.Tiles[x][y].Element = E_BREAKABLE;
-	World.currentBoard.Tiles[x][y].Color = color;
+	game_world->currentBoard.Tiles[x][y].Element = E_BREAKABLE;
+	game_world->currentBoard.Tiles[x][y].Color = color;
 	BoardDrawTile(x, y);
 	SoundQueue(2, "\40\1\43\1");
 }
@@ -1024,7 +1042,7 @@ void ElementSharkTick(integer statId) {
 	integer deltaX, deltaY;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P1 < rnd.randint(10)) {
 			CalcDirectionRnd(deltaX, deltaY);
 		} else {
@@ -1035,10 +1053,11 @@ void ElementSharkTick(integer statId) {
 			return;
 		}
 
-		if (World.currentBoard.Tiles[with.X + deltaX][with.Y + deltaY].Element ==
+		if (game_world->currentBoard.Tiles[with.X + deltaX][with.Y +
+				deltaY].Element ==
 			E_WATER) {
 			MoveStat(statId, with.X + deltaX, with.Y + deltaY);
-		} else if (World.currentBoard.Tiles[with.X + deltaX][with.Y +
+		} else if (game_world->currentBoard.Tiles[with.X + deltaX][with.Y +
 				deltaY].Element ==
 			E_PLAYER) {
 			BoardAttack(statId, with.X + deltaX, with.Y + deltaY);
@@ -1057,7 +1076,7 @@ void ElementBlinkWallTick(integer statId) {
 	integer el;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P3 == 0) {
 			with.P3 = (with.P1 + 1) % 256;
 		}
@@ -1076,10 +1095,10 @@ void ElementBlinkWallTick(integer statId) {
 			}
 
 			while (ValidCoord(ix, iy)
-				&& (World.currentBoard.Tiles[ix][iy].Element == el)
-				&& (World.currentBoard.Tiles[ix][iy].Color ==
-					World.currentBoard.Tiles[with.X][with.Y].Color)) {
-				World.currentBoard.Tiles[ix][iy].Element = E_EMPTY;
+				&& (game_world->currentBoard.Tiles[ix][iy].Element == el)
+				&& (game_world->currentBoard.Tiles[ix][iy].Color ==
+					game_world->currentBoard.Tiles[with.X][with.Y].Color)) {
+				game_world->currentBoard.Tiles[ix][iy].Element = E_EMPTY;
 				BoardDrawTile(ix, iy);
 				ix = ix + with.StepX;
 				iy = iy + with.StepY;
@@ -1089,33 +1108,33 @@ void ElementBlinkWallTick(integer statId) {
 			if (((with.X + with.StepX) == ix) && ((with.Y + with.StepY) == iy))  {
 				hitBoundary = false;
 				do {
-					if ((World.currentBoard.Tiles[ix][iy].Element != E_EMPTY)
-						&& (ElementDefs[World.currentBoard.Tiles[ix][iy].Element].Destructible)) {
+					if ((game_world->currentBoard.Tiles[ix][iy].Element != E_EMPTY)
+						&& (elem_info_ptr->defs[game_world->currentBoard.Tiles[ix][iy].Element].Destructible)) {
 						BoardDamageTile(ix, iy);
 					}
 
-					if (World.currentBoard.Tiles[ix][iy].Element == E_PLAYER)  {
+					if (game_world->currentBoard.Tiles[ix][iy].Element == E_PLAYER)  {
 						playerStatId = GetStatIdAt(ix, iy);
 						if (playerStatId == -1) {
 							BoardDamageTile(ix, iy);
 						} else {
 							if (with.StepX != 0)  {
-								if (World.currentBoard.Tiles[ix][iy - 1].Element == E_EMPTY) {
+								if (game_world->currentBoard.Tiles[ix][iy - 1].Element == E_EMPTY) {
 									MoveStat(playerStatId, ix, iy - 1);
-								} else if (World.currentBoard.Tiles[ix][iy + 1].Element == E_EMPTY) {
+								} else if (game_world->currentBoard.Tiles[ix][iy + 1].Element == E_EMPTY) {
 									MoveStat(playerStatId, ix, iy + 1);
 								}
 							} else {
-								if (World.currentBoard.Tiles[ix + 1][iy].Element == E_EMPTY) {
+								if (game_world->currentBoard.Tiles[ix + 1][iy].Element == E_EMPTY) {
 									MoveStat(playerStatId, ix + 1, iy);
-								} else if (World.currentBoard.Tiles[ix - 1][iy].Element == E_EMPTY) {
+								} else if (game_world->currentBoard.Tiles[ix - 1][iy].Element == E_EMPTY) {
 									MoveStat(playerStatId, ix + 1, iy);
 								}
 							}
 
-							if (World.currentBoard.Tiles[ix][iy].Element == E_PLAYER
+							if (game_world->currentBoard.Tiles[ix][iy].Element == E_PLAYER
 								&& playerStatId == 0)  {
-								while (World.Info.Health > 0) {
+								while (game_world->Info.Health > 0) {
 									DamageStat(playerStatId);
 								}
 								hitBoundary = true;
@@ -1123,10 +1142,10 @@ void ElementBlinkWallTick(integer statId) {
 						}
 					}
 
-					if (World.currentBoard.Tiles[ix][iy].Element == E_EMPTY)  {
-						World.currentBoard.Tiles[ix][iy].Element = el;
-						World.currentBoard.Tiles[ix][iy].Color =
-							World.currentBoard.Tiles[with.X][with.Y].Color;
+					if (game_world->currentBoard.Tiles[ix][iy].Element == E_EMPTY)  {
+						game_world->currentBoard.Tiles[ix][iy].Element = el;
+						game_world->currentBoard.Tiles[ix][iy].Color =
+							game_world->currentBoard.Tiles[with.X][with.Y].Color;
 						BoardDrawTile(ix, iy);
 					} else {
 						hitBoundary = true;
@@ -1154,10 +1173,10 @@ void ElementMove(integer oldX, integer oldY, integer newX, integer newY) {
 	if (statId >= 0)  {
 		MoveStat(statId, newX, newY);
 	} else {
-		World.currentBoard.Tiles[newX][newY] =
-			World.currentBoard.Tiles[oldX][oldY];
+		game_world->currentBoard.Tiles[newX][newY] =
+			game_world->currentBoard.Tiles[oldX][oldY];
 		BoardDrawTile(newX, newY);
-		World.currentBoard.Tiles[oldX][oldY].Element = E_EMPTY;
+		game_world->currentBoard.Tiles[oldX][oldY].Element = E_EMPTY;
 		BoardDrawTile(oldX, oldY);
 	}
 }
@@ -1173,33 +1192,34 @@ void ElementPushablePush(integer x, integer y, integer deltaX,
 	}
 
 	{
-		TTile & with = World.currentBoard.Tiles[x][y];
+		TTile & with = game_world->currentBoard.Tiles[x][y];
 		if (((with.Element == E_SLIDER_NS) && (deltaX == 0))
 			|| ((with.Element == E_SLIDER_EW) && (deltaY == 0))
-			|| ElementDefs[with.Element].Pushable) {
+			|| elem_info_ptr->defs[with.Element].Pushable) {
 			if (! ValidCoord(x + deltaX, y + deltaY)) {
 				return;
 			}
 
-			if (World.currentBoard.Tiles[x + deltaX][y + deltaY].Element ==
+			if (game_world->currentBoard.Tiles[x + deltaX][y + deltaY].Element ==
 				E_TRANSPORTER) {
 				ElementTransporterMove(x, y, deltaX, deltaY);
-			} else if (World.currentBoard.Tiles[x + deltaX][y + deltaY].Element !=
+			} else if (game_world->currentBoard.Tiles[x + deltaX][y + deltaY].Element
+				!=
 				E_EMPTY) {
 				ElementPushablePush(x + deltaX, y + deltaY, deltaX, deltaY);
 			}
 
-			if (! ElementDefs[World.currentBoard.Tiles[x + deltaX][y +
-												   deltaY].Element].Walkable
-				&& ElementDefs[World.currentBoard.Tiles[x + deltaX][y +
-												   deltaY].Element].Destructible
-				&& (World.currentBoard.Tiles[x + deltaX][y + deltaY].Element !=
+			if (! elem_info_ptr->defs[game_world->currentBoard.Tiles[x + deltaX][y +
+														 deltaY].Element].Walkable
+				&& elem_info_ptr->defs[game_world->currentBoard.Tiles[x + deltaX][y +
+														 deltaY].Element].Destructible
+				&& (game_world->currentBoard.Tiles[x + deltaX][y + deltaY].Element !=
 					E_PLAYER)) {
 				BoardDamageTile(x + deltaX, y + deltaY);
 			}
 
-			if (ElementDefs[World.currentBoard.Tiles[x + deltaX][y +
-												   deltaY].Element].Walkable) {
+			if (elem_info_ptr->defs[game_world->currentBoard.Tiles[x + deltaX][y +
+														 deltaY].Element].Walkable) {
 				ElementMove(x, y, x + deltaX, y + deltaY);
 			}
 		}
@@ -1217,7 +1237,7 @@ void ElementDuplicatorDraw(integer x, integer y, byte & ch) {
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[GetStatIdAt(x, y)];
+		TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x, y)];
 		switch (with.P1) {
 			case 1: ch = 250; break;
 			case 2: ch = 249; break;
@@ -1233,15 +1253,16 @@ void ElementObjectTick(integer statId) {
 	boolean retVal;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.DataPos >= 0) {
 			OopExecute(statId, with.DataPos, "Interaction");
 		}
 
 		if ((with.StepX != 0) || (with.StepY != 0))  {
 			if (ValidCoord(with.X + with.StepX, with.Y + with.StepY)
-				&& ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-														with.StepY].Element].Walkable) {
+				&& elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+															  with.StepX][with.Y +
+															  with.StepY].Element].Walkable) {
 				MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 			} else {
 				retVal = OopSend(-statId, "THUD", false);
@@ -1255,7 +1276,7 @@ void ElementObjectDraw(integer x, integer y, byte & ch) {
 	if (GetStatIdAt(x, y) == -1) {
 		return;
 	}
-	ch = World.currentBoard.Stats[GetStatIdAt(x, y)].P1;
+	ch = game_world->currentBoard.Stats[GetStatIdAt(x, y)].P1;
 }
 
 void ElementObjectTouch(integer x, integer y, integer sourceStatId,
@@ -1274,7 +1295,7 @@ void ElementDuplicatorTick(integer statId) {
 	integer sourceStatId;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (with.P1 <= 4)  {
 			with.P1 = with.P1 + 1;
 			BoardDrawTile(with.X, with.Y);
@@ -1282,17 +1303,18 @@ void ElementDuplicatorTick(integer statId) {
 			with.P1 = 0;
 			if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
 				&& ValidCoord(with.X + with.StepX, with.Y + with.StepY)
-				&& (World.currentBoard.Tiles[with.X - with.StepX][with.Y -
+				&& (game_world->currentBoard.Tiles[with.X - with.StepX][with.Y -
 						with.StepY].Element ==
 					E_PLAYER))  {
-				ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-														with.StepY].Element]
+				ElementProcDefs[game_world->currentBoard.Tiles[with.X + with.StepX][with.Y
+															  +
+															  with.StepY].Element]
 				.TouchProc(with.X + with.StepX, with.Y + with.StepY, 0,
 					keyboard.InputDeltaX,
 					keyboard.InputDeltaY);
 			} else {
 				if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
-					&& (World.currentBoard.Tiles[with.X - with.StepX][with.Y -
+					&& (game_world->currentBoard.Tiles[with.X - with.StepX][with.Y -
 							with.StepY].Element !=
 						E_EMPTY)) {
 					ElementPushablePush(with.X - with.StepX, with.Y - with.StepY, -with.StepX,
@@ -1300,23 +1322,25 @@ void ElementDuplicatorTick(integer statId) {
 				}
 
 				if (ValidCoord(with.X - with.StepX, with.Y - with.StepY)
-					&& (World.currentBoard.Tiles[with.X - with.StepX][with.Y -
+					&& (game_world->currentBoard.Tiles[with.X - with.StepX][with.Y -
 							with.StepY].Element ==
 						E_EMPTY))  {
 					sourceStatId = GetStatIdAt(with.X + with.StepX, with.Y + with.StepY);
 					if (sourceStatId > 0)  {
-						if (World.currentBoard.StatCount < 174)  {
+						if (game_world->currentBoard.StatCount < 174)  {
 							AddStat(with.X - with.StepX, with.Y - with.StepY,
-								World.currentBoard.Tiles[with.X + with.StepX][with.Y + with.StepY].Element,
-								World.currentBoard.Tiles[with.X + with.StepX][with.Y + with.StepY].Color,
-								World.currentBoard.Stats[sourceStatId].Cycle,
-								World.currentBoard.Stats[sourceStatId]);
+								game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
+									with.StepY].Element,
+								game_world->currentBoard.Tiles[with.X + with.StepX][with.Y +
+									with.StepY].Color,
+								game_world->currentBoard.Stats[sourceStatId].Cycle,
+								game_world->currentBoard.Stats[sourceStatId]);
 							BoardDrawTile(with.X - with.StepX, with.Y - with.StepY);
 						}
 					} else if ((sourceStatId != 0)
 						&& ValidCoord(with.X + with.StepX, with.Y + with.StepY))  {
-						World.currentBoard.Tiles[with.X - with.StepX][with.Y - with.StepY]
-							= World.currentBoard.Tiles[with.X + with.StepX][with.Y + with.StepY];
+						game_world->currentBoard.Tiles[with.X - with.StepX][with.Y - with.StepY]
+							= game_world->currentBoard.Tiles[with.X + with.StepX][with.Y + with.StepY];
 						BoardDrawTile(with.X - with.StepX, with.Y - with.StepY);
 					}
 
@@ -1336,7 +1360,7 @@ void ElementDuplicatorTick(integer statId) {
 
 void ElementScrollTick(integer statId) {
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		ColorCycle(with.X, with.Y);
 		BoardDrawTile(with.X, with.Y);
 	}
@@ -1356,12 +1380,12 @@ void ElementScrollTouch(integer x, integer y, integer sourceStatId,
 	SoundQueue(2, SoundParse("c-c+d-d+e-e+f-f+g-g"));
 
 	if (statId < 0)  {
-		World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+		game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 		return;
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		with.DataPos = 0;
 		OopExecute(statId, with.DataPos, "Scroll");
 	}
@@ -1373,17 +1397,17 @@ void ElementKeyTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	integer key;
 
-	key = World.currentBoard.Tiles[x][y].Color % 8;
+	key = game_world->currentBoard.Tiles[x][y].Color % 8;
 
-	if (World.Info.HasKey(key))  {
-		DisplayMessage(200, string("You already have a ")+World.Info.KeyName(
+	if (game_world->Info.HasKey(key))  {
+		DisplayMessage(200, string("You already have a ")+game_world->Info.KeyName(
 				key).c_str()+" key!");
 		SoundQueue(2, "\60\2\40\2");
 	} else {
-		World.Info.GiveKey(key);
-		World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+		game_world->Info.GiveKey(key);
+		game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 		GameUpdateSidebar();
-		DisplayMessage(200, string("You now have the ")+World.Info.KeyName(
+		DisplayMessage(200, string("You now have the ")+game_world->Info.KeyName(
 				key).c_str()+" key.");
 		SoundQueue(2,
 			"\100\1\104\1\107\1\100\1\104\1\107\1\100\1\104\1\107\1\120\2");
@@ -1392,9 +1416,9 @@ void ElementKeyTouch(integer x, integer y, integer sourceStatId,
 
 void ElementAmmoTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
-	World.Info.Ammo = World.Info.Ammo + 5;
+	game_world->Info.Ammo = game_world->Info.Ammo + 5;
 
-	World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 	GameUpdateSidebar();
 	SoundQueue(2, "\60\1\61\1\62\1");
 
@@ -1406,11 +1430,11 @@ void ElementAmmoTouch(integer x, integer y, integer sourceStatId,
 
 void ElementGemTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
-	World.Info.Gems = World.Info.Gems + 1;
-	World.Info.Health = World.Info.Health + 1;
-	World.Info.Score = World.Info.Score + 10;
+	game_world->Info.Gems = game_world->Info.Gems + 1;
+	game_world->Info.Health = game_world->Info.Health + 1;
+	game_world->Info.Score = game_world->Info.Score + 10;
 
-	World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 	GameUpdateSidebar();
 	SoundQueue(2, "\100\1\67\1\64\1\60\1");
 
@@ -1431,20 +1455,20 @@ void ElementDoorTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	integer key;
 
-	key = (World.currentBoard.Tiles[x][y].Color / 16) % 8;
+	key = (game_world->currentBoard.Tiles[x][y].Color / 16) % 8;
 
-	if (World.Info.HasKey(key))  {
-		World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	if (game_world->Info.HasKey(key))  {
+		game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 		BoardDrawTile(x, y);
 
-		World.Info.TakeKey(key);
+		game_world->Info.TakeKey(key);
 		GameUpdateSidebar();
 
-		DisplayMessage(200, string("The ")+World.Info.KeyName(
+		DisplayMessage(200, string("The ")+game_world->Info.KeyName(
 				key).c_str()+" door is now open.");
 		SoundQueue(3, "\60\1\67\1\73\1\60\1\67\1\73\1\100\4");
 	} else {
-		DisplayMessage(200, string("The ")+World.Info.KeyName(
+		DisplayMessage(200, string("The ")+game_world->Info.KeyName(
 				key).c_str()+" door is locked!");
 		SoundQueue(3, "\27\1\20\1");
 	}
@@ -1463,7 +1487,7 @@ void ElementPusherDraw(integer x, integer y, byte & ch) {
 		return;
 	}
 	{
-		TStat & with = World.currentBoard.Stats[GetStatIdAt(x, y)];
+		TStat & with = game_world->currentBoard.Stats[GetStatIdAt(x, y)];
 		if (with.StepX == 1) {
 			ch = 16;
 		} else if (with.StepX == -1) {
@@ -1480,13 +1504,14 @@ void ElementPusherTick(integer statId) {
 	integer i, startX, startY;
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		startX = with.X;
 		startY = with.Y;
 
 		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
-			&& (! ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-														with.StepY].Element].Walkable))  {
+			&& (! elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+															  with.StepX][with.Y +
+															  with.StepY].Element].Walkable))  {
 			ElementPushablePush(with.X + with.StepX, with.Y + with.StepY, with.StepX,
 				with.StepY);
 		}
@@ -1498,24 +1523,25 @@ void ElementPusherTick(integer statId) {
 	}
 
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		if (ValidCoord(with.X+with.StepX, with.Y+with.StepY)
-			&& ElementDefs[World.currentBoard.Tiles[with.X + with.StepX][with.Y +
-													with.StepY].Element].Walkable)  {
+			&& elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+														  with.StepX][with.Y +
+														  with.StepY].Element].Walkable)  {
 			MoveStat(statId, with.X + with.StepX, with.Y + with.StepY);
 			SoundQueue(2, "\25\1");
 
 			if ((ValidCoord(with.X - (with.StepX * 2), with.X - (with.StepX * 2)))
-				&& (World.currentBoard.Tiles[with.X - (with.StepX * 2)][with.X -
+				&& (game_world->currentBoard.Tiles[with.X - (with.StepX * 2)][with.X -
 						(with.StepX *
 							2)].Element == E_PUSHER))  {
 				i = GetStatIdAt(with.X - (with.StepX * 2), with.Y - (with.StepY * 2));
 				if (i == -1) {
 					return;
 				}
-				if ((World.currentBoard.Stats[i].StepX == with.StepX)
-					&& (World.currentBoard.Stats[i].StepY == with.StepY)) {
-					ElementDefs[E_PUSHER].TickProc(i);
+				if ((game_world->currentBoard.Stats[i].StepX == with.StepX)
+					&& (game_world->currentBoard.Stats[i].StepY == with.StepY)) {
+					ElementProcDefs[E_PUSHER].TickProc(i);
 				}
 			}
 		}
@@ -1524,8 +1550,8 @@ void ElementPusherTick(integer statId) {
 
 void ElementTorchTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
-	World.Info.Torches = World.Info.Torches + 1;
-	World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	game_world->Info.Torches = game_world->Info.Torches + 1;
+	game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 
 	BoardDrawTile(x, y);
 	GameUpdateSidebar();
@@ -1541,7 +1567,7 @@ void ElementTorchTouch(integer x, integer y, integer sourceStatId,
 void ElementInvisibleTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
 	{
-		TTile & with = World.currentBoard.Tiles[x][y];
+		TTile & with = game_world->currentBoard.Tiles[x][y];
 		with.Element = E_NORMAL;
 		BoardDrawTile(x, y);
 
@@ -1552,7 +1578,7 @@ void ElementInvisibleTouch(integer x, integer y, integer sourceStatId,
 
 void ElementForestTouch(integer x, integer y, integer sourceStatId,
 	integer & deltaX, integer & deltaY) {
-	World.currentBoard.Tiles[x][y].Element = E_EMPTY;
+	game_world->currentBoard.Tiles[x][y].Element = E_EMPTY;
 	BoardDrawTile(x, y);
 
 	SoundQueue(3, "\71\1");
@@ -1578,8 +1604,8 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 	integer entryX, entryY;
 	integer destBoardId;
 
-	entryX = World.currentBoard.Stats[0].X;
-	entryY = World.currentBoard.Stats[0].Y;
+	entryX = game_world->currentBoard.Stats[0].X;
+	entryY = game_world->currentBoard.Stats[0].Y;
 	if (deltaY == -1)  {
 		neighborId = 0;
 		entryY = BOARD_HEIGHT;
@@ -1594,11 +1620,11 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 		entryX = 1;
 	}
 
-	if (World.currentBoard.Info.NeighborBoards[neighborId] != 0)  {
-		boardId = World.Info.CurrentBoardIdx;
-		destBoardId = World.currentBoard.Info.NeighborBoards[neighborId];
+	if (game_world->currentBoard.Info.NeighborBoards[neighborId] != 0)  {
+		boardId = game_world->Info.CurrentBoardIdx;
+		destBoardId = game_world->currentBoard.Info.NeighborBoards[neighborId];
 
-		if (destBoardId > World.BoardCount) {
+		if (destBoardId > game_world->BoardCount) {
 			destBoardId = boardId;
 		}
 
@@ -1617,15 +1643,15 @@ void ElementBoardEdgeTouch(integer x, integer y, integer sourceStatId,
 			BoardChange(destBoardId);
 		}
 
-		if (World.currentBoard.Tiles[entryX][entryY].Element != E_PLAYER)  {
+		if (game_world->currentBoard.Tiles[entryX][entryY].Element != E_PLAYER)  {
 			BoardEdgeSeen[destBoardId] = true;
-			ElementDefs[World.currentBoard.Tiles[entryX][entryY].Element].TouchProc(
+			ElementProcDefs[game_world->currentBoard.Tiles[entryX][entryY].Element].TouchProc(
 				entryX, entryY, sourceStatId, keyboard.InputDeltaX, keyboard.InputDeltaY);
 		}
 
-		if (ElementDefs[World.currentBoard.Tiles[entryX][entryY].Element].Walkable
-			|| (World.currentBoard.Tiles[entryX][entryY].Element == E_PLAYER)) {
-			if (World.currentBoard.Tiles[entryX][entryY].Element != E_PLAYER) {
+		if (elem_info_ptr->defs[game_world->currentBoard.Tiles[entryX][entryY].Element].Walkable
+			|| (game_world->currentBoard.Tiles[entryX][entryY].Element == E_PLAYER)) {
+			if (game_world->currentBoard.Tiles[entryX][entryY].Element != E_PLAYER) {
 				MoveStat(0, entryX, entryY);
 			}
 
@@ -1659,17 +1685,18 @@ void DrawPlayerSurroundings(integer x, integer y, integer bombPhase) {
 		if ((ix >= 1) && (ix <= BOARD_WIDTH))
 			for (int iy = ((y - TORCH_DY) - 1); iy <= ((y + TORCH_DY) + 1); iy ++)
 				if ((iy >= 1) && (iy <= BOARD_HEIGHT)) {
-					TTile & with = World.currentBoard.Tiles[ix][iy];
+					TTile & with = game_world->currentBoard.Tiles[ix][iy];
 					if ((bombPhase > 0) && ((sqr(ix-x) + sqr(iy-y)*2) < TORCH_DIST_SQR))  {
 						if (bombPhase == 1)  {
-							if (ElementDefs[with.Element].ParamTextName.size() != 0)  {
+							if (elem_info_ptr->defs[with.Element].ParamTextName.size() != 0)  {
 								istat = GetStatIdAt(ix, iy);
 								if (istat > 0) {
 									result = OopSend(-istat, "BOMBED", false);
 								}
 							}
 
-							if (ElementDefs[with.Element].Destructible || (with.Element == E_STAR)) {
+							if (elem_info_ptr->defs[with.Element].Destructible
+								|| (with.Element == E_STAR)) {
 								BoardDamageTile(ix, iy);
 							}
 
@@ -1689,7 +1716,7 @@ void DrawPlayerSurroundings(integer x, integer y, integer bombPhase) {
 }
 
 void GamePromptEndPlay() {
-	if (World.Info.Health <= 0)  {
+	if (game_world->Info.Health <= 0)  {
 		GamePlayExitRequested = true;
 		BoardDrawBorder();
 	} else {
@@ -1716,33 +1743,38 @@ void ElementPlayerTick(integer statId) {
 	/* Running down energizer ticks or torch light counts as affecting
 	the world, even though it might make logical sense for torches. */
 	{
-		TStat & with = World.currentBoard.Stats[statId];
+		TStat & with = game_world->currentBoard.Stats[statId];
 		canAct = (with.Cycle != 0)
 			&& ((CurrentTick % with.Cycle) == (CurrentStatTicked % with.Cycle));
 
-		if (World.Info.EnergizerTicks > 0)  {
-			if (ElementDefs[E_PLAYER].Character == '\2') {
-				ElementDefs[E_PLAYER].Character = '\1';
+		// TODO: The code shouldn't just reach into the Element definitions and
+		// change the player character like this! But I may have no choice but to
+		// allow it because doing otherwise could make my version differ from original
+		// ZZT (e.g. imagine quitting while the player character is \2).
+		if (game_world->Info.EnergizerTicks > 0)  {
+			if (elem_info_ptr->defs[E_PLAYER].Character == '\2') {
+				elem_info_ptr->defs[E_PLAYER].Character = '\1';
 			} else {
-				ElementDefs[E_PLAYER].Character = '\2';
+				elem_info_ptr->defs[E_PLAYER].Character = '\2';
 			}
 
 			if ((CurrentTick % 2) != 0) {
-				World.currentBoard.Tiles[with.X][with.Y].Color = 0xf;
+				game_world->currentBoard.Tiles[with.X][with.Y].Color = 0xf;
 			} else {
-				World.currentBoard.Tiles[with.X][with.Y].Color = (((CurrentTick % 7) + 1) *
+				game_world->currentBoard.Tiles[with.X][with.Y].Color = (((
+								CurrentTick % 7) + 1) *
 						16) + 0xf;
 			}
 
 			BoardDrawTile(with.X, with.Y);
-		} else if ((World.currentBoard.Tiles[with.X][with.Y].Color != 0x1f)
-			|| (ElementDefs[E_PLAYER].Character != '\2'))  {
-			World.currentBoard.Tiles[with.X][with.Y].Color = 0x1f;
-			ElementDefs[E_PLAYER].Character = '\2';
+		} else if ((game_world->currentBoard.Tiles[with.X][with.Y].Color != 0x1f)
+			|| (elem_info_ptr->defs[E_PLAYER].Character != '\2'))  {
+			game_world->currentBoard.Tiles[with.X][with.Y].Color = 0x1f;
+			elem_info_ptr->defs[E_PLAYER].Character = '\2';
 			BoardDrawTile(with.X, with.Y);
 		}
 
-		if (World.Info.Health <= 0)  {
+		if (game_world->Info.Health <= 0)  {
 			keyboard.InputDeltaX = 0;
 			keyboard.InputDeltaY = 0;
 			keyboard.InputShiftPressed = false;
@@ -1762,29 +1794,29 @@ void ElementPlayerTick(integer statId) {
 			}
 
 			if (canAct && ((PlayerDirX != 0) || (PlayerDirY != 0)))  {
-				if (World.currentBoard.Info.MaxShots == 0)  {
+				if (game_world->currentBoard.Info.MaxShots == 0)  {
 					if (MessageNoShootingNotShown) {
 						DisplayMessage(200, "Can\47t shoot in this place!");
 					}
 					MessageNoShootingNotShown = false;
-				} else if (World.Info.Ammo == 0)  {
+				} else if (game_world->Info.Ammo == 0)  {
 					if (MessageOutOfAmmoNotShown) {
 						DisplayMessage(200, "You don\47t have any ammo!");
 					}
 					MessageOutOfAmmoNotShown = false;
 				} else {
 					bulletCount = 0;
-					for (int i = 0; i <= World.currentBoard.StatCount; i ++)
-						if ((World.currentBoard.Tiles[World.currentBoard.Stats[i].X][World.currentBoard.Stats[i].Y].Element
+					for (int i = 0; i <= game_world->currentBoard.StatCount; i ++)
+						if ((game_world->currentBoard.Tiles[game_world->currentBoard.Stats[i].X][game_world->currentBoard.Stats[i].Y].Element
 								== E_BULLET)
-							&& (World.currentBoard.Stats[i].P1 == 0)) {
+							&& (game_world->currentBoard.Stats[i].P1 == 0)) {
 							bulletCount = bulletCount + 1;
 						}
 
-					if (bulletCount < World.currentBoard.Info.MaxShots)  {
+					if (bulletCount < game_world->currentBoard.Info.MaxShots)  {
 						if (BoardShoot(E_BULLET, with.X, with.Y, PlayerDirX, PlayerDirY,
 								SHOT_SOURCE_PLAYER))  {
-							World.Info.Ammo = World.Info.Ammo - 1;
+							game_world->Info.Ammo = game_world->Info.Ammo - 1;
 							GameUpdateSidebar();
 
 							SoundQueue(2, "\100\1\60\1\40\1");
@@ -1800,9 +1832,10 @@ void ElementPlayerTick(integer statId) {
 			PlayerDirY = keyboard.InputDeltaY;
 
 			if (ValidCoord(with.X+keyboard.InputDeltaX, with.Y+keyboard.InputDeltaY))
-				ElementDefs[World.currentBoard.Tiles[with.X + keyboard.InputDeltaX][with.Y
-														+
-														keyboard.InputDeltaY].Element].TouchProc(
+				ElementProcDefs[game_world->currentBoard.Tiles[with.X +
+															  keyboard.InputDeltaX][with.Y
+															  +
+															  keyboard.InputDeltaY].Element].TouchProc(
 							with.X + keyboard.InputDeltaX, with.Y + keyboard.InputDeltaY, 0,
 							keyboard.InputDeltaX, keyboard.InputDeltaY);
 			if (ValidCoord(with.X+keyboard.InputDeltaX, with.Y+keyboard.InputDeltaY)
@@ -1811,9 +1844,9 @@ void ElementPlayerTick(integer statId) {
 				if (SoundEnabled && ! SoundIsPlaying) {
 					Sound(110);
 				}
-				if (ElementDefs[World.currentBoard.Tiles[with.X +
-															keyboard.InputDeltaX][with.Y +
-															keyboard.InputDeltaY].Element].Walkable)  {
+				if (elem_info_ptr->defs[game_world->currentBoard.Tiles[with.X +
+																  keyboard.InputDeltaX][with.Y +
+																  keyboard.InputDeltaY].Element].Walkable)  {
 					if (SoundEnabled && ! SoundIsPlaying) {
 						NoSound();
 					}
@@ -1827,11 +1860,11 @@ void ElementPlayerTick(integer statId) {
 
 		switch (upcase(keyboard.InputKeyPressed)) {
 			case 'T': {
-				if (canAct && (World.Info.TorchTicks <= 0))  {
-					if (World.Info.Torches > 0)  {
-						if (World.currentBoard.Info.IsDark)  {
-							World.Info.Torches = World.Info.Torches - 1;
-							World.Info.TorchTicks = TORCH_DURATION;
+				if (canAct && (game_world->Info.TorchTicks <= 0))  {
+					if (game_world->Info.Torches > 0)  {
+						if (game_world->currentBoard.Info.IsDark)  {
+							game_world->Info.Torches = game_world->Info.Torches - 1;
+							game_world->Info.TorchTicks = TORCH_DURATION;
 
 							DrawPlayerSurroundings(with.X, with.Y, 0);
 							GameUpdateSidebar();
@@ -1859,7 +1892,7 @@ void ElementPlayerTick(integer statId) {
 			}
 			break;
 			case 'P': {
-				if (World.Info.Health > 0) {
+				if (game_world->Info.Health > 0) {
 					GamePaused = true;
 				}
 			}
@@ -1886,44 +1919,45 @@ void ElementPlayerTick(integer statId) {
 			break;
 		}
 
-		if (World.Info.TorchTicks > 0)  {
+		if (game_world->Info.TorchTicks > 0)  {
 			if (canAct) {
-				World.Info.TorchTicks = World.Info.TorchTicks - 1;
+				game_world->Info.TorchTicks = game_world->Info.TorchTicks - 1;
 			}
-			if (World.Info.TorchTicks <= 0)  {
+			if (game_world->Info.TorchTicks <= 0)  {
 				DrawPlayerSurroundings(with.X, with.Y, 0);
 				SoundQueue(3, "\60\1\40\1\20\1");
 			}
 
-			if ((World.Info.TorchTicks % 40) == 0) {
+			if ((game_world->Info.TorchTicks % 40) == 0) {
 				GameUpdateSidebar();
 			}
 		}
 
-		if (World.Info.EnergizerTicks > 0)  {
+		if (game_world->Info.EnergizerTicks > 0)  {
 			if (canAct) {
-				World.Info.EnergizerTicks = World.Info.EnergizerTicks - 1;
+				game_world->Info.EnergizerTicks = game_world->Info.EnergizerTicks - 1;
 			}
 
-			if (World.Info.EnergizerTicks == 10) {
+			if (game_world->Info.EnergizerTicks == 10) {
 				SoundQueue(9, "\40\3\32\3\27\3\26\3\25\3\23\3\20\3");
-			} else if (World.Info.EnergizerTicks <= 0)  {
-				World.currentBoard.Tiles[with.X][with.Y].Color =
-					ElementDefs[E_PLAYER].Color;
+			} else if (game_world->Info.EnergizerTicks <= 0)  {
+				game_world->currentBoard.Tiles[with.X][with.Y].Color =
+					elem_info_ptr->defs[E_PLAYER].Color;
 				BoardDrawTile(with.X, with.Y);
 			}
 		}
 
-		if ((World.currentBoard.Info.TimeLimitSec > 0) && (World.Info.Health > 0))
-			if (SoundHasTimeElapsed(World.Info.BoardTimeHsec, 100))  {
-				World.Info.BoardTimeSec = World.Info.BoardTimeSec + 1;
+		if ((game_world->currentBoard.Info.TimeLimitSec > 0)
+			&& (game_world->Info.Health > 0))
+			if (SoundHasTimeElapsed(game_world->Info.BoardTimeHsec, 100))  {
+				game_world->Info.BoardTimeSec = game_world->Info.BoardTimeSec + 1;
 
-				if ((World.currentBoard.Info.TimeLimitSec - 10) ==
-					World.Info.BoardTimeSec)  {
+				if ((game_world->currentBoard.Info.TimeLimitSec - 10) ==
+					game_world->Info.BoardTimeSec)  {
 					DisplayMessage(200, "Running out of time!");
 					SoundQueue(3, "\100\6\105\6\100\6\65\6\100\6\105\6\100\n");
-				} else if (World.Info.BoardTimeSec >
-					World.currentBoard.Info.TimeLimitSec)  {
+				} else if (game_world->Info.BoardTimeSec >
+					game_world->currentBoard.Info.TimeLimitSec)  {
 					DamageStat(0);
 				}
 
@@ -1954,429 +1988,129 @@ void ResetMessageNotShownFlags() {
 }
 
 void InitElementDefs() {
-	integer i;
+
+	// Set up the global element info parameter. This will go
+	// into Game and Editor classes when I make those.
+	elem_info_ptr = std::make_shared<ElementInfo>();
 
 	for (int i = 0; i <= MAX_ELEMENT; i ++) {
-		TElementDef & with = ElementDefs[i];
-		with.Character = ' ';
-		with.Color = COLOR_CHOICE_ON_BLACK;
-		with.Destructible = false;
-		with.Pushable = false;
-		with.VisibleInDark = false;
-		with.PlaceableOnTop = false;
-		with.Walkable = false;
+		TElementProcDef & with = ElementProcDefs[i];
 		with.HasDrawProc = false;
-		with.Cycle = -1;
 		with.TickProc = &ElementDefaultTick;
 		with.DrawProc = &ElementDefaultDraw;
 		with.TouchProc = &ElementDefaultTouch;
-		with.EditorCategory = 0;
-		with.EditorShortcut = '\0';
-		with.Name = "";
-		with.CategoryName = "";
-		with.Param1Name = "";
-		with.Param2Name = "";
-		with.ParamBulletTypeName = "";
-		with.ParamBoardName = "";
-		with.ParamDirName = "";
-		with.ParamTextName = "";
-		with.ScoreValue = 0;
 	}
+	ElementProcDefs[3].TickProc = &ElementMonitorTick;
 
-	ElementDefs[0].Character = ' ';
-	ElementDefs[0].Color = 0x70;
-	ElementDefs[0].Pushable = true;
-	ElementDefs[0].Walkable = true;
-	ElementDefs[0].Name = "Empty";
+	ElementProcDefs[19].TouchProc = &ElementWaterTouch;
 
-	ElementDefs[3].Character = ' ';
-	ElementDefs[3].Color = 0x7;
-	ElementDefs[3].Cycle = 1;
-	ElementDefs[3].TickProc = &ElementMonitorTick;
-	ElementDefs[3].Name = "Monitor";
+	ElementProcDefs[20].TouchProc = &ElementForestTouch;
 
-	ElementDefs[19].Character = '\260';
-	ElementDefs[19].Color = 0xf9;
-	ElementDefs[19].PlaceableOnTop = true;
-	ElementDefs[19].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[19].TouchProc = &ElementWaterTouch;
-	ElementDefs[19].EditorShortcut = 'W';
-	ElementDefs[19].Name = "Water";
-	ElementDefs[19].CategoryName = "Terrains:";
+	ElementProcDefs[4].TickProc = &ElementPlayerTick;
 
-	ElementDefs[20].Character = '\260';
-	ElementDefs[20].Color = 0x20;
-	ElementDefs[20].Walkable = false;
-	ElementDefs[20].TouchProc = &ElementForestTouch;
-	ElementDefs[20].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[20].EditorShortcut = 'F';
-	ElementDefs[20].Name = "Forest";
+	ElementProcDefs[41].TickProc = &ElementLionTick;
+	ElementProcDefs[41].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[4].Character = '\2';
-	ElementDefs[4].Color = 0x1f;
-	ElementDefs[4].Destructible = true;
-	ElementDefs[4].Pushable = true;
-	ElementDefs[4].VisibleInDark = true;
-	ElementDefs[4].Cycle = 1;
-	ElementDefs[4].TickProc = &ElementPlayerTick;
-	ElementDefs[4].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[4].EditorShortcut = 'Z';
-	ElementDefs[4].Name = "Player";
-	ElementDefs[4].CategoryName = "Items:";
+	ElementProcDefs[42].TickProc = &ElementTigerTick;
+	ElementProcDefs[42].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[41].Character = '\352';
-	ElementDefs[41].Color = 0xc;
-	ElementDefs[41].Destructible = true;
-	ElementDefs[41].Pushable = true;
-	ElementDefs[41].Cycle = 2;
-	ElementDefs[41].TickProc = &ElementLionTick;
-	ElementDefs[41].TouchProc = &ElementDamagingTouch;
-	ElementDefs[41].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[41].EditorShortcut = 'L';
-	ElementDefs[41].Name = "Lion";
-	ElementDefs[41].CategoryName = "Beasts:";
-	ElementDefs[41].Param1Name = "Intelligence?";
-	ElementDefs[41].ScoreValue = 1;
+	ElementProcDefs[44].TickProc = &ElementCentipedeHeadTick;
+	ElementProcDefs[44].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[42].Character = '\343';
-	ElementDefs[42].Color = 0xb;
-	ElementDefs[42].Destructible = true;
-	ElementDefs[42].Pushable = true;
-	ElementDefs[42].Cycle = 2;
-	ElementDefs[42].TickProc = &ElementTigerTick;
-	ElementDefs[42].TouchProc = &ElementDamagingTouch;
-	ElementDefs[42].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[42].EditorShortcut = 'T';
-	ElementDefs[42].Name = "Tiger";
-	ElementDefs[42].Param1Name = "Intelligence?";
-	ElementDefs[42].Param2Name = "Firing rate?";
-	ElementDefs[42].ParamBulletTypeName = "Firing type?";
-	ElementDefs[42].ScoreValue = 2;
+	ElementProcDefs[45].TickProc = &ElementCentipedeSegmentTick;
+	ElementProcDefs[45].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[44].Character = '\351';
-	ElementDefs[44].Destructible = true;
-	ElementDefs[44].Cycle = 2;
-	ElementDefs[44].TickProc = &ElementCentipedeHeadTick;
-	ElementDefs[44].TouchProc = &ElementDamagingTouch;
-	ElementDefs[44].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[44].EditorShortcut = 'H';
-	ElementDefs[44].Name = "Head";
-	ElementDefs[44].CategoryName = "Centipedes";
-	ElementDefs[44].Param1Name = "Intelligence?";
-	ElementDefs[44].Param2Name = "Deviance?";
-	ElementDefs[44].ScoreValue = 1;
+	ElementProcDefs[18].TickProc = &ElementBulletTick;
+	ElementProcDefs[18].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[45].Character = 'O';
-	ElementDefs[45].Destructible = true;
-	ElementDefs[45].Cycle = 2;
-	ElementDefs[45].TickProc = &ElementCentipedeSegmentTick;
-	ElementDefs[45].TouchProc = &ElementDamagingTouch;
-	ElementDefs[45].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[45].EditorShortcut = 'S';
-	ElementDefs[45].Name = "Segment";
-	ElementDefs[45].ScoreValue = 3;
+	ElementProcDefs[15].TickProc = &ElementStarTick;
+	ElementProcDefs[15].TouchProc = &ElementDamagingTouch;
+	ElementProcDefs[15].HasDrawProc = true;
+	ElementProcDefs[15].DrawProc = &ElementStarDraw;
 
-	ElementDefs[18].Character = '\370';
-	ElementDefs[18].Color = 0xf;
-	ElementDefs[18].Destructible = true;
-	ElementDefs[18].Cycle = 1;
-	ElementDefs[18].TickProc = &ElementBulletTick;
-	ElementDefs[18].TouchProc = &ElementDamagingTouch;
-	ElementDefs[18].Name = "Bullet";
+	ElementProcDefs[8].TouchProc = &ElementKeyTouch;
 
-	ElementDefs[15].Character = 'S';
-	ElementDefs[15].Color = 0xf;
-	ElementDefs[15].Destructible = false;
-	ElementDefs[15].Cycle = 1;
-	ElementDefs[15].TickProc = &ElementStarTick;
-	ElementDefs[15].TouchProc = &ElementDamagingTouch;
-	ElementDefs[15].HasDrawProc = true;
-	ElementDefs[15].DrawProc = &ElementStarDraw;
-	ElementDefs[15].Name = "Star";
+	ElementProcDefs[5].TouchProc = &ElementAmmoTouch;
 
-	ElementDefs[8].Character = '\14';
-	ElementDefs[8].Pushable = true;
-	ElementDefs[8].TouchProc = &ElementKeyTouch;
-	ElementDefs[8].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[8].EditorShortcut = 'K';
-	ElementDefs[8].Name = "Key";
+	ElementProcDefs[7].TouchProc = &ElementGemTouch;
 
-	ElementDefs[5].Character = '\204';
-	ElementDefs[5].Color = 0x3;
-	ElementDefs[5].Pushable = true;
-	ElementDefs[5].TouchProc = &ElementAmmoTouch;
-	ElementDefs[5].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[5].EditorShortcut = 'A';
-	ElementDefs[5].Name = "Ammo";
+	ElementProcDefs[11].TouchProc = &ElementPassageTouch;
 
-	ElementDefs[7].Character = '\4';
-	ElementDefs[7].Pushable = true;
-	ElementDefs[7].TouchProc = &ElementGemTouch;
-	ElementDefs[7].Destructible = true;
-	ElementDefs[7].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[7].EditorShortcut = 'G';
-	ElementDefs[7].Name = "Gem";
+	ElementProcDefs[9].TouchProc = &ElementDoorTouch;
 
-	ElementDefs[11].Character = '\360';
-	ElementDefs[11].Color = COLOR_WHITE_ON_CHOICE;
-	ElementDefs[11].Cycle = 0;
-	ElementDefs[11].VisibleInDark = true;
-	ElementDefs[11].TouchProc = &ElementPassageTouch;
-	ElementDefs[11].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[11].EditorShortcut = 'P';
-	ElementDefs[11].Name = "Passage";
-	ElementDefs[11].ParamBoardName = "Room thru passage?";
+	ElementProcDefs[10].TouchProc = &ElementScrollTouch;
+	ElementProcDefs[10].TickProc = &ElementScrollTick;
 
-	ElementDefs[9].Character = '\12';
-	ElementDefs[9].Color = COLOR_WHITE_ON_CHOICE;
-	ElementDefs[9].TouchProc = &ElementDoorTouch;
-	ElementDefs[9].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[9].EditorShortcut = 'D';
-	ElementDefs[9].Name = "Door";
+	ElementProcDefs[12].TickProc = &ElementDuplicatorTick;
+	ElementProcDefs[12].HasDrawProc = true;
+	ElementProcDefs[12].DrawProc = &ElementDuplicatorDraw;
 
-	ElementDefs[10].Character = '\350';
-	ElementDefs[10].Color = 0xf;
-	ElementDefs[10].TouchProc = &ElementScrollTouch;
-	ElementDefs[10].TickProc = &ElementScrollTick;
-	ElementDefs[10].Pushable = true;
-	ElementDefs[10].Cycle = 1;
-	ElementDefs[10].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[10].EditorShortcut = 'S';
-	ElementDefs[10].Name = "Scroll";
-	ElementDefs[10].ParamTextName = "Edit text of scroll";
+	ElementProcDefs[6].TouchProc = &ElementTorchTouch;
 
-	ElementDefs[12].Character = '\372';
-	ElementDefs[12].Color = 0xf;
-	ElementDefs[12].Cycle = 2;
-	ElementDefs[12].TickProc = &ElementDuplicatorTick;
-	ElementDefs[12].HasDrawProc = true;
-	ElementDefs[12].DrawProc = &ElementDuplicatorDraw;
-	ElementDefs[12].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[12].EditorShortcut = 'U';
-	ElementDefs[12].Name = "Duplicator";
-	ElementDefs[12].ParamDirName = "Source direction?";
-	ElementDefs[12].Param2Name = "Duplication rate?;SF";
+	ElementProcDefs[39].TickProc = &ElementSpinningGunTick;
+	ElementProcDefs[39].HasDrawProc = true;
+	ElementProcDefs[39].DrawProc = &ElementSpinningGunDraw;
 
-	ElementDefs[6].Character = '\235';
-	ElementDefs[6].Color = 0x6;
-	ElementDefs[6].VisibleInDark = true;
-	ElementDefs[6].TouchProc = &ElementTorchTouch;
-	ElementDefs[6].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[6].EditorShortcut = 'T';
-	ElementDefs[6].Name = "Torch";
+	ElementProcDefs[35].TickProc = &ElementRuffianTick;
+	ElementProcDefs[35].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[39].Character = '\30';
-	ElementDefs[39].Cycle = 2;
-	ElementDefs[39].TickProc = &ElementSpinningGunTick;
-	ElementDefs[39].HasDrawProc = true;
-	ElementDefs[39].DrawProc = &ElementSpinningGunDraw;
-	ElementDefs[39].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[39].EditorShortcut = 'G';
-	ElementDefs[39].Name = "Spinning gun";
-	ElementDefs[39].Param1Name = "Intelligence?";
-	ElementDefs[39].Param2Name = "Firing rate?";
-	ElementDefs[39].ParamBulletTypeName = "Firing type?";
+	ElementProcDefs[34].TickProc = &ElementBearTick;
+	ElementProcDefs[34].TouchProc = &ElementDamagingTouch;
 
-	ElementDefs[35].Character = '\5';
-	ElementDefs[35].Color = 0xd;
-	ElementDefs[35].Destructible = true;
-	ElementDefs[35].Pushable = true;
-	ElementDefs[35].Cycle = 1;
-	ElementDefs[35].TickProc = &ElementRuffianTick;
-	ElementDefs[35].TouchProc = &ElementDamagingTouch;
-	ElementDefs[35].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[35].EditorShortcut = 'R';
-	ElementDefs[35].Name = "Ruffian";
-	ElementDefs[35].Param1Name = "Intelligence?";
-	ElementDefs[35].Param2Name = "Resting time?";
-	ElementDefs[35].ScoreValue = 2;
+	ElementProcDefs[37].TickProc = &ElementSlimeTick;
+	ElementProcDefs[37].TouchProc = &ElementSlimeTouch;
 
-	ElementDefs[34].Character = '\231';
-	ElementDefs[34].Color = 0x6;
-	ElementDefs[34].Destructible = true;
-	ElementDefs[34].Pushable = true;
-	ElementDefs[34].Cycle = 3;
-	ElementDefs[34].TickProc = &ElementBearTick;
-	ElementDefs[34].TouchProc = &ElementDamagingTouch;
-	ElementDefs[34].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[34].EditorShortcut = 'B';
-	ElementDefs[34].Name = "Bear";
-	ElementDefs[34].CategoryName = "Creatures:";
-	ElementDefs[34].Param1Name = "Sensitivity?";
-	ElementDefs[34].ScoreValue = 1;
+	ElementProcDefs[38].TickProc = &ElementSharkTick;
 
-	ElementDefs[37].Character = '*';
-	ElementDefs[37].Color = COLOR_CHOICE_ON_BLACK;
-	ElementDefs[37].Destructible = false;
-	ElementDefs[37].Cycle = 3;
-	ElementDefs[37].TickProc = &ElementSlimeTick;
-	ElementDefs[37].TouchProc = &ElementSlimeTouch;
-	ElementDefs[37].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[37].EditorShortcut = 'V';
-	ElementDefs[37].Name = "Slime";
-	ElementDefs[37].Param2Name = "Movement speed?;FS";
+	ElementProcDefs[16].HasDrawProc = true;
+	ElementProcDefs[16].TickProc = &ElementConveyorCWTick;
+	ElementProcDefs[16].DrawProc = &ElementConveyorCWDraw;
 
-	ElementDefs[38].Character = '^';
-	ElementDefs[38].Color = 0x7;
-	ElementDefs[38].Destructible = false;
-	ElementDefs[38].Cycle = 3;
-	ElementDefs[38].TickProc = &ElementSharkTick;
-	ElementDefs[38].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[38].EditorShortcut = 'Y';
-	ElementDefs[38].Name = "Shark";
-	ElementDefs[38].Param1Name = "Intelligence?";
+	ElementProcDefs[17].HasDrawProc = true;
+	ElementProcDefs[17].DrawProc = &ElementConveyorCCWDraw;
+	ElementProcDefs[17].TickProc = &ElementConveyorCCWTick;
 
-	ElementDefs[16].Character = '/';
-	ElementDefs[16].Cycle = 3;
-	ElementDefs[16].HasDrawProc = true;
-	ElementDefs[16].TickProc = &ElementConveyorCWTick;
-	ElementDefs[16].DrawProc = &ElementConveyorCWDraw;
-	ElementDefs[16].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[16].EditorShortcut = '1';
-	ElementDefs[16].Name = "Clockwise";
-	ElementDefs[16].CategoryName = "Conveyors:";
+	ElementProcDefs[31].HasDrawProc = true;
+	ElementProcDefs[31].DrawProc = &ElementLineDraw;
 
-	ElementDefs[17].Character = '\\';
-	ElementDefs[17].Cycle = 2;
-	ElementDefs[17].HasDrawProc = true;
-	ElementDefs[17].DrawProc = &ElementConveyorCCWDraw;
-	ElementDefs[17].TickProc = &ElementConveyorCCWTick;
-	ElementDefs[17].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[17].EditorShortcut = '2';
-	ElementDefs[17].Name = "Counter";
+	ElementProcDefs[24].TouchProc = &ElementPushableTouch;
 
-	ElementDefs[21].Character = '\333';
-	ElementDefs[21].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[21].CategoryName = "Walls:";
-	ElementDefs[21].EditorShortcut = 'S';
-	ElementDefs[21].Name = "Solid";
+	ElementProcDefs[25].TouchProc = &ElementPushableTouch;
 
-	ElementDefs[22].Character = '\262';
-	ElementDefs[22].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[22].EditorShortcut = 'N';
-	ElementDefs[22].Name = "Normal";
+	ElementProcDefs[26].TouchProc = &ElementPushableTouch;
 
-	ElementDefs[31].Character = '\316';
-	ElementDefs[31].HasDrawProc = true;
-	ElementDefs[31].DrawProc = &ElementLineDraw;
-	ElementDefs[31].Name = "Line";
+	ElementProcDefs[30].TouchProc = &ElementTransporterTouch;
+	ElementProcDefs[30].HasDrawProc = true;
+	ElementProcDefs[30].DrawProc = &ElementTransporterDraw;
+	ElementProcDefs[30].TickProc = &ElementTransporterTick;
 
-	ElementDefs[43].Character = '\272';
+	ElementProcDefs[40].HasDrawProc = true;
+	ElementProcDefs[40].DrawProc = &ElementPusherDraw;
+	ElementProcDefs[40].TickProc = &ElementPusherTick;
 
-	ElementDefs[33].Character = '\315';
+	ElementProcDefs[13].HasDrawProc = true;
+	ElementProcDefs[13].DrawProc = &ElementBombDraw;
+	ElementProcDefs[13].TickProc = &ElementBombTick;
+	ElementProcDefs[13].TouchProc = &ElementBombTouch;
 
-	ElementDefs[32].Character = '*';
-	ElementDefs[32].Color = 0xa;
-	ElementDefs[32].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[32].EditorShortcut = 'R';
-	ElementDefs[32].Name = "Ricochet";
+	ElementProcDefs[14].TouchProc = &ElementEnergizerTouch;
 
-	ElementDefs[23].Character = '\261';
-	ElementDefs[23].Destructible = false;
-	ElementDefs[23].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[23].EditorShortcut = 'B';
-	ElementDefs[23].Name = "Breakable";
+	ElementProcDefs[29].TickProc = &ElementBlinkWallTick;
+	ElementProcDefs[29].HasDrawProc = true;
+	ElementProcDefs[29].DrawProc = &ElementBlinkWallDraw;
 
-	ElementDefs[24].Character = '\376';
-	ElementDefs[24].Pushable = true;
-	ElementDefs[24].TouchProc = &ElementPushableTouch;
-	ElementDefs[24].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[24].EditorShortcut = 'O';
-	ElementDefs[24].Name = "Boulder";
+	ElementProcDefs[27].TouchProc = &ElementFakeTouch;
 
-	ElementDefs[25].Character = '\22';
-	ElementDefs[25].TouchProc = &ElementPushableTouch;
-	ElementDefs[25].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[25].EditorShortcut = '1';
-	ElementDefs[25].Name = "Slider (NS)";
+	ElementProcDefs[28].TouchProc = &ElementInvisibleTouch;
 
-	ElementDefs[26].Character = '\35';
-	ElementDefs[26].TouchProc = &ElementPushableTouch;
-	ElementDefs[26].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[26].EditorShortcut = '2';
-	ElementDefs[26].Name = "Slider (EW)";
+	ElementProcDefs[36].HasDrawProc = true;
+	ElementProcDefs[36].DrawProc = &ElementObjectDraw;
+	ElementProcDefs[36].TickProc = &ElementObjectTick;
+	ElementProcDefs[36].TouchProc = &ElementObjectTouch;
 
-	ElementDefs[30].Character = '\305';
-	ElementDefs[30].TouchProc = &ElementTransporterTouch;
-	ElementDefs[30].HasDrawProc = true;
-	ElementDefs[30].DrawProc = &ElementTransporterDraw;
-	ElementDefs[30].Cycle = 2;
-	ElementDefs[30].TickProc = &ElementTransporterTick;
-	ElementDefs[30].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[30].EditorShortcut = 'T';
-	ElementDefs[30].Name = "Transporter";
-	ElementDefs[30].ParamDirName = "Direction?";
+	ElementProcDefs[2].TickProc = &ElementMessageTimerTick;
 
-	ElementDefs[40].Character = '\20';
-	ElementDefs[40].Color = COLOR_CHOICE_ON_BLACK;
-	ElementDefs[40].HasDrawProc = true;
-	ElementDefs[40].DrawProc = &ElementPusherDraw;
-	ElementDefs[40].Cycle = 4;
-	ElementDefs[40].TickProc = &ElementPusherTick;
-	ElementDefs[40].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[40].EditorShortcut = 'P';
-	ElementDefs[40].Name = "Pusher";
-	ElementDefs[40].ParamDirName = "Push direction?";
-
-	ElementDefs[13].Character = '\13';
-	ElementDefs[13].HasDrawProc = true;
-	ElementDefs[13].DrawProc = &ElementBombDraw;
-	ElementDefs[13].Pushable = true;
-	ElementDefs[13].Cycle = 6;
-	ElementDefs[13].TickProc = &ElementBombTick;
-	ElementDefs[13].TouchProc = &ElementBombTouch;
-	ElementDefs[13].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[13].EditorShortcut = 'B';
-	ElementDefs[13].Name = "Bomb";
-
-	ElementDefs[14].Character = '\177';
-	ElementDefs[14].Color = 0x5;
-	ElementDefs[14].TouchProc = &ElementEnergizerTouch;
-	ElementDefs[14].EditorCategory = CATEGORY_ITEM;
-	ElementDefs[14].EditorShortcut = 'E';
-	ElementDefs[14].Name = "Energizer";
-
-	ElementDefs[29].Character = '\316';
-	ElementDefs[29].Cycle = 1;
-	ElementDefs[29].TickProc = &ElementBlinkWallTick;
-	ElementDefs[29].HasDrawProc = true;
-	ElementDefs[29].DrawProc = &ElementBlinkWallDraw;
-	ElementDefs[29].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[29].EditorShortcut = 'L';
-	ElementDefs[29].Name = "Blink wall";
-	ElementDefs[29].Param1Name = "Starting time";
-	ElementDefs[29].Param2Name = "Period";
-	ElementDefs[29].ParamDirName = "Wall direction";
-
-	ElementDefs[27].Character = '\262';
-	ElementDefs[27].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[27].PlaceableOnTop = true;
-	ElementDefs[27].Walkable = true;
-	ElementDefs[27].TouchProc = &ElementFakeTouch;
-	ElementDefs[27].EditorShortcut = 'A';
-	ElementDefs[27].Name = "Fake";
-
-	ElementDefs[28].Character = ' ';
-	ElementDefs[28].EditorCategory = CATEGORY_TERRAIN;
-	ElementDefs[28].TouchProc = &ElementInvisibleTouch;
-	ElementDefs[28].EditorShortcut = 'I';
-	ElementDefs[28].Name = "Invisible";
-
-	ElementDefs[36].Character = '\2';
-	ElementDefs[36].EditorCategory = CATEGORY_CREATURE;
-	ElementDefs[36].Cycle = 3;
-	ElementDefs[36].HasDrawProc = true;
-	ElementDefs[36].DrawProc = &ElementObjectDraw;
-	ElementDefs[36].TickProc = &ElementObjectTick;
-	ElementDefs[36].TouchProc = &ElementObjectTouch;
-	ElementDefs[36].EditorShortcut = 'O';
-	ElementDefs[36].Name = "Object";
-	ElementDefs[36].Param1Name = "Character?";
-	ElementDefs[36].ParamTextName = "Edit Program";
-
-	ElementDefs[2].TickProc = &ElementMessageTimerTick;
-
-	ElementDefs[1].TouchProc = &ElementBoardEdgeTouch;
+	ElementProcDefs[1].TouchProc = &ElementBoardEdgeTouch;
 
 	EditorPatternCount = 5;
 	EditorPatterns[1] = E_SOLID;
@@ -2388,8 +2122,8 @@ void InitElementDefs() {
 
 void InitElementsEditor() {
 	InitElementDefs();
-	ElementDefs[28].Character = '\260';
-	ElementDefs[28].Color = COLOR_CHOICE_ON_BLACK;
+	elem_info_ptr->defs[28].Character = '\260';
+	elem_info_ptr->defs[28].Color = COLOR_CHOICE_ON_BLACK;
 	ForceDarknessOff = true;
 }
 
