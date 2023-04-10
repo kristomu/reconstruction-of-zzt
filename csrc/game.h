@@ -95,10 +95,6 @@ const array<0, 7,integer> DiagonalDeltaY = {{1, 1, 1, 0, -1, -1, -1, 0}};
 const array<0, 3,integer> NeighborDeltaX = {{0, 0, -1, 1}};
 const array<0, 3,integer> NeighborDeltaY = {{-1, 1, 0, 0}};
 /**/
-const TStat StatTemplateDefault = {
-	0, 0, 0, 0,
-	0, 0, 0, 0,
-	-1, -1
-};
+const TStat StatTemplateDefault; // Default values set by constructor.
 const std::string LineChars =
 	"\371\320\322\272\265\274\273\271\306\310\311\314\315\312\313\316";

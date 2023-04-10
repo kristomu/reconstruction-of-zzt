@@ -115,6 +115,24 @@ std::vector<unsigned char>::const_iterator TWorldInfo::load(
 	return ptr;
 }
 
+void TWorldInfo::clear() {
+	IsSave = false;
+	Ammo = 0;
+	Gems = 0;
+	Health = 100;
+	EnergizerTicks = 0;
+	Torches = 0;
+	TorchTicks = 0;
+	Score = 0;
+	BoardTimeSec = 0;
+	BoardTimeHsec = 0;
+
+	for (int i = 1; i <= 7; i ++) {
+		TakeKey(i);
+		Flags[i] = "";
+	}
+}
+
 void TWorld::save(std::ostream & stream, bool close_board) {
 
 	if (close_board) {

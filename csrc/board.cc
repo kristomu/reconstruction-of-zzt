@@ -605,15 +605,7 @@ void TBoard::create() {
 	short ix, iy, i;
 
 	Name = "";
-	Info.Message = "";
-	Info.MaxShots = -1;			// unlimited
-	Info.IsDark = false;
-	Info.ReenterWhenZapped = false;
-	Info.TimeLimitSec = 0;
-
-	for (i = 0; i < 4; i ++) {
-		Info.NeighborBoards[i] = 0;
-	}
+	Info.clear();
 
 	// BOARD_WIDTH and BOARD_HEIGHT gives the width and height of
 	// the part of the board that the player can see. This visible
@@ -665,18 +657,18 @@ void TBoard::create() {
 
 	// Place the player.
 	// TODO: Use stats placement functions once refactored properly.
+	// The stats' default values are now the same as below, but it's
+	// still instructive to set the coordinates to match, as a stats
+	// placement function would.
 
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Element = E_PLAYER;
 	Tiles[BOARD_WIDTH / 2][BOARD_HEIGHT / 2].Color =
 		element_info->defs[E_PLAYER].Color;
+
 	StatCount = 0;
+	Stats[0].clear();
 	Stats[0].X = BOARD_WIDTH / 2;
 	Stats[0].Y = BOARD_HEIGHT / 2;
-	Stats[0].Cycle = 1;
-	Stats[0].Under.Element = E_EMPTY;
-	Stats[0].Under.Color = 0;
-	Stats[0].data = NULL;
-	Stats[0].DataLen = 0;
 
 	// CHANGE: Not actually done in DOS ZZT, but we want every
 	// returned board to be judged valid by the checks in load(),

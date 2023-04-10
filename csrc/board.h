@@ -38,6 +38,16 @@ class TTile {
 		bool operator==(const TTile & x) const {
 			return Element == x.Element && Color == x.Color;
 		}
+
+		TTile() {
+			Element = E_EMPTY;
+			Color = Black;
+		}
+
+		TTile(element_t elem_in, unsigned char color_in) {
+			Element = elem_in;
+			Color = color_in;
+		}
 };
 
 const TTile TileBorder = {E_NORMAL, Yellow};
@@ -77,30 +87,69 @@ class TStat {
 			std::vector<unsigned char>::const_iterator ptr,
 			const std::vector<unsigned char>::const_iterator end,
 			bool load_data);
+
+		// Set default values. These were uninited in the original ZZT, which can at
+		// times lead to weird player stats.
+		void clear() {
+			X = BOARD_WIDTH / 2;
+			Y = BOARD_HEIGHT / 2;
+			Cycle = 1;
+			data = NULL;
+			DataPos = 0;
+			DataLen = 0;
+
+			StepX = 0;
+			StepY = 0;
+			P1 = 0;
+			P2 = 0;
+			P3 = 0;
+
+			Follower = -1;
+			Leader = -1;
+		}
+
+		TStat() { clear(); }
 };
 
 // Perhaps enforce minimum and maximum size with get/set? Feels kinda
 // ugly/kludgy though.
 
-struct TBoardInfo {
-	unsigned char MaxShots;
-	bool IsDark;
-	std::array<unsigned char, 4> NeighborBoards;
-	bool ReenterWhenZapped;
-	std::string Message;        // Max length 58
-	unsigned char StartPlayerX;
-	unsigned char StartPlayerY;
-	short TimeLimitSec;
-	std::array<unsigned char, 16> unk1;
+class TBoardInfo {
+	public:
+		unsigned char MaxShots;
+		bool IsDark;
+		std::array<unsigned char, 4> NeighborBoards;
+		bool ReenterWhenZapped;
+		std::string Message;        // Max length 58
+		unsigned char StartPlayerX;
+		unsigned char StartPlayerY;
+		short TimeLimitSec;
 
-	size_t packed_size() const;
+		size_t packed_size() const;
 
-	void dump(std::vector<unsigned char> & out) const;
-	std::string dump_to_readable(int num_indents) const;
+		void dump(std::vector<unsigned char> & out) const;
+		std::string dump_to_readable(int num_indents) const;
 
-	std::vector<unsigned char>::const_iterator load(
-		std::vector<unsigned char>::const_iterator ptr,
-		const std::vector<unsigned char>::const_iterator end);
+		std::vector<unsigned char>::const_iterator load(
+			std::vector<unsigned char>::const_iterator ptr,
+			const std::vector<unsigned char>::const_iterator end);
+
+		// Set defaults.
+		void clear() {
+			Message = "";
+			MaxShots = -1;			// unlimited
+			IsDark = false;
+			ReenterWhenZapped = false;
+			TimeLimitSec = 0;
+
+			for (int i = 0; i < 4; i ++) {
+				NeighborBoards[i] = 0;
+			}
+		}
+
+		TBoardInfo() {
+			clear();
+		}
 };
 
 /* This is used to make sure IoTmpBuf is always large enough to hold

@@ -11,6 +11,9 @@ const int MAX_FLAG = 10;
 class TWorldInfo {
 	private:
 		bool Keys[7];
+
+		// Not used for anything; goes after EnergizerTicks in the format.
+		short unk1 = 0;
 	public:
 		short Ammo;
 		short Gems;
@@ -19,14 +22,12 @@ class TWorldInfo {
 		short Torches;
 		short TorchTicks;
 		short EnergizerTicks;
-		short unk1;
 		short Score;
 		std::string Name;
 		std::array<std::string, MAX_FLAG+1> Flags;
 		short BoardTimeSec;
 		short BoardTimeHsec;
 		bool IsSave;
-		std::array<unsigned char, 13> unkPad;
 
 		size_t packed_size() const {
 			return 7 + sizeof(Ammo) + sizeof(Gems) + sizeof(Health) +
@@ -50,26 +51,16 @@ class TWorldInfo {
 			const std::vector<unsigned char>::const_iterator end);
 
 		// Set default values.
-		void clear() {
-			IsSave = false;
-			Ammo = 0;
-			Gems = 0;
-			Health = 100;
-			EnergizerTicks = 0;
-			Torches = 0;
-			TorchTicks = 0;
-			Score = 0;
-			BoardTimeSec = 0;
-			BoardTimeHsec = 0;
-
-			for (int i = 1; i <= 7; i ++) {
-				TakeKey(i);
-				Flags[i] = "";
-			}
-		}
+		void clear();
 
 		TWorldInfo() {
 			CurrentBoardIdx = 0;
+			// Force set keys - this will keep TakeKey from triggering an
+			// undefined read error.
+			for (bool & k: Keys) {
+				k = false;
+			}
+
 			clear();
 		}
 };
