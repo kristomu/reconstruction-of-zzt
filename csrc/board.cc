@@ -951,3 +951,42 @@ bool TBoard::remove_stat(int statId, int & out_x, int & out_y,
 
 	return true;
 }
+
+// XXX: Doesn't support blinking, find out how to do that later.
+bool TBoard::add_char(size_t x, size_t y, char character,
+	unsigned char color) {
+
+	if (x == 0 || x > BOARD_WIDTH || y == 0 || y > BOARD_HEIGHT) {
+		return false;
+	}
+
+	element_t text_type;
+
+	switch(color & 7) {
+		case Black:		text_type = E_TEXT_WHITE; break;
+		case Blue:		text_type = E_TEXT_BLUE; break;
+		case Green:		text_type = E_TEXT_GREEN; break;
+		case Cyan:		text_type = E_TEXT_CYAN; break;
+		case Red:		text_type = E_TEXT_RED; break;
+		case Magenta:	text_type = E_TEXT_PURPLE; break;
+		case Brown:		text_type = E_TEXT_YELLOW; break;
+		case LightGray:	text_type = E_TEXT_WHITE; break;
+	}
+
+	Tiles[x][y].Color = character;
+	Tiles[x][y].Element = text_type;
+
+	return true;
+}
+
+bool TBoard::add_string(size_t x, size_t y, std::string text,
+	unsigned char color) {
+
+	for (size_t i = 0; i < text.size(); ++i) {
+		if (!add_char(x + i, y, text[i], color)) {
+			return false;
+		}
+	}
+
+	return true;
+}

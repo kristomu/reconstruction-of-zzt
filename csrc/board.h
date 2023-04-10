@@ -216,6 +216,11 @@ class TBoard {
 		bool add_stat(size_t x, size_t y, element_t element,
 			unsigned char color, short cycle, TStat stat_template);
 
+		bool add_char(size_t x, size_t y, char character,
+			unsigned char color);
+		bool add_string(size_t x, size_t y, std::string text,
+			unsigned char color);
+
 		// Remove an item with stats. out_x and out_y will be set
 		// to the coordinates where it resided. (Is that too hacky?)
 		// current_stat_ticked is a reference to the global variable that
