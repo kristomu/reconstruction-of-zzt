@@ -8,7 +8,10 @@
 class ElementInfoDef {
 	public:
 		char Character;
-		char Color;
+
+		// must be unsigned due to oop.cxx:GetColorForTileMatch
+		unsigned char Color;
+
 		bool Destructible;
 		bool Pushable;
 		bool VisibleInDark;

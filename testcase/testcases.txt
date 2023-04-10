@@ -96,3 +96,5 @@ delayed crash/	Worlds that produce crashes after doing something (usually going
 editor crash/	Worlds that induce crashes in the editor
 editor read/	Worlds that induce reads from or writes to unallocated memory,
 		in the editor.
+
+regressions/	Bugs that appeared due to an incorrect change of code.

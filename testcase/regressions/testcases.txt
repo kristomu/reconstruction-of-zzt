@@ -1,0 +1,3 @@
+COLORCHG.ZZT	Tests a regression where colors would be wrong when using OOP
+		(e.g. #CHANGE) due to color being set as a signed rather than
+		an unsigned char in element defs.
