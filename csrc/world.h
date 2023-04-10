@@ -48,6 +48,30 @@ class TWorldInfo {
 		std::vector<unsigned char>::const_iterator load(
 			std::vector<unsigned char>::const_iterator ptr,
 			const std::vector<unsigned char>::const_iterator end);
+
+		// Set default values.
+		void clear() {
+			IsSave = false;
+			Ammo = 0;
+			Gems = 0;
+			Health = 100;
+			EnergizerTicks = 0;
+			Torches = 0;
+			TorchTicks = 0;
+			Score = 0;
+			BoardTimeSec = 0;
+			BoardTimeHsec = 0;
+
+			for (int i = 1; i <= 7; i ++) {
+				TakeKey(i);
+				Flags[i] = "";
+			}
+		}
+
+		TWorldInfo() {
+			CurrentBoardIdx = 0;
+			clear();
+		}
 };
 
 class TWorld {

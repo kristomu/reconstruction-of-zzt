@@ -193,23 +193,7 @@ void WorldCreate() {
 	InitEditorStatSettings();
 	ResetMessageNotShownFlags();
 	BoardCreate();
-	game_world->Info.IsSave = false;
-	game_world->Info.CurrentBoardIdx = 0;
-	game_world->Info.Ammo = 0;
-	game_world->Info.Gems = 0;
-	game_world->Info.Health = 100;
-	game_world->Info.EnergizerTicks = 0;
-	game_world->Info.Torches = 0;
-	game_world->Info.TorchTicks = 0;
-	game_world->Info.Score = 0;
-	game_world->Info.BoardTimeSec = 0;
-	game_world->Info.BoardTimeHsec = 0;
-	for (i = 1; i <= 7; i ++) {
-		game_world->Info.TakeKey(i);
-	}
-	for (i = 1; i <= 10; i ++) {
-		game_world->Info.Flags[i] = "";
-	}
+	game_world->Info.clear();
 	BoardChange(0);
 	game_world->currentBoard.Name = "Title screen";
 	LoadedGameFileName = "";
@@ -864,7 +848,7 @@ bool WorldLoad(std::istream & f, const std::string world_name) {
 			LoadedGameFileName = world_name.c_str();
 
 			// XXX: Once we add in editor.cxx
-			//HighScoresLoad();
+			HighScoresLoad();
 
 			SidebarClearLine(5);
 		}
