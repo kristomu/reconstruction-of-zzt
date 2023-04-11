@@ -600,8 +600,8 @@ void TBoard::adjust_board_stats() {
 	}
 }
 
-// Create a yellow-border board with standard parameters
-void TBoard::create() {
+// Create a yellow-border (or blank) board with standard parameters
+void TBoard::create(bool yellow_border) {
 	short ix, iy, i;
 
 	Name = "";
@@ -646,13 +646,15 @@ void TBoard::create() {
 
 	// Then do the yellow border.
 
-	for (ix = 1; ix <= BOARD_WIDTH; ix ++) {
-		Tiles[ix][1] = TileBorder;
-		Tiles[ix][BOARD_HEIGHT] = TileBorder;
-	}
-	for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
-		Tiles[1][iy] = TileBorder;
-		Tiles[BOARD_WIDTH][iy] = TileBorder;
+	if (yellow_border) {
+		for (ix = 1; ix <= BOARD_WIDTH; ix ++) {
+			Tiles[ix][1] = TileBorder;
+			Tiles[ix][BOARD_HEIGHT] = TileBorder;
+		}
+		for (iy = 1; iy <= BOARD_HEIGHT; iy ++) {
+			Tiles[1][iy] = TileBorder;
+			Tiles[BOARD_WIDTH][iy] = TileBorder;
+		}
 	}
 
 	// Place the player.

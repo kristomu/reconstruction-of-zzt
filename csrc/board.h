@@ -193,7 +193,8 @@ class TBoard {
 
 		bool valid_coord(short x, short y) const;
 
-		void create();
+		void create(bool yellow_border);
+		void create() { create(true); }
 
 		// Serialize
 		std::vector<unsigned char> dump() const;
