@@ -50,6 +50,8 @@
 #include "hardware.h"
 #include "testing.h"
 
+#include <iostream>
+
 std::vector<char> preloaded_world_data;
 
 boolean ValidCoord(integer x, integer y) {
@@ -1115,11 +1117,84 @@ boolean BoardPrepareTileForPlacement(integer x, integer y) {
 	return BoardPrepareTileForPlacement_result;
 }
 
+timespec monotime, first_monotime, subtracted_monotime,
+	last_skip, paused, unpaused;
+bool got_first_monotime = false, got_first_skip = false;
+bool set_paused = false;
+
+template<typename T> void print_timedelta(timespec before, timespec after,
+	T & stream_out) {
+
+	int64_t duration = (int64_t)(after.tv_sec - before.tv_sec) * 
+		(int64_t)1000000000UL + (int64_t)(after.tv_nsec - before.tv_nsec);
+
+	int64_t seconds = duration/1000000000UL,
+	nanosecs = duration % 1000000000UL;
+
+	stream_out << seconds << "." << nanosecs;
+}
+
 void MoveStat(integer statId, integer newX, integer newY) {
 	TTile iUnder;
 	integer ix, iy;
 	integer oldX, oldY;
 	integer oldBgColor;
+
+	// HACK
+	// Print a debug message when the player is moved, also giving the
+	// time when that happened. This will be used to check puzzle solving
+	// times when solving ZZT puzzles; I can just read off the first time
+	// the player gets to the tile just in front of the next puzzle and use
+	// the deltas to figure out how long it took me to solve the puzzle.
+
+	// TODO: Instead of triggering on red fake, trigger on transports (new x,y more
+	// than 1 away in some direction). The player may need to step on the red
+	// fake to move around in the puzzle, but should only be doing transports
+	// when exiting or entering a puzzle (or moving around the board).
+
+	// Also TODO: Use the board name, not the world name!
+
+	if (statId == 0) { // player
+		clock_gettime(CLOCK_MONOTONIC, &monotime);
+		if (!got_first_monotime) {
+			got_first_monotime = true;
+			first_monotime = monotime;
+		}
+
+		// Make the output a little bit cleaner by subtracting the
+		// first_monotime.
+
+		std::cerr << game_world->currentBoard.Name << ": Player to " << newX << ", " << newY <<
+			" at ";
+		print_timedelta(first_monotime, monotime, std::cerr);
+		std::cerr << "\n";
+
+		TTile dest = game_world->currentBoard.Tiles[newX][newY];
+
+		int oldX = game_world->currentBoard.Stats[statId].X;
+		int oldY = game_world->currentBoard.Stats[statId].Y;
+
+		int max_distance = std::max(abs(newX - oldX), abs(newY - oldY));
+
+		if (max_distance > 1) {
+			std::cerr << game_world->currentBoard.Name << 
+				": Player skip to " << newX 
+				<< ", " << newY << "  ";
+
+			if (got_first_skip) {
+				std::cerr << "time elapsed: ";
+				print_timedelta(last_skip, monotime, std::cerr);
+				last_skip = monotime;
+			} else {
+				std::cerr << "first time.";
+				last_skip = monotime;
+				got_first_skip = true;
+			}
+			std::cerr << " Absolute time: ";
+			print_timedelta(first_monotime, monotime, std::cerr);
+			std::cerr << "\n";
+		}
+	}
 
 	if (statId > MAX_STAT) {
 		throw std::logic_error("Trying to move statId greater than MAX_STAT");
@@ -1167,7 +1242,8 @@ void MoveStat(integer statId, integer newX, integer newY) {
 
 	game_world->currentBoard.Tiles[newX][newY].Element =
 		game_world->currentBoard.Tiles[with.X][with.Y].Element;
-	/* Don't remove the player if he's at the old position. This can
+	/* Don't remove the player i
+	f he's at the old position. This can
 	happen with multiple stats with the same coordinate. */
 	if ((statId == 0) || (with.X != game_world->currentBoard.Stats[0].X)
 		|| (with.Y != game_world->currentBoard.Stats[0].Y)) {
@@ -1369,6 +1445,7 @@ void DamageStat(integer attackerStatId) {
 					DrawPlayerSurroundings(with.X, with.Y, 0);
 
 					//if (! FuzzMode) {
+					clock_gettime(CLOCK_MONOTONIC, &paused);
 					GamePaused = true;
 					//}
 				}
@@ -1567,6 +1644,7 @@ void BoardPassageTeleport(integer x, integer y) {
 	/* Move the player onto the passage. */
 	MoveStat(0, newX, newY);
 
+	clock_gettime(CLOCK_MONOTONIC, &paused);
 	GamePaused = true;
 	SoundQueue(4,
 		"\60\1\64\1\67\1\61\1\65\1\70\1\62\1\66\1\71\1\63\1\67\1\72\1\64\1\70\1\100\1");
@@ -1759,6 +1837,11 @@ void GamePlayLoop(boolean boardChanged) {
 
 	do {
 		if (GamePaused)  {
+			if (!set_paused) {
+				clock_gettime(CLOCK_MONOTONIC, &paused);
+				set_paused = true;
+			}
+
 			if (SoundHasTimeElapsed(TickTimeCounter, 25)) {
 				pauseBlink = !pauseBlink;
 			}
@@ -1840,6 +1923,11 @@ void GamePlayLoop(boolean boardChanged) {
 				}
 
 				/* Unpause */
+				set_paused = false;
+				clock_gettime(CLOCK_MONOTONIC, &unpaused);
+				std::cerr << game_world->Info.Name << ": Player unpaused. Pause duration: ";
+				print_timedelta(paused, unpaused, std::cerr);
+				std::cerr << "\n";
 				GamePaused = false;
 				SidebarClearLine(5);
 				CurrentTick = rnd.randint(100);
@@ -2001,6 +2089,7 @@ void GameTitleLoop() {
 
 			if (startPlay)  {
 				GameStateElement = E_PLAYER;
+				clock_gettime(CLOCK_MONOTONIC, &paused);
 				GamePaused = true;
 				GamePlayLoop(true);
 				boardChanged = true;
