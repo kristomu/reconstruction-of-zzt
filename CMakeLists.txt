@@ -29,7 +29,7 @@ else()
 
 	# Can't be made in AFL mode because it requires a Pascal library and
 	# FreePascal doesn't support AFL instrumentation.
-	set(EQUALZZT_NAME "fuzzt-equal")
+	#set(EQUALZZT_NAME "fuzzt-equal")
 endif()
 
 # Parameters

@@ -1122,17 +1122,30 @@ timespec monotime, first_monotime, subtracted_monotime,
 bool got_first_monotime = false, got_first_skip = false;
 bool set_paused = false;
 
+int64_t cumulative_pause_time = 0;
+
+int64_t get_timedelta(timespec before, timespec after) {
+	int64_t duration = (int64_t)(after.tv_sec - before.tv_sec) * 
+		(int64_t)1000000000UL + (int64_t)(after.tv_nsec - before.tv_nsec);
+	return duration;
+}
+
 template<typename T> void print_timedelta(timespec before, timespec after,
-	T & stream_out) {
+	T & stream_out, bool subtract_pausetime) {
 
 	int64_t duration = (int64_t)(after.tv_sec - before.tv_sec) * 
 		(int64_t)1000000000UL + (int64_t)(after.tv_nsec - before.tv_nsec);
+
+	if (subtract_pausetime) {
+		duration -= cumulative_pause_time;
+	}
 
 	int64_t seconds = duration/1000000000UL,
 	nanosecs = duration % 1000000000UL;
 
 	stream_out << seconds << "." << nanosecs;
 }
+
 
 void MoveStat(integer statId, integer newX, integer newY) {
 	TTile iUnder;
@@ -1166,7 +1179,7 @@ void MoveStat(integer statId, integer newX, integer newY) {
 
 		std::cerr << game_world->currentBoard.Name << ": Player to " << newX << ", " << newY <<
 			" at ";
-		print_timedelta(first_monotime, monotime, std::cerr);
+		print_timedelta(first_monotime, monotime, std::cerr, false);
 		std::cerr << "\n";
 
 		TTile dest = game_world->currentBoard.Tiles[newX][newY];
@@ -1182,8 +1195,8 @@ void MoveStat(integer statId, integer newX, integer newY) {
 				<< ", " << newY << "  ";
 
 			if (got_first_skip) {
-				std::cerr << "time elapsed: ";
-				print_timedelta(last_skip, monotime, std::cerr);
+				std::cerr << "time w/o pauses: ";
+				print_timedelta(last_skip, monotime, std::cerr, true);
 				last_skip = monotime;
 			} else {
 				std::cerr << "first time.";
@@ -1191,8 +1204,10 @@ void MoveStat(integer statId, integer newX, integer newY) {
 				got_first_skip = true;
 			}
 			std::cerr << " Absolute time: ";
-			print_timedelta(first_monotime, monotime, std::cerr);
+			print_timedelta(first_monotime, monotime, std::cerr, false);
 			std::cerr << "\n";
+			std::cerr << " pause time: " << cumulative_pause_time/(long double)1e9 << "\n";
+			cumulative_pause_time = 0;
 		}
 	}
 
@@ -1926,7 +1941,9 @@ void GamePlayLoop(boolean boardChanged) {
 				set_paused = false;
 				clock_gettime(CLOCK_MONOTONIC, &unpaused);
 				std::cerr << game_world->Info.Name << ": Player unpaused. Pause duration: ";
-				print_timedelta(paused, unpaused, std::cerr);
+				cumulative_pause_time += get_timedelta(
+					paused, unpaused);
+				print_timedelta(paused, unpaused, std::cerr, false);
 				std::cerr << "\n";
 				GamePaused = false;
 				SidebarClearLine(5);
