@@ -539,7 +539,7 @@ static void EditorEditStatSettings(boolean selected, integer & statId,
 		}
 
 		if ((keyboard.InputKeyPressed != E_KEY_ESCAPE) &&
-			(elem_info_ptr->defs[element].ParamBoardName.c_str() != 0)) {
+			(elem_info_ptr->defs[element].ParamBoardName.size() != 0)) {
 			if (selected)  {
 				selectedBoard = EditorSelectBoard(
 						string(elem_info_ptr->defs[element].ParamBoardName.c_str()),
