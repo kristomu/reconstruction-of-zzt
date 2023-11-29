@@ -254,7 +254,7 @@ procedure EditorLoop;
 		var
 			state: TTextWindowState;
 			i: integer;
-			numStr: string[50];
+			numStr: TString50;
 			exitRequested: boolean;
 
 		function BoolToString(val: boolean): string;
@@ -694,7 +694,7 @@ procedure EditorLoop;
 				end else if (InputKeyPressed = KEY_BACKSPACE) and (cursorX > 1)
 					and EditorPrepareModifyTile(cursorX - 1, cursorY) then
 				begin
-						cursorX := cursorX - 1;
+					cursorX := cursorX - 1;
 				end else if (InputKeyPressed = KEY_ENTER) or (InputKeyPressed = KEY_ESCAPE) then begin
 					drawMode := DrawingOff;
 					InputKeyPressed := #0;
@@ -976,7 +976,7 @@ procedure HighScoresLoad;
 		end;
 		Close(f);
 		if IOResult <> 0 then begin
-			for i := 1 to 30 do begin
+			for i := 1 to HIGH_SCORE_COUNT do begin
 				HighScoreList[i].Name := '';
 				HighScoreList[i].Score := -1;
 			end;
@@ -1050,7 +1050,7 @@ procedure EditorOpenEditTextWindow(var state: TTextWindowState);
 procedure EditorEditHelpFile;
 	var
 		textWindow: TTextWindowState;
-		filename: string[50];
+		filename: TString50;
 	begin
 		filename := '';
 		SidebarPromptString('File to edit', '.HLP', filename, PROMPT_ALPHANUM);
@@ -1068,14 +1068,14 @@ procedure EditorEditHelpFile;
 procedure HighScoresAdd(score: integer);
 	var
 		textWindow: TTextWindowState;
-		name: string[50];
+		name: TString50;
 		i, listPos: integer;
 	begin
 		listPos := 1;
-		while (listPos <= 30) and (score < HighScoreList[listPos].Score) do
+		while (listPos <= HIGH_SCORE_COUNT) and (score < HighScoreList[listPos].Score) do
 			listPos := listPos + 1;
-		if (listPos <= 30) and (score > 0) then begin
-			for i := 29 downto listPos do
+		if (listPos <= HIGH_SCORE_COUNT) and (score > 0) then begin
+			for i := (HIGH_SCORE_COUNT - 1) downto listPos do
 				HighScoreList[i + 1] := HighScoreList[i];
 			HighScoreList[listPos].Score := score;
 			HighScoreList[listPos].Name := '-- You! --';

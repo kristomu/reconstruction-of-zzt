@@ -79,6 +79,8 @@ interface
 
 implementation
 uses Crt, Input, Printer, Gamevars, Fileops;
+const
+	TEXT_WINDOW_ANIM_SPEED = 25;
 
 function UpCaseString(input: string): string;
 	var
@@ -117,7 +119,7 @@ procedure TextWindowDrawOpen(var state: TTextWindowState);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy - 1, $0F, TextWindowStrText);
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(25);
+				Delay(TEXT_WINDOW_ANIM_SPEED);
 			end;
 
 			VideoWriteText(TextWindowX, TextWindowY + 2, $0F, TextWindowStrSep);
@@ -134,11 +136,13 @@ procedure TextWindowDrawClose(var state: TTextWindowState);
 			for iy := 0 to (TextWindowHeight div 2) do begin
 				VideoWriteText(TextWindowX, TextWindowY + iy, $0F, TextWindowStrTop);
 				VideoWriteText(TextWindowX, TextWindowY + TextWindowHeight - iy, $0F, TextWindowStrBottom);
-				Delay(18);
+				Delay(TEXT_WINDOW_ANIM_SPEED * 3 div 4);
 				{ Replace upper line with background. }
-				VideoCopy(TextWindowX, TextWindowY + iy, TextWindowWidth, 1, ScreenCopy, true);
+				VideoMove(TextWindowX, TextWindowY + iy, TextWindowWidth,
+					@ScreenCopy[iy + 1], true);
 				{ Replace lower line with background. }
-				VideoCopy(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth, 1, ScreenCopy, true);
+				VideoMove(TextWindowX, TextWindowY + TextWindowHeight - iy, TextWindowWidth,
+					@ScreenCopy[(TextWindowHeight - iy) + 1], true);
 			end;
 		end;
 	end;

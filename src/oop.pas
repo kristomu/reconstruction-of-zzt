@@ -305,7 +305,7 @@ function WorldGetFlagPosition(name: TString50): integer;
 		i: integer;
 	begin
 		WorldGetFlagPosition := -1;
-		for i := 1 to 10 do begin
+		for i := 1 to MAX_FLAG do begin
 			if World.Info.Flags[i] = name then
 				WorldGetFlagPosition := i;
 		end;
@@ -333,7 +333,7 @@ procedure WorldClearFlag(name: TString50);
 
 function OopStringToWord(input: TString50): TString50;
 	var
-		output: string[50];
+		output: TString50;
 		i: integer;
 	begin
 		output := '';
@@ -408,7 +408,7 @@ procedure OopPlaceTile(x, y: integer; var tile: TTile);
 	var
 		color: byte;
 	begin
-		if Board.Tiles[x][y].Element <> 4 then begin
+		if Board.Tiles[x][y].Element <> E_PLAYER then begin
 			color := tile.Color;
 			if ElementDefs[tile.Element].Color < COLOR_SPECIAL_MIN then
 				color := ElementDefs[tile.Element].Color
@@ -495,22 +495,25 @@ function OopReadLineToEnd(statId: integer; var position: integer) : string;
 function OopSend(statId: integer; sendLabel: string; ignoreLock: boolean): boolean;
 	var
 		iDataPos, iStat: integer;
-		ignoreSelfLock: boolean;
+		respectSelfLock: boolean;
 	begin
+		{ If the statId passed is positive, the passed stat will always }
+		{ receive the label irrespective of whether it has been locked }
+		{ or not. ZZT uses positive stat IDs for labels sent by objects, }
+		{ and negative stat IDs for labels sent by in-world events (like }
+		{ touch, shot or energize). }
 		if statId < 0 then begin
-			{ if statId is negative, label send will always succeed on self }
-			{ this is used for in-game events (f.e. TOUCH, SHOT) }
 			statId := -statId;
-			ignoreSelfLock := true;
+			respectSelfLock := true;
 		end else begin
-			ignoreSelfLock := false;
+			respectSelfLock := false;
 		end;
 
 		OopSend := false;
 		iStat := 0;
 
 		while OopFindLabel(statId, sendLabel, iStat, iDataPos, #13':') do begin
-			if ((Board.Stats[iStat].P2 = 0) or (ignoreLock)) or ((statId = iStat) and not ignoreSelfLock) then begin
+			if ((Board.Stats[iStat].P2 = 0) or ignoreLock) or ((statId = iStat) and not respectSelfLock) then begin
 				if iStat = statId then
 					OopSend := true;
 

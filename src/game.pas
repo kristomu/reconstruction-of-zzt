@@ -86,7 +86,7 @@ interface
 	procedure GameUpdateSidebar;
 	procedure GameAboutScreen;
 	procedure GamePlayLoop(boardChanged: boolean);
-	procedure DisplayMessage(time: integer; message: string);
+	procedure DisplayMessage(ticks: integer; message: string);
 	procedure BoardEnter;
 	procedure BoardPassageTeleport(x, y: integer);
 	procedure GameDebugPrompt;
@@ -644,7 +644,7 @@ procedure WorldCreate;
 		World.Info.BoardTimeHsec := 0;
 		for i := 1 to 7 do
 			World.Info.Keys[i] := false;
-		for i := 1 to 10 do
+		for i := 1 to MAX_FLAG do
 			World.Info.Flags[i] := '';
 		BoardChange(0);
 		Board.Name := 'Title screen';
@@ -952,7 +952,7 @@ procedure PauseOnError;
 function DisplayIOError: boolean;
 	var
 		ioResVal: word;
-		errorNumStr: string[50];
+		errorNumStr: TString50;
 		textWindow: TTextWindowState;
 	begin
 		ioResVal := IOResult;
@@ -1085,7 +1085,7 @@ function WorldLoad(filename, extension: TString50): boolean;
 
 		if not DisplayIOError then begin
 			WorldUnload;
-			BlockRead(f, IoTmpBuf^, 512);
+			BlockRead(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
 
 			if not DisplayIOError then begin
 				ptr := IoTmpBuf;
@@ -1223,7 +1223,7 @@ procedure WorldSave(filename, extension: TString50);
 
 		if not DisplayIOError then begin
 			ptr := IoTmpBuf;
-			FillChar(IoTmpBuf^, 512, 0);
+			FillChar(IoTmpBuf^, WORLD_FILE_HEADER_SIZE, 0);
 			version := -1;
 			Move(version, ptr^, SizeOf(version));
 			AdvancePointer(ptr, SizeOf(version));
@@ -1234,7 +1234,7 @@ procedure WorldSave(filename, extension: TString50);
 			Move(World.Info, ptr^, SizeOf(World.Info));
 			AdvancePointer(ptr, SizeOf(World.Info));
 
-			BlockWrite(f, IoTmpBuf^, 512);
+			BlockWrite(f, IoTmpBuf^, WORLD_FILE_HEADER_SIZE);
 			if DisplayIOError then goto OnError;
 
 			for i := 0 to World.BoardCount do begin
@@ -1611,7 +1611,7 @@ procedure GameUpdateSidebar;
 		end;
 	end;
 
-procedure DisplayMessage(time: integer; message: string);
+procedure DisplayMessage(ticks: integer; message: string);
 	begin
 		if GetStatIdAt(0, 0) <> -1 then begin
 			RemoveStat(GetStatIdAt(0, 0));

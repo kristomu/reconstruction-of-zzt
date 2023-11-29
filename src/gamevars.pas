@@ -37,6 +37,7 @@ interface
 		MAX_FLAG = 10;
 		BOARD_WIDTH = 60;
 		BOARD_HEIGHT = 25;
+		WORLD_FILE_HEADER_SIZE = 512;
 		HIGH_SCORE_COUNT = 30;
 		TORCH_DURATION = 200;
 		TORCH_DX = 8;
@@ -113,7 +114,7 @@ interface
 			StartPlayerX: byte;
 			StartPlayerY: byte;
 			TimeLimitSec: integer;
-			unk1: array[70 .. 85] of byte;
+			unkPad: array[70 .. 85] of byte;
 		end;
 		TWorldInfo = packed record
 			Ammo: integer;
@@ -153,8 +154,8 @@ interface
 			Info: TWorldInfo;
 			EditorStatSettings: array[0 .. MAX_ELEMENT] of TEditorStatSetting;
 		end;
-		THighScoreEntry = packed record
-			Name: string[50];
+		THighScoreEntry = record
+			Name: TString50;
 			Score: integer;
 		end;
 		THighScoreList = array[1 .. HIGH_SCORE_COUNT] of THighScoreEntry;
